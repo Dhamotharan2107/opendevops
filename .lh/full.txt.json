@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 5,
+            "activePatchIndex": 6,
             "patches": [
                 {
                     "date": 1780815622476,
@@ -28,6 +28,10 @@
                 {
                     "date": 1781527779672,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -8,5 +8,5 @@\n \r\n   Installation complete!\r\n   Run 'opendrap-agent --help' to get started.\r\n ========================================\r\n-contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ \n\\ No newline at end of file\n+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ \r\n"
+                },
+                {
+                    "date": 1781528270336,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -8,5 +8,21 @@\n \r\n   Installation complete!\r\n   Run 'opendrap-agent --help' to get started.\r\n ========================================\r\n-contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ \r\n+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ curl -sSL https://opendrap-api.tert.workers.dev/api/install.sh | bash\r\n+========================================\r\n+  Opendrap DevOps Agent Installer\r\n+========================================\r\n+\r\n+  Agent script created at /home/contact_inotechsoftware/opendrap-agent/agent.py\r\n+  websockets module found\r\n+  Starting agent in background...\r\n+\r\n+  Agent is running! (PID: 1802)\r\n+  Connected to Opendrap API.\r\n+  Agent ID: 16b46d5b\r\n+\r\n+  Logs: /home/contact_inotechsoftware/opendrap-agent/agent.log\r\n+  Stop: kill 1802\r\n+========================================\r\n+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ \n\\ No newline at end of file\n"
                 }
             ],
             "date": 1780815622476,

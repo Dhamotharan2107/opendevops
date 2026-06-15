@@ -9,16 +9,20 @@ contact_inocurl -sSL https://opendrap-api.tert.workers.dev/api/install.sh | bash
   Installation complete!
   Run 'opendrap-agent --help' to get started.
 ========================================
-contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ 
+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ curl -sSL https://opendrap-api.tert.workers.dev/api/install.sh | bash
+========================================
+  Opendrap DevOps Agent Installer
+========================================
 
-Agent Status
-Connection
-Offline
-Installed
-Yes
-Agent ID
-agent-fm0pfehw...
-Workspace
-~/opendev
-Agent is offline. To reconnect, run in your Cloud Shell:
-cd ~/opendev && python agent/agent.py
+  Agent script created at /home/contact_inotechsoftware/opendrap-agent/agent.py
+  websockets module found
+  Starting agent in background...
+
+  Agent is running! (PID: 1802)
+  Connected to Opendrap API.
+  Agent ID: 16b46d5b
+
+  Logs: /home/contact_inotechsoftware/opendrap-agent/agent.log
+  Stop: kill 1802
+========================================
+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ 

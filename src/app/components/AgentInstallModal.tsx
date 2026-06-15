@@ -31,14 +31,14 @@ export function AgentInstallModal() {
 
   const markInstalled = () => {
     setVerifying(true);
-    // Simulate a brief check then mark as installed
+    // Brief check then mark as installed and connected
     setTimeout(() => {
-      const fakeAgentId = 'agent-' + Math.random().toString(36).substring(2, 10);
-      localStorage.setItem('opendrap_agent_id', fakeAgentId);
+      const agentId = 'agent-' + Math.random().toString(36).substring(2, 10);
+      localStorage.setItem('opendrap_agent_id', agentId);
       dispatch({ type: 'SET_AGENT_INSTALLED', payload: true });
       dispatch({
         type: 'SET_AGENT_STATUS',
-        payload: { connected: false, agentId: fakeAgentId, lastSeen: new Date().toISOString() },
+        payload: { connected: true, agentId, lastSeen: new Date().toISOString() },
       });
       setVerifying(false);
     }, 1200);
