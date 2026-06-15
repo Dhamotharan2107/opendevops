@@ -6,17 +6,16 @@ import { useApp } from '@/lib/store';
 const INSTALL_CMD = 'curl -sSL https://opendrap-api.tert.workers.dev/api/install.sh | bash';
 
 const STEPS = [
-  { icon: Terminal, text: 'Open Google Cloud Shell in your browser' },
+  { icon: Terminal, text: 'Open your Cloud Shell or terminal' },
   { icon: Copy, text: 'Paste and run the install command below' },
-  { icon: Cpu, text: 'Agent auto-registers and connects to Opendrap' },
+  { icon: Cpu, text: 'Agent auto-starts and connects to Opendrap' },
   { icon: Wifi, text: 'Dashboard unlocks — start creating projects' },
 ];
 
 const WORKSPACE = [
-  '~/opendev/agent/     — Agent runtime',
-  '~/opendev/projects/  — Isolated project folders',
-  '~/opendev/logs/      — Agent and project logs',
-  '~/opendev/config/    — Configuration files',
+  '~/opendrap-agent/agent.py   — Agent runtime script',
+  '~/opendrap-agent/agent.log  — Agent connection logs',
+  '~/opendrap-agent/agent.pid  — Process ID file',
 ];
 
 export function AgentInstallModal() {
@@ -79,15 +78,7 @@ export function AgentInstallModal() {
           {/* Description */}
           <p className="text-sm text-gray-400 mb-6 leading-relaxed">
             To use Opendrap DevOps AI, install the Opendrap Agent in your{' '}
-            <a
-              href="https://shell.cloud.google.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-violet-400 hover:text-violet-300 underline underline-offset-2"
-            >
-              Google Cloud Shell
-            </a>{' '}
-            environment. The agent creates an isolated workspace and securely connects your cloud shell to this dashboard.
+            terminal. The agent creates an isolated workspace and connects your environment to this dashboard.
           </p>
 
           {/* Steps */}
@@ -123,7 +114,7 @@ export function AgentInstallModal() {
           <div className="mb-6 p-4 rounded-xl bg-violet-500/5 border border-violet-500/15">
             <div className="flex items-center gap-2 mb-2.5">
               <FolderOpen className="w-4 h-4 text-violet-400" />
-              <span className="text-sm font-medium text-violet-300">Workspace Created at ~/opendev</span>
+              <span className="text-sm font-medium text-violet-300">Workspace Created at ~/opendrap-agent</span>
             </div>
             <div className="space-y-1">
               {WORKSPACE.map((w) => (
@@ -136,7 +127,7 @@ export function AgentInstallModal() {
           <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 mb-7">
             <Shield className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-amber-300/80 leading-relaxed">
-              The terminal is sandboxed to <span className="font-mono">~/opendev</span> only. No root, no sudo, no system access. Every command is logged.
+              The agent runs in <span className="font-mono">~/opendrap-agent</span> with no root or sudo access. All activity is logged.
             </p>
           </div>
 

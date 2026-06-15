@@ -392,7 +392,7 @@ function AgentTab() {
             },
             {
               label: 'Workspace',
-              value: '~/opendev',
+              value: '~/opendrap-agent',
               icon: Terminal,
               color: 'text-blue-400',
             },
@@ -409,8 +409,8 @@ function AgentTab() {
 
         {!state.agentConnected && state.agentInstalled && (
           <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg text-xs text-amber-300/80 font-mono">
-            Agent is offline. To reconnect, run in your Cloud Shell:<br />
-            <span className="text-white">cd ~/opendev && python agent/agent.py</span>
+            Agent is offline. Reconnect by running in Cloud Shell:<br />
+            <span className="text-white">cd ~/opendrap-agent && python3 agent.py</span>
           </div>
         )}
 
@@ -439,7 +439,7 @@ function AgentTab() {
       {/* Install command */}
       <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-4">
         <h3 className="font-semibold text-white">Install Command</h3>
-        <p className="text-sm text-gray-400">Run this in Google Cloud Shell to install or reinstall the agent.</p>
+        <p className="text-sm text-gray-400">Run this in your terminal to install and start the agent automatically.</p>
         <div className="flex items-center gap-2 p-3.5 bg-[#060608] border border-white/10 rounded-xl">
           <code className="flex-1 text-emerald-300 font-mono text-sm truncate">{INSTALL_CMD}</code>
           <button
