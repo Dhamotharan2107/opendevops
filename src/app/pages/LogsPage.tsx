@@ -91,15 +91,15 @@ export function LogsPage() {
   };
 
   return (
-    <div className="p-8 flex-1 flex flex-col min-h-0">
-      <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 space-y-6">
+    <div className="p-4 md:p-8 flex-1 flex flex-col min-h-0">
+      <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1">Logs</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-white mb-1">Logs</h1>
             <p className="text-gray-400 text-sm">{logs.length} entries — live stream</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <button
               onClick={() => setPaused((p) => !p)}
               className={cn(
@@ -130,13 +130,13 @@ export function LogsPage() {
         </div>
 
         {/* Level Summary */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
           {(['all', 'info', 'warn', 'error'] as const).map((lvl) => (
             <button
               key={lvl}
               onClick={() => setLevelFilter(lvl)}
               className={cn(
-                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm border transition-colors',
+                'flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg text-sm border transition-colors',
                 levelFilter === lvl
                   ? lvl === 'all' ? 'bg-white/10 border-white/20 text-white' : `${LEVEL_BG[lvl]} ${LEVEL_COLORS[lvl]}`
                   : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
@@ -149,14 +149,14 @@ export function LogsPage() {
               )}
             </button>
           ))}
-          <div className="flex-1" />
-          <div className="relative">
+          <div className="hidden sm:block flex-1" />
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search logs..."
-              className="pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50 w-64"
+              className="w-full sm:w-64 pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50"
             />
           </div>
           <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
@@ -171,12 +171,12 @@ export function LogsPage() {
         </div>
 
         {/* Log Terminal */}
-        <div className="flex-1 bg-[#0A0A0F] border border-white/10 rounded-xl overflow-hidden flex flex-col" style={{ minHeight: 400 }}>
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5 bg-white/[0.02]">
+        <div className="flex-1 bg-[#0A0A0F] border border-white/10 rounded-xl overflow-hidden flex flex-col min-h-[300px] md:min-h-[400px]">
+          <div className="flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 border-b border-white/5 bg-white/[0.02]">
             <div className="flex gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-500/70" />
-              <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
-              <div className="w-3 h-3 rounded-full bg-green-500/70" />
+              <div className="w-2.5 md:w-3 h-2.5 md:h-3 rounded-full bg-red-500/70" />
+              <div className="w-2.5 md:w-3 h-2.5 md:h-3 rounded-full bg-yellow-500/70" />
+              <div className="w-2.5 md:w-3 h-2.5 md:h-3 rounded-full bg-green-500/70" />
             </div>
             <span className="text-xs text-gray-500 font-mono ml-2">opendrap — logs</span>
             {!paused && (

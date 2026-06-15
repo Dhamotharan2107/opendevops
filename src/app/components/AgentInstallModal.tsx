@@ -63,9 +63,9 @@ export function AgentInstallModal() {
         {/* Header gradient */}
         <div className="h-1 w-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500" />
 
-        <div className="p-8">
+        <div className="p-4 md:p-8">
           {/* Title */}
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 border border-violet-500/30 flex items-center justify-center">
               <Terminal className="w-6 h-6 text-violet-400" />
             </div>
@@ -82,7 +82,7 @@ export function AgentInstallModal() {
           </p>
 
           {/* Steps */}
-          <div className="grid grid-cols-2 gap-2 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">
             {STEPS.map((s, i) => (
               <div key={i} className="flex items-start gap-2.5 p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
                 <div className="w-5 h-5 rounded-full bg-violet-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">

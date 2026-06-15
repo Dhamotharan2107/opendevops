@@ -85,11 +85,11 @@ export function MonitoringPage() {
   };
 
   return (
-    <div className="p-8">
-      <div className="max-w-[1400px] mx-auto space-y-8">
-        <div className="flex items-center justify-between">
+    <div className="p-4 md:p-8">
+      <div className="max-w-[1400px] mx-auto space-y-6 md:space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1">Monitoring</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-white mb-1">Monitoring</h1>
             <p className="text-gray-400 text-sm">Real-time system metrics</p>
           </div>
           <div className={cn(
@@ -104,7 +104,7 @@ export function MonitoringPage() {
         </div>
 
         {/* Current Values Row */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {METRICS.map((m) => {
             const val = currentValues[m.key];
             const prev = data[m.key]?.[data[m.key].length - 2]?.value ?? val;
@@ -113,17 +113,17 @@ export function MonitoringPage() {
               <motion.div
                 key={m.key}
                 whileHover={{ y: -4 }}
-                className="p-6 bg-white/5 border border-white/10 rounded-xl"
+                className="p-4 md:p-6 bg-white/5 border border-white/10 rounded-xl"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
-                    <m.icon className="w-5 h-5" style={{ color: m.color }} />
+                  <div className="w-8 md:w-10 h-8 md:h-10 rounded-lg bg-white/10 flex items-center justify-center">
+                    <m.icon className="w-4 md:w-5 h-4 md:h-5" style={{ color: m.color }} />
                   </div>
                   <div className={cn('flex items-center gap-1 text-xs', up ? 'text-red-400' : 'text-emerald-400')}>
                     {up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                   </div>
                 </div>
-                <div className="text-3xl font-bold text-white font-mono mb-1">
+                <div className="text-2xl md:text-3xl font-bold text-white font-mono mb-1">
                   {val}<span className="text-sm text-gray-500 font-sans ml-1">{m.unit}</span>
                 </div>
                 <div className="text-sm text-gray-500">{m.label}</div>
@@ -133,7 +133,7 @@ export function MonitoringPage() {
         </div>
 
         {/* Charts Grid */}
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           {METRICS.map((m) => (
             <motion.div
               key={m.key}

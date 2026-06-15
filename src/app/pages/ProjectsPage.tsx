@@ -42,11 +42,11 @@ export function ProjectsPage() {
   });
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="max-w-[1400px] mx-auto">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1">Projects</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-white mb-1">Projects</h1>
             <p className="text-gray-400 text-sm">{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
           </div>
           <button
@@ -58,8 +58,8 @@ export function ProjectsPage() {
           </button>
         </div>
 
-        <div className="flex items-center gap-3 mb-6">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
+          <div className="relative w-full sm:flex-1 sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input
               value={search}
@@ -109,7 +109,7 @@ export function ProjectsPage() {
         )}
 
         {!loading && filtered.length > 0 && (
-          <motion.div className="grid grid-cols-3 gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             {filtered.map((project, i) => (
               <motion.div
                 key={project.id}

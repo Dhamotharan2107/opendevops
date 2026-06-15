@@ -53,18 +53,18 @@ export function DashboardHome() {
   ];
 
   return (
-    <div className="p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
         {/* Welcome Header */}
         <div>
-          <h1 className="text-3xl font-bold mb-2">Welcome back, John</h1>
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Welcome back, John</h1>
           <p className="text-muted-foreground">
             Here's what's happening with your projects today.
           </p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {[
             {
               icon: Rocket,

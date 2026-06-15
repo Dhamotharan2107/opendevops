@@ -93,16 +93,16 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="max-w-[900px] mx-auto space-y-8">
         <div>
           <h1 className="text-2xl font-bold text-white mb-1">Settings</h1>
           <p className="text-gray-400 text-sm">Manage your account and preferences</p>
         </div>
 
-        <div className="flex gap-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Sidebar */}
-          <nav className="w-48 flex-shrink-0 space-y-1">
+          <nav className="w-full lg:w-48 flex-shrink-0 space-y-1 flex lg:flex-col gap-1 overflow-x-auto">
             {TABS.map((t) => (
               <button
                 key={t.id}

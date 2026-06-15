@@ -76,11 +76,11 @@ export function TeamPage() {
   const project = projects.find((p) => p.id === selectedProject);
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="max-w-[1400px] mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1">Team</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-white mb-1">Team</h1>
             <p className="text-gray-400 text-sm">{members.length} team members</p>
           </div>
           <button
@@ -118,7 +118,7 @@ export function TeamPage() {
         </div>
 
         {/* Members Grid */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {filtered.map((member, i) => {
             const roleCfg = ROLE_CONFIG[member.role];
             const isYou = member.userId === '1';

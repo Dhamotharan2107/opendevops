@@ -51,11 +51,11 @@ export function DeploymentsPage() {
   };
 
   return (
-    <div className="p-8">
-      <div className="max-w-[1400px] mx-auto space-y-8">
-        <div className="flex items-center justify-between">
+    <div className="p-4 md:p-8">
+      <div className="max-w-[1400px] mx-auto space-y-6 md:space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1">Deployments</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-white mb-1">Deployments</h1>
             <p className="text-gray-400 text-sm">{deployments.length} total deployments</p>
           </div>
           <button
@@ -71,23 +71,23 @@ export function DeploymentsPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {[
             { label: 'Total', value: stats.total, color: 'text-white', bg: 'bg-white/5' },
             { label: 'Successful', value: stats.success, color: 'text-emerald-400', bg: 'bg-emerald-500/5' },
             { label: 'Failed', value: stats.failed, color: 'text-red-400', bg: 'bg-red-500/5' },
             { label: 'Building', value: stats.building, color: 'text-blue-400', bg: 'bg-blue-500/5' },
           ].map((s) => (
-            <div key={s.label} className={cn('p-6 border border-white/10 rounded-xl', s.bg)}>
-              <div className={cn('text-3xl font-bold mb-1 font-mono', s.color)}>{s.value}</div>
+            <div key={s.label} className={cn('p-4 md:p-6 border border-white/10 rounded-xl', s.bg)}>
+              <div className={cn('text-2xl md:text-3xl font-bold mb-1 font-mono', s.color)}>{s.value}</div>
               <div className="text-sm text-gray-500">{s.label}</div>
             </div>
           ))}
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="relative w-full sm:flex-1 sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input
               value={search}
@@ -109,17 +109,17 @@ export function DeploymentsPage() {
         </div>
 
         {/* Deployments Table */}
-        <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-          <table className="w-full">
+        <div className="bg-white/5 border border-white/10 rounded-xl overflow-x-auto">
+          <table className="w-full min-w-[600px]">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="text-left py-3 px-6 text-xs font-medium text-gray-400 uppercase tracking-wider">Project</th>
-                <th className="text-left py-3 px-6 text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="text-left py-3 px-6 text-xs font-medium text-gray-400 uppercase tracking-wider">Branch</th>
-                <th className="text-left py-3 px-6 text-xs font-medium text-gray-400 uppercase tracking-wider">Commit</th>
-                <th className="text-left py-3 px-6 text-xs font-medium text-gray-400 uppercase tracking-wider">Version</th>
-                <th className="text-left py-3 px-6 text-xs font-medium text-gray-400 uppercase tracking-wider">Time</th>
-                <th className="py-3 px-6" />
+                <th className="text-left py-3 px-4 md:px-6 text-xs font-medium text-gray-400 uppercase tracking-wider">Project</th>
+                <th className="text-left py-3 px-4 md:px-6 text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                <th className="text-left py-3 px-4 md:px-6 text-xs font-medium text-gray-400 uppercase tracking-wider hidden md:table-cell">Branch</th>
+                <th className="text-left py-3 px-4 md:px-6 text-xs font-medium text-gray-400 uppercase tracking-wider hidden md:table-cell">Commit</th>
+                <th className="text-left py-3 px-4 md:px-6 text-xs font-medium text-gray-400 uppercase tracking-wider hidden md:table-cell">Version</th>
+                <th className="text-left py-3 px-4 md:px-6 text-xs font-medium text-gray-400 uppercase tracking-wider hidden sm:table-cell">Time</th>
+                <th className="py-3 px-4 md:px-6" />
               </tr>
             </thead>
             <tbody>
@@ -150,52 +150,52 @@ export function DeploymentsPage() {
                     transition={{ delay: i * 0.04 }}
                     className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors group"
                   >
-                    <td className="py-4 px-6">
+                    <td className="py-3 md:py-4 px-4 md:px-6">
                       <Link to={`/dashboard/project/${dep.projectId}`} className="flex items-center gap-3 group-hover:text-violet-400 transition-colors">
-                        <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center border',
+                        <div className={cn('w-8 md:w-9 h-8 md:h-9 rounded-lg flex items-center justify-center border flex-shrink-0',
                           dep.status === 'success' ? 'bg-emerald-500/10 border-emerald-500/20' :
                           dep.status === 'failed' ? 'bg-red-500/10 border-red-500/20' :
                           'bg-blue-500/10 border-blue-500/20'
                         )}>
-                          <Cloud className={cn('w-4 h-4',
+                          <Cloud className={cn('w-3.5 md:w-4 h-3.5 md:h-4',
                             dep.status === 'success' ? 'text-emerald-400' :
                             dep.status === 'failed' ? 'text-red-400' : 'text-blue-400'
                           )} />
                         </div>
-                        <div>
-                          <div className="font-medium text-white text-sm">{project?.name || 'Unknown'}</div>
-                          <div className="text-xs text-gray-500 font-mono">{project?.repo || '—'}</div>
+                        <div className="min-w-0">
+                          <div className="font-medium text-white text-sm truncate">{project?.name || 'Unknown'}</div>
+                          <div className="text-xs text-gray-500 font-mono truncate">{project?.repo || '—'}</div>
                         </div>
                       </Link>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 md:py-4 px-4 md:px-6">
                       <div className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium', getStatusColor(dep.status))}>
                         <Icon className={cn('w-3 h-3', dep.status === 'building' && 'animate-spin')} />
                         {dep.status.charAt(0).toUpperCase() + dep.status.slice(1)}
                       </div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 md:py-4 px-4 md:px-6 hidden md:table-cell">
                       <div className="flex items-center gap-1.5 text-sm text-gray-400 font-mono">
                         <GitBranch className="w-3.5 h-3.5" />
                         {dep.branch}
                       </div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 md:py-4 px-4 md:px-6 hidden md:table-cell">
                       <div className="flex items-center gap-1.5 text-xs text-gray-500 font-mono">
                         <GitCommit className="w-3.5 h-3.5" />
                         {dep.commit?.slice(0, 7) || '—'}
                       </div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 md:py-4 px-4 md:px-6 hidden md:table-cell">
                       <span className="text-xs text-gray-400 font-mono bg-white/5 px-2 py-0.5 rounded">{dep.version}</span>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 md:py-4 px-4 md:px-6 hidden sm:table-cell">
                       <div className="flex items-center gap-1.5 text-sm text-gray-500">
                         <Clock className="w-3.5 h-3.5" />
                         {dep.time}
                       </div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 md:py-4 px-4 md:px-6">
                       <Link to={`/dashboard/project/${dep.projectId}`} className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-white/10 transition-colors">
                         <ChevronRight className="w-4 h-4 text-gray-500" />
                       </Link>

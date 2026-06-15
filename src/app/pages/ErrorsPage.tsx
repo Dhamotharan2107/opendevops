@@ -53,33 +53,33 @@ export function ErrorsPage() {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="max-w-[1400px] mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1">Error Tracking</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-white mb-1">Error Tracking</h1>
             <p className="text-gray-400 text-sm">{stats.open} open errors</p>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {[
             { label: 'Total Errors', value: stats.total, color: 'text-white' },
             { label: 'Open', value: stats.open, color: 'text-red-400' },
             { label: 'Critical', value: stats.critical, color: 'text-orange-400' },
             { label: 'Resolved', value: stats.resolved, color: 'text-emerald-400' },
           ].map((s) => (
-            <div key={s.label} className="p-6 bg-white/5 border border-white/10 rounded-xl">
-              <div className={cn('text-3xl font-bold mb-1 font-mono', s.color)}>{s.value}</div>
+            <div key={s.label} className="p-4 md:p-6 bg-white/5 border border-white/10 rounded-xl">
+              <div className={cn('text-2xl md:text-3xl font-bold mb-1 font-mono', s.color)}>{s.value}</div>
               <div className="text-sm text-gray-500">{s.label}</div>
             </div>
           ))}
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input
               value={search}
