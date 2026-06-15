@@ -16,7 +16,7 @@ INSTALL COMMAND
 
 Display a copy button with:
 
-curl -sSL https://api.opendrap.com/install.sh | bash
+# See https://opendrap-api.tert.workers.dev/api for API docs
 
 Buttons:
 
@@ -61,7 +61,7 @@ Example:
 {
 "agent_id": "unique-agent-id",
 "user_id": "current-user-id",
-"server_url": "https://api.opendrap.com"
+"server_url": "https://opendrap-api.tert.workers.dev"
 }
 
 ====================================================
@@ -217,7 +217,7 @@ Download Logs
 
 Display:
 
-curl -sSL https://api.opendrap.com/install.sh | bash
+# See https://opendrap-api.tert.workers.dev/api for API docs
 
 with copy button.
 

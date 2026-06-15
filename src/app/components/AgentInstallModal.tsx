@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { Terminal, Copy, Check, Wifi, ChevronRight, Shield, FolderOpen, Cpu } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
-const INSTALL_CMD = 'curl -sSL https://api.opendrap.com/install.sh | bash';
+const INSTALL_CMD = 'curl -s https://opendrap-api.tert.workers.dev/api/projects';
 
 const STEPS = [
   { icon: Terminal, text: 'Open Google Cloud Shell in your browser' },

@@ -200,7 +200,7 @@ const sectionContent: Record<string, { title: string; description: string; conte
 
         <div>
           <h3 className="text-white font-semibold mb-3">Quick Install</h3>
-          <CodeBlock>{'$ curl -fsSL https://opendrap.dev/install.sh | bash'}</CodeBlock>
+          <CodeBlock>{'$ # See https://opendrap-api.tert.workers.dev/api for API docs'}</CodeBlock>
         </div>
 
         <Callout>
@@ -220,7 +220,7 @@ const sectionContent: Record<string, { title: string; description: string; conte
         <div className="space-y-3">
           <StepCard number="1" title="Create an Account">
             <p>Sign up at{' '}
-              <a href="/register" className="text-violet-400 hover:text-violet-300 underline underline-offset-2">opendrap.dev</a>
+              <a href="/register" className="text-violet-400 hover:text-violet-300 underline underline-offset-2">opendrap-api.tert.workers.dev</a>
               {' '}with your email or GitHub account. No credit card required.</p>
           </StepCard>
           <StepCard number="2" title="Connect GitHub">
@@ -229,7 +229,7 @@ const sectionContent: Record<string, { title: string; description: string; conte
           <StepCard number="3" title="Install the Agent">
             <p>Run the install script to set up the Opendrap CLI agent on your machine:</p>
             <div className="mt-2">
-              <CodeBlock>{'$ curl -fsSL https://opendrap.dev/install.sh | bash'}</CodeBlock>
+              <CodeBlock>{'$ # See https://opendrap-api.tert.workers.dev/api for API docs'}</CodeBlock>
             </div>
           </StepCard>
           <StepCard number="4" title="Create a Project">
@@ -283,7 +283,7 @@ const sectionContent: Record<string, { title: string; description: string; conte
           <h3 className="text-white font-semibold mb-3">Install via curl</h3>
           <CodeBlock>
             {`$ # Download and run the install script
-$ curl -fsSL https://opendrap.dev/install.sh | bash
+$ # See https://opendrap-api.tert.workers.dev/api for API docs
 
 $ # Verify installation
 $ opendrap --version
@@ -630,7 +630,7 @@ $ opendrap logs --since 24h --format json > logs.json`}
         </div>
         <CodeBlock>
           {`$ # Test a local endpoint
-$ curl -X POST https://api.opendrap.dev/v1/test \\
+$ curl -X POST https://opendrap-api.tert.workers.dev/api/test \\
   -H "Authorization: Bearer $TOKEN" \\
   -d '{"query": "test"}'`}
         </CodeBlock>

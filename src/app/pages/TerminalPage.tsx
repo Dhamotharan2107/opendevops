@@ -75,7 +75,7 @@ const RESPONSES: Record<string, Handler> = {
   },
   cat: (args) => {
     if (!args) return 'cat: missing file operand';
-    if (args.includes('agent.py')) return `#!/usr/bin/env python3\n# Opendrap Agent v0.1.0\nimport asyncio, websockets, json\n\nasync def main():\n    print("Opendrap Agent starting...")\n    # connects to wss://api.opendrap.com/ws\n    ...\n\nasyncio.run(main())`;
+    if (args.includes('agent.py')) return `#!/usr/bin/env python3\n# Opendrap Agent v0.1.0\nimport asyncio, websockets, json\n\nasync def main():\n    print("Opendrap Agent starting...")\n    # connects to wss://opendrap-api.tert.workers.dev/ws\n    ...\n\nasyncio.run(main())`;
     if (args.includes('settings.json')) return JSON.stringify({ workspace: WORKSPACE, isolation: true, logLevel: 'info', maxProjects: 10 }, null, 2);
     if (args.includes('agent.log')) return `[2024-01-15 10:23:01] Agent started\n[2024-01-15 10:23:02] Connected to Opendrap Cloud\n[2024-01-15 10:23:05] Workspace initialized at ${WORKSPACE}`;
     return `cat: ${args}: No such file or directory`;
@@ -220,7 +220,7 @@ export function TerminalPage() {
             <strong>Agent not connected.</strong> This terminal runs in simulation mode.
             Install the agent from <strong>Settings → Agent</strong> or run:{' '}
             <code className="bg-black/30 px-1.5 py-0.5 rounded font-mono text-xs">
-              curl -sSL https://api.opendrap.com/install.sh | bash
+              # See https://opendrap-api.tert.workers.dev/api for API docs
             </code>
           </motion.div>
         )}

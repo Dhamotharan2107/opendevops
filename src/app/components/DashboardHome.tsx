@@ -24,7 +24,7 @@ export function DashboardHome() {
       branch: 'main',
       status: 'running',
       lastDeploy: '5 minutes ago',
-      url: 'https://ecommerce.opendrap.dev'
+      url: 'https://ecommerce.example.com'
     },
     {
       name: 'Mobile App API',
@@ -32,7 +32,7 @@ export function DashboardHome() {
       branch: 'develop',
       status: 'error',
       lastDeploy: '2 hours ago',
-      url: 'https://api.opendrap.dev'
+      url: 'https://api.example.com'
     },
     {
       name: 'Admin Dashboard',
@@ -40,7 +40,7 @@ export function DashboardHome() {
       branch: 'main',
       status: 'running',
       lastDeploy: '1 day ago',
-      url: 'https://admin.opendrap.dev'
+      url: 'https://admin.example.com'
     },
     {
       name: 'Analytics Service',
@@ -48,7 +48,7 @@ export function DashboardHome() {
       branch: 'staging',
       status: 'deploying',
       lastDeploy: 'Deploying now...',
-      url: 'https://analytics.opendrap.dev'
+      url: 'https://analytics.example.com'
     }
   ];
 
