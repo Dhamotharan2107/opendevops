@@ -1,0 +1,504 @@
+You are a senior Cloudflare Workers and TypeScript architect.
+
+I already have a complete React + Vite frontend UI for Opendrap DevOps AI. The frontend is currently static. Your task is to convert the platform into a fully dynamic SaaS application using Cloudflare's ecosystem.
+
+IMPORTANT REQUIREMENTS
+
+* Use TypeScript everywhere.
+* Backend must use Cloudflare Workers.
+* Database must use Cloudflare D1.
+* Realtime communication must use Durable Objects and WebSockets.
+* Storage must support Backblaze B2 integration.
+* Authentication must support Email, Google, and GitHub.
+* Architecture must be production-ready.
+* Follow clean architecture and scalable folder structure.
+* Generate complete code, APIs, database schema, services, repositories, and examples.
+
+TECH STACK
+
+Frontend:
+
+* React
+* Vite
+* TypeScript
+* Tailwind
+* shadcn/ui
+
+Backend:
+
+* Cloudflare Workers
+* TypeScript
+
+Database:
+
+* Cloudflare D1
+
+Realtime:
+
+* Durable Objects
+* WebSockets
+
+Storage:
+
+* Backblaze B2
+
+AI:
+
+* GLM-4.7 Flash
+
+Agent:
+
+* Python Agent
+
+---
+
+PHASE 1
+
+Create backend architecture.
+
+Generate:
+
+src/
+├── routes/
+├── controllers/
+├── services/
+├── repositories/
+├── middleware/
+├── utils/
+├── websocket/
+├── durable-objects/
+├── types/
+├── validators/
+├── ai/
+├── auth/
+└── index.ts
+
+Create complete project structure.
+
+---
+
+PHASE 2
+
+Create D1 database schema.
+
+Tables:
+
+users
+companies
+connections
+connection_requests
+projects
+project_members
+deployments
+agent_sessions
+tasks
+task_comments
+bugs
+bug_comments
+chats
+chat_members
+messages
+notifications
+activity_logs
+api_collections
+ai_test_runs
+error_logs
+
+Generate:
+
+* SQL schema
+* indexes
+* relationships
+* migrations
+
+---
+
+PHASE 3
+
+Authentication system.
+
+Features:
+
+* Register
+* Login
+* Logout
+* Refresh Token
+* Email Login
+* Google OAuth
+* GitHub OAuth
+
+Generate:
+
+POST /auth/register
+POST /auth/login
+POST /auth/logout
+GET /auth/me
+
+JWT authentication.
+
+Create middleware.
+
+---
+
+PHASE 4
+
+User system.
+
+Features:
+
+* User profile
+* Update profile
+* Upload avatar
+* Skills
+* Experience
+* Company
+
+Endpoints:
+
+GET /users
+GET /users/:id
+PATCH /users/:id
+DELETE /users/:id
+
+---
+
+PHASE 5
+
+Global Search.
+
+Search by:
+
+* Username
+* Company
+* Skills
+* Projects
+
+Endpoint:
+
+GET /search?q=
+
+Return:
+
+Users
+Companies
+Projects
+
+---
+
+PHASE 6
+
+Connection System.
+
+Features:
+
+* Send Request
+* Accept Request
+* Reject Request
+* Remove Connection
+
+Endpoints:
+
+POST /connections/request
+POST /connections/accept
+POST /connections/reject
+DELETE /connections/:id
+
+---
+
+PHASE 7
+
+Company System.
+
+Features:
+
+* Create company
+* Update company
+* Join company
+* Leave company
+* View members
+
+Endpoints:
+
+POST /companies
+GET /companies
+GET /companies/:id
+
+---
+
+PHASE 8
+
+Project System.
+
+Features:
+
+* Create Project
+* Update Project
+* Delete Project
+* Invite Members
+* Remove Members
+
+Endpoints:
+
+POST /projects
+GET /projects
+GET /projects/:id
+PATCH /projects/:id
+DELETE /projects/:id
+
+---
+
+PHASE 9
+
+Realtime Chat.
+
+Use Durable Objects.
+
+Features:
+
+* Private chat
+* Group chat
+* Project chat
+
+WebSocket Architecture:
+
+User
+→ Worker
+→ Durable Object
+→ WebSocket
+
+Generate:
+
+Chat Durable Object
+Message Service
+Realtime Events
+
+---
+
+PHASE 10
+
+Task Management.
+
+Kanban board.
+
+Statuses:
+
+Todo
+In Progress
+Testing
+Done
+
+Endpoints:
+
+POST /tasks
+GET /tasks
+PATCH /tasks/:id
+DELETE /tasks/:id
+
+---
+
+PHASE 11
+
+Bug Tracking.
+
+Features:
+
+* Create bug
+* Assign bug
+* Update status
+* Upload screenshot
+* Upload video
+
+Statuses:
+
+Open
+In Progress
+Testing
+Fixed
+Closed
+
+Endpoints:
+
+POST /bugs
+GET /bugs
+PATCH /bugs/:id
+
+---
+
+PHASE 12
+
+Agent Communication.
+
+Python Agent connects through WebSocket.
+
+Agent functions:
+
+* Heartbeat
+* Git Clone
+* Git Pull
+* Branch Switch
+* Run Command
+* Stream Logs
+* Upload Results
+
+Generate:
+
+Agent Durable Object
+Agent Service
+Command Queue
+
+Events:
+
+agent_connected
+agent_disconnected
+log_received
+command_completed
+
+---
+
+PHASE 13
+
+Terminal System.
+
+Create browser terminal.
+
+Flow:
+
+Frontend
+→ Worker
+→ Durable Object
+→ Agent
+
+Generate:
+
+Terminal Session Manager
+Terminal Events
+Command Streaming
+
+---
+
+PHASE 14
+
+Deployments.
+
+Features:
+
+* Repository connection
+* Deployment history
+* Branch management
+* Deployment status
+
+Endpoints:
+
+POST /deployments
+GET /deployments
+
+---
+
+PHASE 15
+
+Cloudflare Tunnel Integration.
+
+Store:
+
+* Tunnel URL
+* Status
+* Last Seen
+
+Endpoints:
+
+POST /tunnel/start
+POST /tunnel/stop
+GET /tunnel/status
+
+---
+
+PHASE 16
+
+Logs and Monitoring.
+
+Features:
+
+* Live logs
+* Search logs
+* Filter logs
+* Error tracking
+
+Endpoints:
+
+GET /logs
+GET /errors
+
+---
+
+PHASE 17
+
+AI Testing.
+
+Integrate GLM-4.7 Flash.
+
+Features:
+
+* Analyze logs
+* Analyze screenshots
+* Generate bug summary
+* Generate test cases
+
+Endpoints:
+
+POST /ai/analyze-log
+POST /ai/analyze-bug
+POST /ai/generate-tests
+
+---
+
+PHASE 18
+
+Playwright Testing.
+
+Features:
+
+* Run website test
+* Capture screenshots
+* Record video
+* Store reports
+
+Endpoints:
+
+POST /tests/run
+GET /tests/:id
+
+---
+
+PHASE 19
+
+Notifications.
+
+Realtime notifications using Durable Objects.
+
+Events:
+
+Connection Request
+Task Assigned
+Bug Assigned
+Project Invite
+Deployment Complete
+AI Test Complete
+
+---
+
+PHASE 20
+
+Generate complete API documentation.
+
+For every endpoint provide:
+
+* Route
+* Method
+* Request Body
+* Validation
+* Response
+* Error Handling
+* TypeScript Types
+* Example Requests
+
+Generate production-ready code and implement one module completely before moving to the next module.

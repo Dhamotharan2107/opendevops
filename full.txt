@@ -1,0 +1,305 @@
+Implement the Agent Installation and Secure Workspace Flow for Opendrap DevOps AI.
+
+REQUIREMENTS
+
+After a user logs in for the first time, immediately display a mandatory modal popup before accessing the dashboard.
+
+POPUP TITLE
+
+Connect Your Development Environment
+
+DESCRIPTION
+
+To use Opendrap DevOps AI, install the Opendrap Agent in your Google Cloud Shell environment.
+
+INSTALL COMMAND
+
+Display a copy button with:
+
+curl -sSL https://api.opendrap.com/install.sh | bash
+
+Buttons:
+
+* Copy Command
+* I've Installed It
+
+User cannot create projects until the agent is installed and connected.
+
+====================================================
+
+INSTALL.SH BEHAVIOR
+
+The install.sh script must:
+
+1. Create workspace folder
+
+~/opendev
+
+2. Create subfolders
+
+~/opendev/
+├── agent/
+├── projects/
+├── logs/
+├── config/
+├── temp/
+
+3. Download latest Python agent
+
+4. Install required dependencies
+
+5. Generate unique agent_id
+
+6. Register agent with backend
+
+7. Save config file
+
+~/opendev/config/config.json
+
+Example:
+
+{
+"agent_id": "unique-agent-id",
+"user_id": "current-user-id",
+"server_url": "https://api.opendrap.com"
+}
+
+====================================================
+
+PROJECT STRUCTURE
+
+Each project must be isolated.
+
+Example:
+
+~/opendev/projects/
+
+├── project1/
+│   ├── repo/
+│   ├── venv/
+│   ├── logs/
+│   └── config.json
+│
+├── project2/
+│   ├── repo/
+│   ├── venv/
+│   ├── logs/
+│   └── config.json
+
+Never use one global venv.
+
+Each project gets its own:
+
+venv/
+
+====================================================
+
+PROJECT CREATION FLOW
+
+User creates project.
+
+Fields:
+
+* Project Name
+* Git Repository URL
+* Branch
+
+When user clicks Create:
+
+Agent receives command.
+
+Agent executes:
+
+1. Create project folder
+
+~/opendev/projects/project_name
+
+2. Clone repository into
+
+~/opendev/projects/project_name/repo
+
+3. Create virtual environment
+
+python -m venv venv
+
+4. Activate virtual environment
+
+5. Detect requirements.txt
+
+6. Install requirements
+
+7. Save project metadata
+
+8. Report status to dashboard
+
+====================================================
+
+TERMINAL SECURITY
+
+IMPORTANT
+
+The browser terminal must NEVER have access to:
+
+/
+root
+sudo
+system files
+other user folders
+
+The terminal must only operate inside:
+
+~/opendev
+
+Allowed workspace:
+
+~/opendev/projects/*
+~/opendev/logs/*
+~/opendev/temp/*
+
+Blocked commands:
+
+sudo
+su
+passwd
+useradd
+usermod
+rm -rf /
+shutdown
+reboot
+
+Any dangerous command should return:
+
+"Permission denied by Opendrap Workspace Security"
+
+====================================================
+
+TERMINAL BEHAVIOR
+
+Terminal should automatically start inside:
+
+~/opendev
+
+Example:
+
+opendev@workspace:~/opendev$
+
+Supported:
+
+* Python
+* Node.js
+* Git
+* Pip
+* NPM
+* Project Commands
+
+The terminal should feel like a normal Linux terminal but restricted to the Opendrap workspace.
+
+====================================================
+
+SETTINGS PAGE
+
+Add Agent Settings section.
+
+Show:
+
+Agent Status
+Agent ID
+Workspace Path
+Cloud Shell Status
+Last Seen
+
+Buttons:
+
+Copy Install Command
+Reconnect Agent
+Restart Agent
+Download Logs
+
+Display:
+
+curl -sSL https://api.opendrap.com/install.sh | bash
+
+with copy button.
+
+====================================================
+
+DASHBOARD STATUS
+
+Show:
+
+Agent Connected
+
+or
+
+Agent Offline
+
+If agent disconnects:
+
+Display reconnect instructions.
+
+Example:
+
+Run:
+
+cd ~/opendev
+python agent/agent.py
+
+====================================================
+
+WEBSOCKET FLOW
+
+Agent
+↔ Durable Object
+↔ Cloudflare Worker
+↔ Dashboard
+
+Agent streams:
+
+* Logs
+* Status
+* Terminal Output
+* Deployment Progress
+
+Dashboard sends:
+
+* Git Clone
+* Git Pull
+* Branch Switch
+* Run Command
+* Start Tunnel
+* Stop Tunnel
+
+====================================================
+
+SECURITY RULES
+
+* User commands must run only inside ~/opendev
+* No root access
+* No sudo access
+* No system modification
+* No access outside project folders
+* Every project isolated with its own venv
+* All commands logged
+* Every terminal session tracked
+
+====================================================
+
+EXPECTED USER FLOW
+
+Login
+→ Install Agent Popup
+→ Copy Curl Command
+→ Run In Google Cloud Shell
+→ Agent Connects
+→ Dashboard Unlocks
+→ Create Project
+→ Clone Repository
+→ Create Project Venv
+→ Install Dependencies
+→ Run Application
+→ Generate Cloudflare Tunnel URL
+→ Access Secure Terminal
+→ Monitor Logs
+→ Run AI Testing
+
+Generate production-ready implementation for Cloudflare Workers, Durable Objects, React frontend, and Python Agent.

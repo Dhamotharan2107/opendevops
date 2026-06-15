@@ -1,0 +1,39 @@
+name = "opendrap-api"
+main = "src/index.ts"
+compatibility_date = "2025-02-01"
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "opendrap-db"
+database_id = "13409feb-235c-4012-a707-20e21dbada44"
+
+# Durable Objects
+[[durable_objects.bindings]]
+name = "CHAT_DO"
+class_name = "ChatDurableObject"
+
+[[durable_objects.bindings]]
+name = "AGENT_DO"
+class_name = "AgentDurableObject"
+
+[[durable_objects.bindings]]
+name = "TERMINAL_DO"
+class_name = "TerminalDurableObject"
+
+[[durable_objects.bindings]]
+name = "NOTIFICATION_DO"
+class_name = "NotificationDurableObject"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ChatDurableObject", "AgentDurableObject", "TerminalDurableObject", "NotificationDurableObject"]
+
+# Non-sensitive environment variables (secrets are set via `wrangler secret put`)
+[vars]
+GLM_API_URL = "https://open.bigmodel.cn/api/paas/v4"
+BACKBLAZE_BUCKET = ""
+BACKBLAZE_ENDPOINT = ""
+GITHUB_CLIENT_ID = ""
+GOOGLE_CLIENT_ID = ""
+FRONTEND_URL = "https://opendevops.pages.dev"

@@ -1,0 +1,65 @@
+Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+ProjectDetails.tsx:361 Uncaught TypeError: Cannot read properties of undefined (reading 'length')
+    at OverviewTab (ProjectDetails.tsx:361:24)
+    at renderWithHooks (chunk-TPJYOTJD.js?v=799bb45c:11596:26)
+    at mountIndeterminateComponent (chunk-TPJYOTJD.js?v=799bb45c:14974:21)
+    at beginWork (chunk-TPJYOTJD.js?v=799bb45c:15962:22)
+    at HTMLUnknownElement.callCallback2 (chunk-TPJYOTJD.js?v=799bb45c:3680:22)
+    at Object.invokeGuardedCallbackDev (chunk-TPJYOTJD.js?v=799bb45c:3705:24)
+    at invokeGuardedCallback (chunk-TPJYOTJD.js?v=799bb45c:3739:39)
+    at beginWork$1 (chunk-TPJYOTJD.js?v=799bb45c:19818:15)
+    at performUnitOfWork (chunk-TPJYOTJD.js?v=799bb45c:19251:20)
+    at workLoopConcurrent (chunk-TPJYOTJD.js?v=799bb45c:19242:13)Understand this error
+ProjectDetails.tsx:361 Uncaught TypeError: Cannot read properties of undefined (reading 'length')
+    at OverviewTab (ProjectDetails.tsx:361:24)
+    at renderWithHooks (chunk-TPJYOTJD.js?v=799bb45c:11596:26)
+    at mountIndeterminateComponent (chunk-TPJYOTJD.js?v=799bb45c:14974:21)
+    at beginWork (chunk-TPJYOTJD.js?v=799bb45c:15962:22)
+    at HTMLUnknownElement.callCallback2 (chunk-TPJYOTJD.js?v=799bb45c:3680:22)
+    at Object.invokeGuardedCallbackDev (chunk-TPJYOTJD.js?v=799bb45c:3705:24)
+    at invokeGuardedCallback (chunk-TPJYOTJD.js?v=799bb45c:3739:39)
+    at beginWork$1 (chunk-TPJYOTJD.js?v=799bb45c:19818:15)
+    at performUnitOfWork (chunk-TPJYOTJD.js?v=799bb45c:19251:20)
+    at workLoopSync (chunk-TPJYOTJD.js?v=799bb45c:19190:13)Understand this error
+chunk-TPJYOTJD.js?v=799bb45c:14080 The above error occurred in the <OverviewTab> component:
+
+    at OverviewTab (http://localhost:5173/src/app/components/ProjectDetails.tsx?t=1780832087021:443:24)
+    at div
+    at MotionDOMComponent (http://localhost:5173/node_modules/.vite/deps/motion_react.js?v=10f9ccef:9054:40)
+    at PopChildMeasure (http://localhost:5173/node_modules/.vite/deps/motion_react.js?v=10f9ccef:8190:23)
+    at PopChild (http://localhost:5173/node_modules/.vite/deps/motion_react.js?v=10f9ccef:8218:21)
+    at PresenceChild (http://localhost:5173/node_modules/.vite/deps/motion_react.js?v=10f9ccef:8270:24)
+    at AnimatePresence (http://localhost:5173/node_modules/.vite/deps/motion_react.js?v=10f9ccef:8347:26)
+    at div
+    at div
+    at ProjectDetails (http://localhost:5173/src/app/components/ProjectDetails.tsx?t=1780832087021:126:18)
+    at RenderedRoute (http://localhost:5173/node_modules/.vite/deps/react-router.js?v=cefe233c:6299:26)
+    at Outlet (http://localhost:5173/node_modules/.vite/deps/react-router.js?v=cefe233c:7080:26)
+    at main
+    at div
+    at div
+    at DashboardLayout (http://localhost:5173/src/app/components/DashboardLayout.tsx?t=1780832160339:54:20)
+    at ProtectedRoute (http://localhost:5173/src/app/App.tsx?t=1780833560951:46:27)
+    at RenderedRoute (http://localhost:5173/node_modules/.vite/deps/react-router.js?v=cefe233c:6299:26)
+    at Routes (http://localhost:5173/node_modules/.vite/deps/react-router.js?v=cefe233c:7148:3)
+    at AppRoutes
+    at Router (http://localhost:5173/node_modules/.vite/deps/react-router.js?v=cefe233c:7089:13)
+    at BrowserRouter (http://localhost:5173/node_modules/.vite/deps/react-router.js?v=cefe233c:10285:3)
+    at AppProvider (http://localhost:5173/src/lib/store.tsx?t=1780832087021:130:31)
+    at div
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-TPJYOTJD.js?v=799bb45c:14080Understand this error
+chunk-TPJYOTJD.js?v=799bb45c:19466 Uncaught TypeError: Cannot read properties of undefined (reading 'length')
+    at OverviewTab (ProjectDetails.tsx:361:24)
+    at renderWithHooks (chunk-TPJYOTJD.js?v=799bb45c:11596:26)
+    at mountIndeterminateComponent (chunk-TPJYOTJD.js?v=799bb45c:14974:21)
+    at beginWork (chunk-TPJYOTJD.js?v=799bb45c:15962:22)
+    at beginWork$1 (chunk-TPJYOTJD.js?v=799bb45c:19806:22)
+    at performUnitOfWork (chunk-TPJYOTJD.js?v=799bb45c:19251:20)
+    at workLoopSync (chunk-TPJYOTJD.js?v=799bb45c:19190:13)
+    at renderRootSync (chunk-TPJYOTJD.js?v=799bb45c:19169:15)
+    at recoverFromConcurrentError (chunk-TPJYOTJD.js?v=799bb45c:18786:28)
+    at performConcurrentWorkOnRoot (chunk-TPJYOTJD.js?v=799bb45c:18734:30)Understand this error

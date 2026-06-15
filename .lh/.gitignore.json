@@ -1,0 +1,26 @@
+{
+    "sourceFile": ".gitignore",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 2,
+            "patches": [
+                {
+                    "date": 1781515180279,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1781515239145,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -24,5 +24,5 @@\n # Static Collected Files\r\n staticfiles/\r\n \r\n # Migrations cache\r\n-*.swp\n\\ No newline at end of file\n+*.swp\r\n"
+                },
+                {
+                    "date": 1781515245003,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -25,4 +25,12 @@\n staticfiles/\r\n \r\n # Migrations cache\r\n *.swp\r\n+\r\n+node_modules/\r\n+.env\r\n+dist/\r\n+build/\r\n+venv/\r\n+__pycache__/\r\n+*.pyc\n\\ No newline at end of file\n"
+                }
+            ],
+            "date": 1781515180279,
+            "name": "Commit-0",
+            "content": "# Python\r\n__pycache__/\r\n*.pyc\r\n*.pyo\r\n*.pyd\r\n\r\n# Virtual Environment\r\nvenv/\r\nenv/\r\n\r\n# Django\r\ndb.sqlite3\r\nmedia/\r\n\r\n# Environment Variables\r\n.env\r\n\r\n# VS Code\r\n.vscode/\r\n\r\n# Logs\r\n*.log\r\n\r\n# Static Collected Files\r\nstaticfiles/\r\n\r\n# Migrations cache\r\n*.swp"
+        }
+    ]
+}
