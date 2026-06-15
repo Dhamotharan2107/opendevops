@@ -49,6 +49,48 @@ app.route('/api', testsRouter);
 app.route('/api', notificationsRouter);
 app.route('/api/admin', adminRouter);
 
+// Public shell script endpoint for agent install
+app.get('/api/install.sh', (c) => {
+  const script = `#!/bin/bash
+# Opendrap Agent Installer
+set -e
+
+echo "========================================"
+echo "  Opendrap DevOps Agent Installer"
+echo "========================================"
+echo ""
+
+AGENT_DIR="$HOME/opendrap-agent"
+BIN_URL="https://opendrap-api.tert.workers.dev/api/agent/download"
+
+mkdir -p "$AGENT_DIR"
+
+if command -v curl &> /dev/null; then
+  echo "  Downloading agent..."
+  curl -sL "$BIN_URL" -o "$AGENT_DIR/agent"
+  chmod +x "$AGENT_DIR/agent"
+  echo "  Agent installed to $AGENT_DIR/agent"
+elif command -v wget &> /dev/null; then
+  echo "  Downloading agent..."
+  wget -q "$BIN_URL" -O "$AGENT_DIR/agent"
+  chmod +x "$AGENT_DIR/agent"
+  echo "  Agent installed to $AGENT_DIR/agent"
+else
+  echo "  Error: curl or wget required"
+  exit 1
+fi
+
+echo ""
+echo "  Installation complete!"
+echo "  Run 'opendrap-agent --help' to get started."
+echo "========================================"
+`;
+  return c.newResponse(script, 200, {
+    'Content-Type': 'text/x-shellscript',
+    'Cache-Control': 'public, max-age=3600',
+  });
+});
+
 app.onError((err, c) => {
   if (err instanceof AppError) {
     return c.json(errorResponse(err.message, err.status), err.status as any);

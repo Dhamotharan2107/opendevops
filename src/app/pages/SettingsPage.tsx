@@ -9,7 +9,7 @@ import { useApp } from '@/lib/store';
 import { cn, getInitials } from '@/lib/utils';
 import { apiUpdateProfile } from '@/lib/api';
 
-const INSTALL_CMD = 'curl -s https://opendrap-api.tert.workers.dev/api/projects';
+const INSTALL_CMD = 'curl -sSL https://opendrap-api.tert.workers.dev/api/install.sh | bash';
 
 const TABS = [
   { id: 'profile', label: 'Profile', icon: User },
