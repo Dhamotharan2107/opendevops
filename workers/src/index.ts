@@ -22,6 +22,7 @@ import { aiRouter } from './routes/ai';
 import { testsRouter } from './routes/tests';
 import { notificationsRouter } from './routes/notifications';
 import adminRouter from './routes/admin';
+import agentRouter from './routes/agent';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -48,6 +49,7 @@ app.route('/api', aiRouter);
 app.route('/api', testsRouter);
 app.route('/api', notificationsRouter);
 app.route('/api/admin', adminRouter);
+app.route('/api/agent', agentRouter);
 
 // Public shell script endpoint for agent install
 app.get('/api/install.sh', (c) => {
@@ -128,7 +130,7 @@ async def main():
         print("ERROR: OPENDRAP_AGENT_TOKEN environment variable is not set.")
         sys.exit(1)
 
-    ws_url = API_BASE.replace("https://", "wss://") + "/api/terminal/ws"
+    ws_url = API_BASE.replace("https://", "wss://") + "/api/terminal/ws?projectId=default"
     agent_info = {"agent_id": AGENT_ID, "version": "0.1.0"}
     headers = {"Authorization": f"Bearer {TOKEN}"}
 

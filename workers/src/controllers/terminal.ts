@@ -31,18 +31,17 @@ export async function createSession(c: Context<{ Bindings: Env }>) {
 
 export async function getWebSocket(c: Context<{ Bindings: Env }>) {
   try {
-    const id = c.req.param('id')!;
+    const sessionId = c.req.query('sessionId') || 'default';
     const projectId = c.req.query('projectId');
 
-    if (!projectId) {
-      return fail(c, new Error('projectId query parameter is required'), 400);
-    }
+    const actualProjectId = projectId || 'default';
 
-    const doId = c.env.TERMINAL_DO.idFromName(`terminal-${projectId}`);
+    const doId = c.env.TERMINAL_DO.idFromName(`terminal-${actualProjectId}`);
     const stub = c.env.TERMINAL_DO.get(doId);
 
     const url = new URL('http://do/ws');
-    url.searchParams.set('sessionId', id);
+    url.searchParams.set('sessionId', sessionId);
+    url.searchParams.set('projectId', actualProjectId);
 
     const response = await stub.fetch(url.toString(), {
       headers: {
@@ -58,8 +57,8 @@ export async function getWebSocket(c: Context<{ Bindings: Env }>) {
 
 export async function getHistory(c: Context<{ Bindings: Env }>) {
   try {
-    const id = c.req.param('id')!;
-    const projectId = c.req.query('projectId');
+    const sessionId = c.req.query('sessionId') || 'default';
+    const projectId = c.req.query('projectId') || 'default';
 
     if (!projectId) {
       return fail(c, new Error('projectId query parameter is required'), 400);
@@ -68,11 +67,14 @@ export async function getHistory(c: Context<{ Bindings: Env }>) {
     const doId = c.env.TERMINAL_DO.idFromName(`terminal-${projectId}`);
     const stub = c.env.TERMINAL_DO.get(doId);
 
-    const history = await stub.fetch('http://do/history', {
+    const url = new URL('http://do/history');
+    url.searchParams.set('sessionId', sessionId);
+
+    const response = await stub.fetch(url.toString(), {
       method: 'GET',
     });
 
-    const result = await history.json();
+    const result = await response.json();
     return success(c, result);
   } catch (err) {
     return fail(c, err);

@@ -6,6 +6,6 @@ const router = new Hono();
 
 router.post('/session', authenticate, createSession);
 router.get('/ws', authenticate, getWebSocket);
-router.get('/:id/history', authenticate, getHistory);
+router.get('/history', authenticate, getHistory);
 
 export default router;

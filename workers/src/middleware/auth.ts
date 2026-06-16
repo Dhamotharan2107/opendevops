@@ -12,9 +12,16 @@ declare module 'hono' {
 
 export async function authenticate(c: Context, next: Next) {
   const auth = c.req.header('Authorization');
-  if (!auth?.startsWith('Bearer ')) throw new UnauthorizedError('Missing or invalid token');
+  const queryToken = c.req.query('token');
+  let token: string | null = null;
 
-  const token = auth.slice(7);
+  if (auth?.startsWith('Bearer ')) {
+    token = auth.slice(7);
+  } else if (queryToken) {
+    token = queryToken;
+  }
+
+  if (!token) throw new UnauthorizedError('Missing or invalid token');
 
   try {
     const env = c.env as Env;

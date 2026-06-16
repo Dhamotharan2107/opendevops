@@ -5,14 +5,14 @@ import {
   Plus, Search, FolderGit2, GitBranch, Globe, Clock,
   ChevronRight, Loader2, X, Github, Key, Lock, Eye, EyeOff,
   CheckCircle2, AlertCircle, RefreshCw, Star, GitFork, ArrowLeft,
-  Terminal, Copy, Check, ExternalLink, Link2
+  Terminal, Copy, Check, ExternalLink, Link2, Wifi, WifiOff,
 } from 'lucide-react';
 import { useApp } from '../../lib/store';
 import { cn, getStatusColor } from '../../lib/utils';
 import {
   apiGetProjects, apiCreateProject,
   githubFetchRepos, githubFetchBranches, githubFetchUser,
-  getGitHubPat, saveGitHubPat, clearGitHubPat
+  getGitHubPat, saveGitHubPat, clearGitHubPat, BASE_URL
 } from '../../lib/api';
 
 // ── ProjectsPage ─────────────────────────────────────────────────────────────
@@ -255,6 +255,9 @@ export function NewProjectModal({
   const [createError, setCreateError] = useState('');
   const [cloneCopied, setCloneCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [runStatus, setRunStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
+
+  const WS_URL = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
 
   // If PAT already saved, try to verify it on mount
   useEffect(() => {
@@ -353,6 +356,45 @@ export function NewProjectModal({
     navigator.clipboard.writeText(cloudShellUrl(form.repo)).catch(() => {});
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2500);
+  }
+
+  async function runCloneInTerminal() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setRunStatus('running');
+
+    const repoName = form.repo.split('/').pop()?.replace(/\.git$/, '') || 'project';
+    const cmd = `cd ~/opendev/projects && git clone ${form.repo} && cd ${repoName}`;
+
+    try {
+      const sessionRes = await fetch(`${BASE_URL}/terminal/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ projectId: 'default' }),
+      });
+      const sessionData = await sessionRes.json();
+      const sessionId = sessionData?.data?.sessionId || 'default';
+
+      const wsUrl = `${WS_URL}/api/terminal/ws?sessionId=${sessionId}&projectId=default&token=${encodeURIComponent(token)}`;
+      const ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: 'terminal_input', input: cmd }));
+        setTimeout(() => {
+          ws.close();
+          setRunStatus('done');
+          setTimeout(() => setRunStatus('idle'), 3000);
+        }, 2000);
+      };
+
+      ws.onerror = () => {
+        setRunStatus('error');
+        setTimeout(() => setRunStatus('idle'), 3000);
+      };
+    } catch {
+      setRunStatus('error');
+      setTimeout(() => setRunStatus('idle'), 3000);
+    }
   }
 
   async function createProject() {
@@ -682,6 +724,21 @@ export function NewProjectModal({
 
                   {/* Action buttons */}
                   <div className="flex gap-2">
+                    <button
+                      onClick={runCloneInTerminal}
+                      disabled={runStatus === 'running'}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-xs text-emerald-300 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+                    >
+                      {runStatus === 'running' ? (
+                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Running...</>
+                      ) : runStatus === 'done' ? (
+                        <><CheckCircle2 className="w-3.5 h-3.5" /> Sent to Agent</>
+                      ) : runStatus === 'error' ? (
+                        <><X className="w-3.5 h-3.5" /> Failed</>
+                      ) : (
+                        <><Wifi className="w-3.5 h-3.5" /> Run in Terminal</>
+                      )}
+                    </button>
                     <button
                       onClick={openInCloudShell}
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-300 hover:bg-blue-500/20 transition-colors"
