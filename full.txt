@@ -1,98 +1,17 @@
-contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ cat ~/opendrap-agent/agent.py
-#!/usr/bin/env python3
-"""Opendrap DevOps Agent - connects to the Opendrap API via WebSocket."""
-import asyncio
-import json
-import sys
-import os
-import uuid
-import subprocess
+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ curl -sSL "https://opendrap-api.tert.workers.dev/api/install.sh?token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmNDJkMjc2OS02NWU0LTQzMjAtOGUzNy1kNjM2MDUwNTZkNzIiLCJpYXQiOjE3ODE1OTA2NTIsImV4cCI6MTc4MjE5NTQ1Mn0.wt9GwDN4ujOIwMwVUTCw5CgLcBLtyH67kSVe61yUV-w" | bash
+========================================
+  Opendrap DevOps Agent Installer
+========================================
 
-API_BASE = os.environ.get("OPENDRAP_API", "https://opendrap-api.tert.workers.dev")
-AGENT_ID = os.environ.get("OPENDRAP_AGENT_ID", f"agent-{uuid.uuid4().hex[:8]}")
-TOKEN = os.environ.get("OPENDRAP_AGENT_TOKEN", "")
-SHELL = os.environ.get("SHELL", "/bin/bash")
+  Agent script created at /home/contact_inotechsoftware/opendrap-agent/agent.py
+  websockets module found
+  Starting agent in background...
 
-async def main():
-    if not TOKEN:
-        print("ERROR: OPENDRAP_AGENT_TOKEN environment variable is not set.")
-        print("Set it with: export OPENDRAP_AGENT_TOKEN=<your_api_token>")
-        sys.exit(1)
+  Agent is running! (PID: 1684)
+  Connected to Opendrap API.
+  Agent ID: (check logs)
 
-    ws_url = API_BASE.replace("https://", "wss://") + "/api/terminal/ws"
-    agent_info = {"agent_id": AGENT_ID, "version": "0.1.0"}
-    headers = {"Authorization": f"Bearer {TOKEN}"}
-
-    while True:
-        try:
-            import websockets
-            async with websockets.connect(ws_url, extra_headers=headers) as ws:
-                await ws.send(json.dumps({
-                    "type": "agent_connected",
-                    "agent_id": AGENT_ID,
-                    "project_id": "default",
-                    "info": agent_info
-                }))
-                print(f"Agent {AGENT_ID} connected")
-
-                async def heartbeat():
-                    while True:
-                        await asyncio.sleep(30)
-                        try:
-                            await ws.send(json.dumps({"type": "heartbeat", "agent_id": AGENT_ID}))
-                        except:
-                            break
-
-                heartbeat_task = asyncio.create_task(heartbeat())
-
-                async for message in ws:
-                    data = json.loads(message)
-                    msg_type = data.get("type", "")
-                    if msg_type == "heartbeat_ping":
-                        await ws.send(json.dumps({"type": "heartbeat", "agent_id": AGENT_ID}))
-                    elif msg_type == "execute_command":
-                        cmd = data.get("command", "")
-                        cmd_id = data.get("command_id", "")
-                        print(f"Executing: {cmd}")
-                        try:
-                            proc = await asyncio.create_subprocess_shell(
-                                cmd,
-                                stdout=asyncio.subprocess.PIPE,
-                                stderr=asyncio.subprocess.STDOUT,
-                                shell=True,
-                                executable=SHELL
-                            )
-                            while True:
-                                line = await proc.stdout.readline()
-                                if not line:
-                                    break
-                                output = line.decode(errors="replace")
-                                await ws.send(json.dumps({
-                                    "type": "command_output",
-                                    "command_id": cmd_id,
-                                    "output": output
-                                }))
-                            await proc.wait()
-                            status = "success" if proc.returncode == 0 else "error"
-                        except Exception as cmd_err:
-                            status = "error"
-                            await ws.send(json.dumps({
-                                "type": "command_output",
-                                "command_id": cmd_id,
-                                "output": f"Error: {cmd_err}\n"
-                            }))
-                        await ws.send(json.dumps({
-                            "type": "command_completed",
-                            "command_id": cmd_id,
-                            "output": f"Command finished on {AGENT_ID}",
-                            "status": status
-                        }))
-
-                heartbeat_task.cancel()
-
-        except Exception as e:
-            print(f"Connection error: {e}")
-            await asyncio.sleep(5)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+  Logs: /home/contact_inotechsoftware/opendrap-agent/agent.log
+  Stop: kill 1684
+========================================
+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ 

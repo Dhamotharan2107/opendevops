@@ -1,9 +1,15 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Terminal, Copy, Check, Wifi, ChevronRight, Shield, FolderOpen, Cpu } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
-const INSTALL_CMD = 'curl -sSL https://opendrap-api.tert.workers.dev/api/install.sh | bash';
+function getInstallCmd() {
+  const token = localStorage.getItem('token');
+  if (token) {
+    return `curl -sSL "https://opendrap-api.tert.workers.dev/api/install.sh?token=${encodeURIComponent(token)}" | bash`;
+  }
+  return 'curl -sSL https://opendrap-api.tert.workers.dev/api/install.sh | bash';
+}
 
 const STEPS = [
   { icon: Terminal, text: 'Open your Cloud Shell or terminal' },
@@ -22,9 +28,10 @@ export function AgentInstallModal() {
   const { dispatch } = useApp();
   const [copied, setCopied] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const installCmd = useMemo(() => getInstallCmd(), []);
 
   const copy = async () => {
-    await navigator.clipboard.writeText(INSTALL_CMD).catch(() => {});
+    await navigator.clipboard.writeText(installCmd).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
@@ -99,7 +106,7 @@ export function AgentInstallModal() {
               Install Command
             </label>
             <div className="flex items-center gap-2 p-3.5 bg-[#060608] border border-white/10 rounded-xl">
-              <code className="flex-1 text-emerald-300 font-mono text-sm truncate">{INSTALL_CMD}</code>
+              <code className="flex-1 text-emerald-300 font-mono text-sm truncate">{installCmd}</code>
               <button
                 onClick={copy}
                 className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-gray-300 hover:text-white transition-all"

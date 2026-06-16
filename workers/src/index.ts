@@ -51,6 +51,42 @@ app.route('/api/admin', adminRouter);
 
 // Public shell script endpoint for agent install
 app.get('/api/install.sh', (c) => {
+  const queryToken = c.req.query('token') || '';
+
+  const tokenLine = queryToken
+    ? 'OPENDRAP_AGENT_TOKEN="' + queryToken.replace(/[\\"$]/g, '\\$&') + '"'
+    : '';
+
+  const promptBlock = queryToken ? '' : `
+if [ -z "$OPENDRAP_AGENT_TOKEN" ]; then
+  echo "  Sign in to your Opendrap account"
+  echo ""
+  read -r -p "  Email: " LOGIN_EMAIL </dev/tty
+  read -s -p "  Password: " LOGIN_PASS </dev/tty
+  echo ""
+  echo ""
+  echo "  Authenticating..."
+
+  LOGIN_RESP=$(curl -s "$API_BASE/api/auth/login" \\
+    -H "Content-Type: application/json" \\
+    -d "{\\"email\\":\\"$LOGIN_EMAIL\\",\\"password\\":\\"$LOGIN_PASS\\"}")
+
+  unset LOGIN_PASS
+
+  OPENDRAP_AGENT_TOKEN=$(echo "$LOGIN_RESP" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+t = d.get('token', '')
+if not t:
+    print('ERROR: ' + d.get('error', 'Login failed'))
+    sys.exit(1)
+print(t)
+" 2>&1) || { echo "  $OPENDRAP_AGENT_TOKEN"; echo "  Login failed."; exit 1; }
+
+  echo "  Signed in successfully"
+  echo ""
+fi`;
+
   const script = `#!/bin/bash
 # Opendrap DevOps Agent Installer
 set -e
@@ -66,6 +102,9 @@ echo "  Opendrap DevOps Agent Installer"
 echo "========================================"
 echo ""
 
+${tokenLine}
+${promptBlock}
+
 mkdir -p "$AGENT_DIR"
 
 # Write the agent Python script
@@ -77,20 +116,26 @@ import json
 import sys
 import os
 import uuid
-import time
-import signal
+import subprocess
 
 API_BASE = os.environ.get("OPENDRAP_API", "https://opendrap-api.tert.workers.dev")
 AGENT_ID = os.environ.get("OPENDRAP_AGENT_ID", f"agent-{uuid.uuid4().hex[:8]}")
+TOKEN = os.environ.get("OPENDRAP_AGENT_TOKEN", "")
+SHELL = os.environ.get("SHELL", "/bin/bash")
 
 async def main():
+    if not TOKEN:
+        print("ERROR: OPENDRAP_AGENT_TOKEN environment variable is not set.")
+        sys.exit(1)
+
     ws_url = API_BASE.replace("https://", "wss://") + "/api/terminal/ws"
     agent_info = {"agent_id": AGENT_ID, "version": "0.1.0"}
-    
+    headers = {"Authorization": f"Bearer {TOKEN}"}
+
     while True:
         try:
             import websockets
-            async with websockets.connect(ws_url) as ws:
+            async with websockets.connect(ws_url, extra_headers=headers) as ws:
                 await ws.send(json.dumps({
                     "type": "agent_connected",
                     "agent_id": AGENT_ID,
@@ -98,7 +143,7 @@ async def main():
                     "info": agent_info
                 }))
                 print(f"Agent {AGENT_ID} connected")
-                
+
                 async def heartbeat():
                     while True:
                         await asyncio.sleep(30)
@@ -106,9 +151,9 @@ async def main():
                             await ws.send(json.dumps({"type": "heartbeat", "agent_id": AGENT_ID}))
                         except:
                             break
-                
+
                 heartbeat_task = asyncio.create_task(heartbeat())
-                
+
                 async for message in ws:
                     data = json.loads(message)
                     msg_type = data.get("type", "")
@@ -118,20 +163,42 @@ async def main():
                         cmd = data.get("command", "")
                         cmd_id = data.get("command_id", "")
                         print(f"Executing: {cmd}")
-                        await ws.send(json.dumps({
-                            "type": "command_output",
-                            "command_id": cmd_id,
-                            "output": f"[{AGENT_ID}] Running: {cmd}\\n"
-                        }))
+                        try:
+                            proc = await asyncio.create_subprocess_shell(
+                                cmd,
+                                stdout=asyncio.subprocess.PIPE,
+                                stderr=asyncio.subprocess.STDOUT,
+                                shell=True,
+                                executable=SHELL
+                            )
+                            while True:
+                                line = await proc.stdout.readline()
+                                if not line:
+                                    break
+                                output = line.decode(errors="replace")
+                                await ws.send(json.dumps({
+                                    "type": "command_output",
+                                    "command_id": cmd_id,
+                                    "output": output
+                                }))
+                            await proc.wait()
+                            status = "success" if proc.returncode == 0 else "error"
+                        except Exception as cmd_err:
+                            status = "error"
+                            await ws.send(json.dumps({
+                                "type": "command_output",
+                                "command_id": cmd_id,
+                                "output": f"Error: {cmd_err}\\n"
+                            }))
                         await ws.send(json.dumps({
                             "type": "command_completed",
                             "command_id": cmd_id,
-                            "output": f"Command executed on {AGENT_ID}",
-                            "status": "success"
+                            "output": f"Command finished on {AGENT_ID}",
+                            "status": status
                         }))
-                
+
                 heartbeat_task.cancel()
-                
+
         except Exception as e:
             print(f"Connection error: {e}")
             await asyncio.sleep(5)
@@ -154,7 +221,7 @@ fi
 echo "  Starting agent in background..."
 echo ""
 
-nohup python3 "$AGENT_FILE" > "$LOG_FILE" 2>&1 &
+nohup env OPENDRAP_AGENT_TOKEN="$OPENDRAP_AGENT_TOKEN" python3 "$AGENT_FILE" > "$LOG_FILE" 2>&1 &
 echo $! > "$PID_FILE"
 
 sleep 2
@@ -162,12 +229,12 @@ sleep 2
 if kill -0 $(cat "$PID_FILE") 2>/dev/null; then
     echo "  Agent is running! (PID: $(cat "$PID_FILE"))"
     echo "  Connected to Opendrap API."
+    echo "  Agent ID: (check logs)"
 else
     echo "  Failed to start. Check logs: $LOG_FILE"
-    echo "  Run manually: python3 $AGENT_FILE"
+    echo "  Run manually: OPENDRAP_AGENT_TOKEN=\"$OPENDRAP_AGENT_TOKEN\" python3 $AGENT_FILE"
 fi
 
-echo "  Agent ID: $(cat /proc/sys/kernel/random/uuid 2>/dev/null | head -c 8 || echo "run 'cat $AGENT_FILE' for details")"
 echo ""
 echo "  Logs: $LOG_FILE"
 echo "  Stop: kill \$(cat $PID_FILE)"
