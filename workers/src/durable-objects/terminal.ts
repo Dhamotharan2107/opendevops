@@ -27,6 +27,23 @@ export class TerminalDurableObject implements DurableObject {
     this.agentSessionId = null;
     this.heartbeatTimer = null;
     this.lastHeartbeat = 0;
+    // Restore persisted agent status on cold start
+    this.state.blockConcurrencyWhile(async () => {
+      const stored = await this.state.storage.get<string>('agentSessionId');
+      const lastHb = await this.state.storage.get<number>('lastHeartbeat');
+      if (stored) {
+        this.agentSessionId = stored;
+        // Only consider agent online if heartbeat was recent (within 3 minutes)
+        if (lastHb && (Date.now() - lastHb) < 180000) {
+          this.lastHeartbeat = lastHb;
+        } else {
+          // Heartbeat too old, mark offline
+          this.agentSessionId = null;
+          await this.state.storage.delete('agentSessionId');
+          await this.state.storage.delete('lastHeartbeat');
+        }
+      }
+    });
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -86,7 +103,7 @@ export class TerminalDurableObject implements DurableObject {
     server.send(JSON.stringify({
       type: 'session_ready',
       sessionId,
-      isAgent: sessionId === AGENT_SESSION_ID || sessionId === 'default',
+      isAgent: sessionId === AGENT_SESSION_ID,
       agentConnected: this.agentSessionId !== null,
     }));
 
@@ -98,8 +115,10 @@ export class TerminalDurableObject implements DurableObject {
 
     if (this.agentSessionId === sessionId) {
       this.agentSessionId = null;
-      this.clearHeartbeatTimer();
       this.lastHeartbeat = 0;
+      this.state.storage.delete('agentSessionId');
+      this.state.storage.delete('lastHeartbeat');
+      this.clearHeartbeatTimer();
       this.broadcastToBrowsers(JSON.stringify({
         type: 'agent_disconnected',
         message: 'Agent went offline',
@@ -152,6 +171,8 @@ export class TerminalDurableObject implements DurableObject {
       case 'agent_connected': {
         this.agentSessionId = sessionId;
         this.lastHeartbeat = Date.now();
+        this.state.storage.put('agentSessionId', sessionId);
+        this.state.storage.put('lastHeartbeat', this.lastHeartbeat);
         this.startHeartbeatTimer();
         if (!this.sessions.has(sessionId)) {
           this.sessions.set(sessionId, {
@@ -176,6 +197,7 @@ export class TerminalDurableObject implements DurableObject {
 
       case 'heartbeat': {
         this.lastHeartbeat = Date.now();
+        this.state.storage.put('lastHeartbeat', this.lastHeartbeat);
         break;
       }
 
@@ -247,8 +269,10 @@ export class TerminalDurableObject implements DurableObject {
 
   private handleAgentOffline(sessionId: string): void {
     this.agentSessionId = null;
-    this.clearHeartbeatTimer();
     this.lastHeartbeat = 0;
+    this.state.storage.delete('agentSessionId');
+    this.state.storage.delete('lastHeartbeat');
+    this.clearHeartbeatTimer();
     this.websockets.delete(sessionId);
     this.broadcastToBrowsers(JSON.stringify({
       type: 'agent_disconnected',
@@ -265,6 +289,8 @@ export class TerminalDurableObject implements DurableObject {
         this.agentSessionId = null;
         this.clearHeartbeatTimer();
         this.lastHeartbeat = 0;
+        this.state.storage.delete('agentSessionId');
+        this.state.storage.delete('lastHeartbeat');
         this.websockets.delete(sessionId);
         this.broadcastToBrowsers(JSON.stringify({
           type: 'agent_disconnected',
@@ -284,7 +310,7 @@ export class TerminalDurableObject implements DurableObject {
   private broadcastToBrowsers(message: string, excludeSessionId?: string): void {
     for (const [sid, ws] of this.websockets.entries()) {
       if (sid === excludeSessionId) continue;
-      if (sid === AGENT_SESSION_ID || sid === 'default') continue;
+      if (sid === AGENT_SESSION_ID) continue;
       try {
         ws.send(message);
       } catch {}

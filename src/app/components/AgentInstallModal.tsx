@@ -5,10 +5,11 @@ import { useApp } from '@/lib/store';
 
 function getInstallCmd() {
   const token = localStorage.getItem('token');
+  const apiUrl = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8787/api').replace(/\/api\/?$/, '');
   if (token) {
-    return `curl -sSL "https://opendrap-api.tert.workers.dev/api/install.sh?token=${encodeURIComponent(token)}" | bash`;
+    return `curl -sSL "${apiUrl}/api/install.sh?token=${encodeURIComponent(token)}" | bash`;
   }
-  return 'curl -sSL https://opendrap-api.tert.workers.dev/api/install.sh | bash';
+  return `curl -sSL "${apiUrl}/api/install.sh" | bash`;
 }
 
 const STEPS = [

@@ -33,16 +33,16 @@ const itemVariants = {
   },
 };
 
-function getChatDisplayName(chat: Chat, userId: string): string {
+function getChatDisplayName(chat: Chat, userId: string, userLookup: Record<string, { id: string; name: string; online?: boolean }>): string {
   if (chat.type === 'private') {
     const otherId = chat.participants.find((p) => p !== userId);
-    return otherId ? mockUsers[otherId]?.name ?? 'Unknown' : 'Unknown';
+    return otherId ? (userLookup[otherId]?.name ?? `User ${otherId.slice(0, 6)}`) : 'Unknown';
   }
   return chat.name ?? 'Unnamed Chat';
 }
 
-function getChatAvatarInitials(chat: Chat, userId: string): string {
-  const name = getChatDisplayName(chat, userId);
+function getChatAvatarInitials(chat: Chat, userId: string, userLookup: Record<string, { id: string; name: string; online?: boolean }>): string {
+  const name = getChatDisplayName(chat, userId, userLookup);
   return getInitials(name);
 }
 
@@ -62,13 +62,28 @@ function getChatAvatarColor(name: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-function getOtherParticipants(chat: Chat, userId: string) {
-  return chat.participants.filter((p) => p !== userId).map((p) => mockUsers[p]).filter(Boolean);
-}
+// getOtherParticipants is now inside the component using userLookup
 
 export function ChatPage() {
   const { state, dispatch } = useApp();
   const userId = state.user?.id ?? '1';
+
+  // Build a user lookup that includes the real logged-in user as "online"
+  const userLookup = useMemo(() => {
+    const map: Record<string, { id: string; name: string; online?: boolean }> = { ...mockUsers };
+    if (state.user) {
+      map[state.user.id] = { id: state.user.id, name: state.user.name, online: true };
+    }
+    return map;
+  }, [state.user]);
+
+  function resolveUser(id: string) {
+    return userLookup[id] ?? { id, name: `User ${id.slice(0, 6)}`, online: false };
+  }
+
+  function getOtherParticipants(chat: Chat) {
+    return chat.participants.filter((p) => p !== userId).map((p) => resolveUser(p));
+  }
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [messageText, setMessageText] = useState('');
@@ -108,7 +123,7 @@ export function ChatPage() {
     if (!searchQuery) return state.chats;
     const q = searchQuery.toLowerCase();
     return state.chats.filter((chat) => {
-      const name = getChatDisplayName(chat, userId).toLowerCase();
+      const name = getChatDisplayName(chat, userId, userLookup).toLowerCase();
       return name.includes(q);
     });
   }, [state.chats, searchQuery, userId]);
@@ -319,8 +334,8 @@ export function ChatPage() {
             filteredChats.map((chat) => {
               const isActive = chat.id === selectedChatId;
               const lastMsg = getLastMessagePreview(chat);
-              const displayName = getChatDisplayName(chat, userId);
-              const initials = getChatAvatarInitials(chat, userId);
+              const displayName = getChatDisplayName(chat, userId, userLookup);
+              const initials = getChatAvatarInitials(chat, userId, userLookup);
               const unread = getUnreadCount(chat);
 
               return (
@@ -403,26 +418,26 @@ export function ChatPage() {
                 <div
                   className={cn(
                     'w-10 h-10 rounded-full bg-gradient-to-br flex items-center justify-center text-sm font-semibold text-white shrink-0',
-                    getChatAvatarColor(getChatDisplayName(selectedChat, userId))
+                    getChatAvatarColor(getChatDisplayName(selectedChat, userId, userLookup))
                   )}
                 >
-                  {getChatAvatarInitials(selectedChat, userId)}
+                  {getChatAvatarInitials(selectedChat, userId, userLookup)}
                 </div>
                 <div>
                   <h2 className="text-sm font-semibold text-white">
-                    {getChatDisplayName(selectedChat, userId)}
+                    {getChatDisplayName(selectedChat, userId, userLookup)}
                   </h2>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     {selectedChat.type === 'private' ? (
                       <>
                         <span className={cn(
                           'w-1.5 h-1.5 rounded-full',
-                          getOtherParticipants(selectedChat, userId)[0]?.online
+                          getOtherParticipants(selectedChat)[0]?.online
                             ? 'bg-emerald-500'
                             : 'bg-gray-600'
                         )} />
                         <span className="text-[11px] text-gray-500">
-                          {getOtherParticipants(selectedChat, userId)[0]?.online ? 'Online' : 'Offline'}
+                          {getOtherParticipants(selectedChat)[0]?.online ? 'Online' : 'Offline'}
                         </span>
                       </>
                     ) : (
@@ -456,7 +471,7 @@ export function ChatPage() {
               ) : (
                 groupedMessages.map((group) => {
                   const isMe = isCurrentUser(group.senderId);
-                  const sender = mockUsers[group.senderId];
+                  const sender = resolveUser(group.senderId);
                   const senderName = sender?.name ?? 'Unknown';
 
                   return (
@@ -780,7 +795,7 @@ export function ChatPage() {
                     {selectedUsers.length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {selectedUsers.map((id) => {
-                          const u = mockUsers[id];
+                          const u = userLookup[id];
                           return (
                             <span
                               key={id}

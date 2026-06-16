@@ -49,7 +49,17 @@ Available commands:
   echo [text] Print text
   date        Show current date/time`;
 
-const WS_URL = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
+function getWsBaseUrl() {
+  const envWs = import.meta.env.VITE_WS_URL;
+  if (envWs) return envWs;
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8787/api';
+  if (apiUrl.startsWith('/')) {
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${window.location.host}`;
+  }
+  return apiUrl.replace(/\/api\/?$/, '').replace('https://', 'wss://').replace('http://', 'ws://');
+}
+const WS_URL = getWsBaseUrl();
 
 type Handler = (args: string, user: any, projects: any[], cwd: string) => string;
 
@@ -130,27 +140,25 @@ export function TerminalPage() {
     if (!token) return;
 
     const projectId = 'default';
+    let sessionId = 'default';
+
+    // Poll agent status immediately on mount so UI shows correct state before WS connects
+    fetch(`${BASE_URL}/terminal/history?sessionId=agent&projectId=${projectId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.json()).then((d: any) => {
+      if (d?.data?.agentConnected) {
+        dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: true, lastSeen: new Date().toISOString() } });
+      }
+    }).catch(() => {});
 
     async function connect() {
       try {
-        const sessionRes = await fetch(`${BASE_URL}/terminal/session`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ projectId }),
-        });
-        const sessionData = await sessionRes.json();
-        const sessionId = sessionData?.data?.sessionId || 'default';
-
-        const wsUrl = `${WS_URL}/api/terminal/ws?sessionId=${sessionId}&projectId=${projectId}&token=${encodeURIComponent(token)}`;
+        const wsUrl = `${WS_URL}/api/terminal/ws?sessionId=browser&projectId=${projectId}&token=${encodeURIComponent(token)}`;
         const ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
           setWsConnected(true);
-          dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: true, lastSeen: new Date().toISOString() } });
-          setLines((prev) => [...prev, { type: 'system', text: 'Terminal connected to Opendrap agent.' }]);
+          setLines((prev) => [...prev, { type: 'system', text: 'Terminal connected. Waiting for agent...' }]);
         };
 
         ws.onmessage = (event) => {
@@ -185,7 +193,7 @@ export function TerminalPage() {
 
         wsRef.current = ws;
       } catch {
-        setLines((prev) => [...prev, { type: 'error', text: 'Failed to connect to terminal server. Running in simulation mode.' }]);
+        setLines((prev) => [...prev, { type: 'system', text: 'Terminal started in simulation mode. Connect to the agent to enable live terminal.' }]);
       }
     }
 

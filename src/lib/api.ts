@@ -1,4 +1,4 @@
-export const BASE_URL = import.meta.env.VITE_API_URL || 'https://opendrap-api.workers.dev/api';
+export const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8787/api';
 export const DEMO_TOKEN = 'opendrap-demo-2024';
 
 export function getOAuthUrl(provider: 'google' | 'github') {
@@ -320,6 +320,33 @@ export async function apiCreateProject(data: any) {
 export async function apiGetProject(id: string) {
   if (isDemoMode()) return DEMO_PROJECTS.find(p => p.id === id) || null;
   return request<any>(`/projects/${id}`);
+}
+
+export async function apiGetDashboard() {
+  if (isDemoMode()) {
+    return {
+      user: DEMO_USER,
+      stats: {
+        totalProjects: DEMO_PROJECTS.length,
+        totalDeployments: DEMO_DEPLOYMENTS.length,
+        totalErrors: DEMO_ERRORS.length,
+        openBugs: 3,
+      },
+      recentProjects: DEMO_PROJECTS.slice(0, 5),
+      recentDeployments: DEMO_DEPLOYMENTS.slice(0, 5),
+      recentActivity: [],
+      notifications: [],
+    };
+  }
+  return request<any>('/dashboard');
+}
+
+export async function apiGetLogs(projectId = 'default', level?: string, search?: string, page = 1, limit = 50) {
+  if (isDemoMode()) return { logs: [], total: 0 };
+  const q = new URLSearchParams({ projectId, page: String(page), limit: String(limit) });
+  if (level) q.set('level', level);
+  if (search) q.set('search', search);
+  return request<{ logs: any[]; total: number }>(`/logs?${q}`);
 }
 
 export function hasToken() {

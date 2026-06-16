@@ -34,6 +34,7 @@ type Action =
   | { type: 'SET_PROJECTS'; payload: Project[] }
   | { type: 'ADD_PROJECT'; payload: Project }
   | { type: 'UPDATE_PROJECT'; payload: Project }
+  | { type: 'REMOVE_PROJECT'; payload: string }
   | { type: 'SET_CONNECTIONS'; payload: Connection[] }
   | { type: 'ADD_CONNECTION'; payload: Connection }
   | { type: 'UPDATE_CONNECTION'; payload: Connection }
@@ -108,6 +109,8 @@ function appReducer(state: AppState, action: Action): AppState {
       return { ...state, projects: [action.payload, ...state.projects] };
     case 'UPDATE_PROJECT':
       return { ...state, projects: state.projects.map(p => p.id === action.payload.id ? action.payload : p) };
+    case 'REMOVE_PROJECT':
+      return { ...state, projects: state.projects.filter(p => p.id !== action.payload) };
     case 'SET_CONNECTIONS':
       return { ...state, connections: action.payload };
     case 'ADD_CONNECTION':

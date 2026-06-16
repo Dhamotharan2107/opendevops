@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import {
   User, Lock, Bell, Palette, Key, Fingerprint,
@@ -11,10 +11,11 @@ import { apiUpdateProfile } from '@/lib/api';
 
 function getInstallCmd() {
   const token = localStorage.getItem('token');
+  const apiUrl = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8787/api').replace(/\/api\/?$/, '');
   if (token) {
-    return `curl -sSL "https://opendrap-api.tert.workers.dev/api/install.sh?token=${encodeURIComponent(token)}" | bash`;
+    return `curl -sSL "${apiUrl}/api/install.sh?token=${encodeURIComponent(token)}" | bash`;
   }
-  return 'curl -sSL https://opendrap-api.tert.workers.dev/api/install.sh | bash';
+  return `curl -sSL "${apiUrl}/api/install.sh" | bash`;
 }
 
 function getTokenDisplay(token: string) {
@@ -509,3 +510,4 @@ function AgentTab() {
     </motion.div>
   );
 }
+

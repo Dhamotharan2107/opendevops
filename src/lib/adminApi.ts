@@ -1,4 +1,4 @@
-const BASE = (import.meta.env.VITE_API_URL || 'https://opendrap-api.tert.workers.dev/api');
+const BASE = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8787/api');
 const ADMIN_KEY = 'opendrapdev@2026';
 
 async function req<T = any>(path: string, opts?: RequestInit): Promise<T> {

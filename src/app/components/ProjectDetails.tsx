@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useParams } from 'react-router';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   GitBranch, ExternalLink, Play, Settings, Activity,
@@ -14,6 +14,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { useApp } from '../../lib/store';
+import { BASE_URL } from '../../lib/api';
 import { cn, getStatusColor, getPriorityColor, getInitials } from '../../lib/utils';
 import type { Project, Deployment, LogEntry, ErrorRecord, AITestResult, APIRequest } from '../../lib/types';
 
@@ -90,8 +91,10 @@ function generateTimeSeries(points: number, min: number, max: number, label: str
 
 export function ProjectDetails() {
   const { id } = useParams();
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const [deploying, setDeploying] = useState(false);
 
   const project = useMemo(
     () => state.projects.find((p) => p.id === id),
@@ -123,6 +126,29 @@ export function ProjectDetails() {
   }
 
   const statusColor = getStatusColor(project.status);
+
+  const handleDeploy = async (project: Project) => {
+    setDeploying(true);
+    dispatch({ type: 'ADD_DEPLOYMENT', payload: {
+      id: crypto.randomUUID(), projectId: project.id,
+      version: `v${Date.now()}`, commit: 'HEAD', branch: project.branch,
+      status: 'building', time: new Date().toLocaleString(),
+    }});
+    const wsUrl = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const ws = new WebSocket(`${wsUrl}/api/terminal/ws?projectId=${project.id}&token=${token}`);
+        await new Promise<void>((resolve, reject) => {
+          ws.onopen = () => resolve();
+          ws.onerror = () => reject(new Error('WS connection failed'));
+        });
+        ws.send(JSON.stringify({ type: 'terminal_input', input: `cd ${project.name} && git pull && npm install && npm run build` }));
+        setTimeout(() => ws.close(), 30000);
+      } catch {}
+    }
+    setDeploying(false);
+  };
 
   return (
     <div className="h-full flex flex-col bg-[#0A0A0F]">
@@ -166,9 +192,13 @@ export function ProjectDetails() {
                 <ExternalLink className="w-4 h-4" />
                 <span className="text-sm">Open App</span>
               </a>
-              <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity">
-                <Play className="w-4 h-4" />
-                <span className="text-sm">Deploy</span>
+              <button
+                onClick={() => handleDeploy(project)}
+                disabled={deploying}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                <Play className={`w-4 h-4 ${deploying ? 'animate-spin' : ''}`} />
+                <span className="text-sm">{deploying ? 'Deploying...' : 'Deploy'}</span>
               </button>
             </motion.div>
           </div>
@@ -203,7 +233,7 @@ export function ProjectDetails() {
             exit="exit"
           >
             {activeTab === 'overview' && <OverviewTab project={project} />}
-            {activeTab === 'terminal' && <TerminalTab />}
+            {activeTab === 'terminal' && <TerminalTab projectId={project.id} />}
             {activeTab === 'logs' && <LogsTab projectId={project.id} />}
             {activeTab === 'errors' && <ErrorsTab projectId={project.id} />}
             {activeTab === 'ai-testing' && <AITestingTab projectId={project.id} />}
@@ -492,65 +522,101 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
   );
 }
 
-function TerminalTab() {
+function TerminalTab({ projectId }: { projectId: string }) {
   const [command, setCommand] = useState('');
-  const [history, setHistory] = useState<{ type: string; text: string }[]>([
+  const [lines, setLines] = useState<{ type: string; text: string }[]>([
     { type: 'output', text: 'Opendrap Cloud Terminal v1.0.0' },
-    { type: 'output', text: 'Connected to: production-environment' },
+    { type: 'output', text: 'Connecting to agent...' },
   ]);
+  const [wsConnected, setWsConnected] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const wsUrl = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
+    const token = localStorage.getItem('token');
+    if (!token) { setLines((p) => [...p, { type: 'error', text: 'No auth token. Please log in.' }]); return; }
+
+    const ws = new WebSocket(`${wsUrl}/api/terminal/ws?projectId=${projectId}&token=${token}`);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      setWsConnected(true);
+      setLines((p) => [...p, { type: 'output', text: 'Terminal connected. Waiting for agent...' }]);
+    };
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'terminal_output') {
+          setLines((p) => [...p, { type: 'output', text: msg.data }]);
+        } else if (msg.type === 'command_output') {
+          setLines((p) => [...p, { type: 'output', text: msg.data }]);
+        } else if (msg.type === 'error') {
+          setLines((p) => [...p, { type: 'error', text: msg.message }]);
+        }
+      } catch { /* ignore */ }
+    };
+    ws.onclose = () => {
+      setWsConnected(false);
+      setLines((p) => [...p, { type: 'error', text: 'Connection closed.' }]);
+    };
+
+    return () => ws.close();
+  }, [projectId]);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [lines]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = command.trim();
-    if (!trimmed) return;
-    setHistory((prev) => [
-      ...prev,
-      { type: 'command', text: `$ ${trimmed}` },
-      { type: 'output', text: `[system]: Command '${trimmed.split(' ')[0]}' executed` },
-    ]);
+    if (!trimmed || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    setLines((p) => [...p, { type: 'command', text: `$ ${trimmed}` }]);
+    wsRef.current.send(JSON.stringify({ type: 'terminal_input', input: trimmed }));
     setCommand('');
   };
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="max-w-7xl mx-auto"
-    >
-      <motion.div
-        variants={itemVariants}
-        className="border border-white/10 rounded-xl overflow-hidden bg-black"
-      >
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-7xl mx-auto">
+      <motion.div variants={itemVariants} className="border border-white/10 rounded-xl overflow-hidden bg-black">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/5">
+          <div className="flex items-center gap-2 text-xs text-white/40">
+            <Terminal className="w-3.5 h-3.5" />
+            <span>{wsConnected ? 'Connected' : 'Disconnected'}</span>
+          </div>
+        </div>
         <div className="h-96 overflow-y-auto p-4 font-mono text-sm">
-          {history.map((line, i) => (
+          {lines.map((line, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, x: -4 }}
               animate={{ opacity: 1, x: 0 }}
               className={cn(
-                'mb-1',
-                line.type === 'command'
-                  ? 'text-blue-400'
-                  : line.type === 'success'
-                  ? 'text-green-400'
-                  : 'text-gray-400'
+                'mb-1 whitespace-pre-wrap',
+                line.type === 'command' ? 'text-blue-400' :
+                line.type === 'error' ? 'text-red-400' :
+                line.type === 'success' ? 'text-green-400' : 'text-gray-300'
               )}
             >
               {line.text}
             </motion.div>
           ))}
-          <form onSubmit={handleSubmit} className="flex items-center gap-2">
+          <form onSubmit={handleSubmit} className="flex items-center gap-2 mt-2">
             <span className="text-green-400 shrink-0">$</span>
             <input
+              ref={inputRef}
               type="text"
               value={command}
               onChange={(e) => setCommand(e.target.value)}
               className="flex-1 bg-transparent outline-none text-white"
-              placeholder="Type command..."
+              placeholder={wsConnected ? 'Type command...' : 'Reconnecting...'}
               autoFocus
+              disabled={!wsConnected}
             />
           </form>
+          <div ref={endRef} />
         </div>
       </motion.div>
     </motion.div>
@@ -1086,6 +1152,26 @@ function MonitoringTab() {
 }
 
 function SettingsTab({ project }: { project: Project }) {
+  const { dispatch } = useApp();
+  const navigate = useNavigate();
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const handleDeleteProject = async () => {
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${BASE_URL}/projects/${project.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Delete failed');
+      dispatch({ type: 'REMOVE_PROJECT', payload: project.id });
+      navigate('/dashboard/projects');
+    } catch { /* ignore */ }
+    setDeleting(false);
+  };
+
   const settings = [
     { title: 'Git Repository', value: project.repo },
     { title: 'Branch', value: project.branch },
@@ -1148,6 +1234,36 @@ function SettingsTab({ project }: { project: Project }) {
             </motion.div>
           ))}
         </div>
+      </motion.div>
+
+      <motion.div variants={itemVariants} className="border border-red-500/20 rounded-xl p-6 bg-red-500/5">
+        <h3 className="font-semibold text-red-400 mb-2">Danger Zone</h3>
+        <p className="text-sm text-white/40 mb-4">Permanently delete this project and all its data.</p>
+        {confirmDelete ? (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleDeleteProject}
+              disabled={deleting}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm disabled:opacity-50"
+            >
+              {deleting ? 'Deleting...' : 'Yes, Delete'}
+            </button>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="px-4 py-2 border border-white/10 rounded-lg hover:bg-white/5 text-white/60 transition-colors text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="flex items-center gap-2 px-4 py-2 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/10 transition-colors text-sm"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete Project
+          </button>
+        )}
       </motion.div>
     </motion.div>
   );
