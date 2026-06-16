@@ -158,9 +158,16 @@ export function TerminalPage() {
             const msg = JSON.parse(event.data);
             if (msg.type === 'terminal_output') {
               setLines((prev) => [...prev, { type: 'output', text: msg.data }]);
-            } else if (msg.type === 'agent_connected_ack') {
-              setLines((prev) => [...prev, { type: 'system', text: 'Agent bridge established.' }]);
-            } else if (msg.type === 'heartbeat_pong' || msg.type === 'keepalive_ack') {
+            } else if (msg.type === 'agent_connected') {
+              dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: true, lastSeen: new Date().toISOString() } });
+              setLines((prev) => [...prev, { type: 'system', text: msg.message || 'Agent connected.' }]);
+            } else if (msg.type === 'agent_disconnected') {
+              dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: false } });
+              setLines((prev) => [...prev, { type: 'system', text: msg.message || 'Agent disconnected.' }]);
+            } else if (msg.type === 'session_ready') {
+              if (msg.agentConnected) {
+                dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: true, lastSeen: new Date().toISOString() } });
+              }
             } else if (msg.type === 'error') {
               setLines((prev) => [...prev, { type: 'error', text: msg.message }]);
             }

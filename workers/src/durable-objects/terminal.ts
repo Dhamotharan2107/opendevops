@@ -7,19 +7,26 @@ interface TerminalSession {
   createdAt: string;
 }
 
+const AGENT_SESSION_ID = 'agent';
+const HEARTBEAT_TIMEOUT_MS = 90000;
+
 export class TerminalDurableObject implements DurableObject {
   private state: DurableObjectState;
   private appEnv: Env;
   private sessions: Map<string, TerminalSession>;
   private websockets: Map<string, WebSocket>;
-  private agentWs: WebSocket | null;
+  private agentSessionId: string | null;
+  private heartbeatTimer: ReturnType<typeof setTimeout> | null;
+  private lastHeartbeat: number;
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
     this.appEnv = env;
     this.sessions = new Map();
     this.websockets = new Map();
-    this.agentWs = null;
+    this.agentSessionId = null;
+    this.heartbeatTimer = null;
+    this.lastHeartbeat = 0;
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -48,30 +55,6 @@ export class TerminalDurableObject implements DurableObject {
     const [client, server] = Object.values(pair);
 
     server.accept();
-
-    server.addEventListener('message', (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data as string);
-        this.handleMessage(sessionId, projectId, data, server);
-      } catch {
-        server.send(JSON.stringify({ type: 'error', message: 'Invalid message format' }));
-      }
-    });
-
-    server.addEventListener('close', () => {
-      if (this.agentWs === server) {
-        this.agentWs = null;
-      }
-      this.websockets.delete(sessionId);
-    });
-
-    server.addEventListener('error', () => {
-      if (this.agentWs === server) {
-        this.agentWs = null;
-      }
-      this.websockets.delete(sessionId);
-    });
-
     this.websockets.set(sessionId, server);
 
     const session = this.sessions.get(sessionId);
@@ -83,7 +66,45 @@ export class TerminalDurableObject implements DurableObject {
       }
     }
 
+    server.addEventListener('message', (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data as string);
+        this.handleMessage(sessionId, projectId, data, server);
+      } catch {
+        server.send(JSON.stringify({ type: 'error', message: 'Invalid message format' }));
+      }
+    });
+
+    server.addEventListener('close', () => {
+      this.handleDisconnect(sessionId, server);
+    });
+
+    server.addEventListener('error', () => {
+      this.handleDisconnect(sessionId, server);
+    });
+
+    server.send(JSON.stringify({
+      type: 'session_ready',
+      sessionId,
+      isAgent: sessionId === AGENT_SESSION_ID || sessionId === 'default',
+      agentConnected: this.agentSessionId !== null,
+    }));
+
     return new Response(null, { status: 101, webSocket: client });
+  }
+
+  private handleDisconnect(sessionId: string, ws: WebSocket): void {
+    this.websockets.delete(sessionId);
+
+    if (this.agentSessionId === sessionId) {
+      this.agentSessionId = null;
+      this.clearHeartbeatTimer();
+      this.lastHeartbeat = 0;
+      this.broadcastToBrowsers(JSON.stringify({
+        type: 'agent_disconnected',
+        message: 'Agent went offline',
+      }), sessionId);
+    }
   }
 
   private async handleCreateSession(request: Request): Promise<Response> {
@@ -104,7 +125,7 @@ export class TerminalDurableObject implements DurableObject {
 
       return Response.json({
         success: true,
-        data: { sessionId: session.id },
+        data: { sessionId: session.id, agentConnected: this.agentSessionId !== null },
       });
     } catch {
       return Response.json({ success: false, error: 'Invalid request body' }, { status: 400 });
@@ -119,6 +140,7 @@ export class TerminalDurableObject implements DurableObject {
       data: {
         buffer: session?.buffer ?? [],
         sessionId,
+        agentConnected: this.agentSessionId !== null,
       },
     });
   }
@@ -128,9 +150,10 @@ export class TerminalDurableObject implements DurableObject {
 
     switch (type) {
       case 'agent_connected': {
-        this.agentWs = ws;
-        const session = this.sessions.get(sessionId);
-        if (!session) {
+        this.agentSessionId = sessionId;
+        this.lastHeartbeat = Date.now();
+        this.startHeartbeatTimer();
+        if (!this.sessions.has(sessionId)) {
           this.sessions.set(sessionId, {
             id: sessionId,
             projectId,
@@ -139,18 +162,20 @@ export class TerminalDurableObject implements DurableObject {
           });
         }
         ws.send(JSON.stringify({ type: 'agent_connected_ack', sessionId }));
+        this.broadcastToBrowsers(JSON.stringify({
+          type: 'agent_connected',
+          message: 'Agent is now online',
+        }), sessionId);
+        break;
+      }
+
+      case 'agent_disconnected': {
+        this.handleAgentOffline(sessionId);
         break;
       }
 
       case 'heartbeat': {
-        if (this.agentWs) {
-          ws.send(JSON.stringify({ type: 'heartbeat_pong' }));
-        }
-        break;
-      }
-
-      case 'heartbeat_ping': {
-        ws.send(JSON.stringify({ type: 'heartbeat' }));
+        this.lastHeartbeat = Date.now();
         break;
       }
 
@@ -164,14 +189,20 @@ export class TerminalDurableObject implements DurableObject {
           }
         }
 
-        if (this.agentWs) {
-          try {
-            this.agentWs.send(JSON.stringify({
-              type: 'execute_command',
-              command_id: crypto.randomUUID(),
-              command: input,
-            }));
-          } catch {
+        if (this.agentSessionId) {
+          const agentWs = this.websockets.get(this.agentSessionId);
+          if (agentWs) {
+            try {
+              agentWs.send(JSON.stringify({
+                type: 'execute_command',
+                command_id: crypto.randomUUID(),
+                command: input,
+              }));
+            } catch {
+              this.handleAgentOffline(this.agentSessionId);
+              ws.send(JSON.stringify({ type: 'terminal_output', data: 'Agent unreachable. Command not sent.\n' }));
+            }
+          } else {
             ws.send(JSON.stringify({ type: 'terminal_output', data: 'Agent disconnected. Cannot execute command.\n' }));
           }
         } else {
@@ -192,6 +223,7 @@ export class TerminalDurableObject implements DurableObject {
         this.broadcastToBrowsers(JSON.stringify({
           type: 'terminal_output',
           data: output ? `\n${output}` : `\nCommand finished with status: ${status}\n`,
+          commandCompleted: true,
         }), sessionId);
         break;
       }
@@ -208,27 +240,51 @@ export class TerminalDurableObject implements DurableObject {
         break;
       }
 
-      case 'forward_output': {
-        const fwdOutput = data.output as string;
-        const session = this.sessions.get(sessionId);
-        if (session) {
-          session.buffer.push(fwdOutput);
-          if (session.buffer.length > 1000) {
-            session.buffer.splice(0, session.buffer.length - 1000);
-          }
-        }
-        ws.send(JSON.stringify({ type: 'terminal_output', data: fwdOutput }));
-        break;
-      }
-
       default:
         ws.send(JSON.stringify({ type: 'error', message: `Unknown message type: ${type}` }));
+    }
+  }
+
+  private handleAgentOffline(sessionId: string): void {
+    this.agentSessionId = null;
+    this.clearHeartbeatTimer();
+    this.lastHeartbeat = 0;
+    this.websockets.delete(sessionId);
+    this.broadcastToBrowsers(JSON.stringify({
+      type: 'agent_disconnected',
+      message: 'Agent went offline',
+    }), sessionId);
+  }
+
+  private startHeartbeatTimer(): void {
+    this.clearHeartbeatTimer();
+    this.heartbeatTimer = setInterval(() => {
+      const elapsed = Date.now() - this.lastHeartbeat;
+      if (elapsed > HEARTBEAT_TIMEOUT_MS && this.agentSessionId) {
+        const sessionId = this.agentSessionId;
+        this.agentSessionId = null;
+        this.clearHeartbeatTimer();
+        this.lastHeartbeat = 0;
+        this.websockets.delete(sessionId);
+        this.broadcastToBrowsers(JSON.stringify({
+          type: 'agent_disconnected',
+          message: 'Agent heartbeat timed out',
+        }), sessionId);
+      }
+    }, 30000);
+  }
+
+  private clearHeartbeatTimer(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
     }
   }
 
   private broadcastToBrowsers(message: string, excludeSessionId?: string): void {
     for (const [sid, ws] of this.websockets.entries()) {
       if (sid === excludeSessionId) continue;
+      if (sid === AGENT_SESSION_ID || sid === 'default') continue;
       try {
         ws.send(message);
       } catch {}

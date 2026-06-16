@@ -377,17 +377,34 @@ export function NewProjectModal({
 
       const wsUrl = `${WS_URL}/api/terminal/ws?sessionId=${sessionId}&projectId=default&token=${encodeURIComponent(token)}`;
       const ws = new WebSocket(wsUrl);
+      let completionTimer: ReturnType<typeof setTimeout>;
 
       ws.onopen = () => {
         ws.send(JSON.stringify({ type: 'terminal_input', input: cmd }));
-        setTimeout(() => {
+        completionTimer = setTimeout(() => {
           ws.close();
           setRunStatus('done');
           setTimeout(() => setRunStatus('idle'), 3000);
-        }, 2000);
+        }, 15000);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'terminal_output' && msg.data) {
+            console.log('[clone]', msg.data);
+          }
+          if (msg.type === 'terminal_output' && msg.data?.includes('Command finished')) {
+            clearTimeout(completionTimer);
+            ws.close();
+            setRunStatus('done');
+            setTimeout(() => setRunStatus('idle'), 3000);
+          }
+        } catch {}
       };
 
       ws.onerror = () => {
+        clearTimeout(completionTimer);
         setRunStatus('error');
         setTimeout(() => setRunStatus('idle'), 3000);
       };

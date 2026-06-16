@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import {
-  User, Lock, Bell, Palette, Key,
+  User, Lock, Bell, Palette, Key, Fingerprint,
   Save, Check, Eye, EyeOff, Loader2, Shield,
   Terminal, Wifi, WifiOff, Copy, RefreshCw, Download, RotateCcw
 } from 'lucide-react';
@@ -9,7 +9,18 @@ import { useApp } from '@/lib/store';
 import { cn, getInitials } from '@/lib/utils';
 import { apiUpdateProfile } from '@/lib/api';
 
-const INSTALL_CMD = 'curl -sSL https://opendrap-api.tert.workers.dev/api/install.sh | bash';
+function getInstallCmd() {
+  const token = localStorage.getItem('token');
+  if (token) {
+    return `curl -sSL "https://opendrap-api.tert.workers.dev/api/install.sh?token=${encodeURIComponent(token)}" | bash`;
+  }
+  return 'curl -sSL https://opendrap-api.tert.workers.dev/api/install.sh | bash';
+}
+
+function getTokenDisplay(token: string) {
+  if (token.length <= 20) return token;
+  return token.slice(0, 20) + '...' + token.slice(-8);
+}
 
 const TABS = [
   { id: 'profile', label: 'Profile', icon: User },
@@ -343,11 +354,22 @@ export function SettingsPage() {
 function AgentTab() {
   const { state, dispatch } = useApp();
   const [cmdCopied, setCmdCopied] = useState(false);
+  const [tokenCopied, setTokenCopied] = useState(false);
+
+  const installCmd = useMemo(() => getInstallCmd(), []);
+  const token = localStorage.getItem('token') || '';
+  const hasToken = token.length > 0;
 
   const copyCmd = async () => {
-    await navigator.clipboard.writeText(INSTALL_CMD).catch(() => {});
+    await navigator.clipboard.writeText(installCmd).catch(() => {});
     setCmdCopied(true);
     setTimeout(() => setCmdCopied(false), 2500);
+  };
+
+  const copyToken = async () => {
+    await navigator.clipboard.writeText(token).catch(() => {});
+    setTokenCopied(true);
+    setTimeout(() => setTokenCopied(false), 2500);
   };
 
   const reconnect = () => {
@@ -441,7 +463,7 @@ function AgentTab() {
         <h3 className="font-semibold text-white">Install Command</h3>
         <p className="text-sm text-gray-400">Run this in your terminal to install and start the agent automatically.</p>
         <div className="flex items-center gap-2 p-3.5 bg-[#060608] border border-white/10 rounded-xl">
-          <code className="flex-1 text-emerald-300 font-mono text-sm truncate">{INSTALL_CMD}</code>
+          <code className="flex-1 text-emerald-300 font-mono text-sm truncate">{installCmd}</code>
           <button
             onClick={copyCmd}
             className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-gray-300 hover:text-white transition-all"
@@ -451,6 +473,27 @@ function AgentTab() {
           </button>
         </div>
       </div>
+
+      {/* Token */}
+      {hasToken && (
+        <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-4">
+          <h3 className="font-semibold text-white flex items-center gap-2">
+            <Fingerprint className="w-4 h-4 text-violet-400" />
+            API Token
+          </h3>
+          <p className="text-sm text-gray-400">Your authentication token. Used in the install command above. Keep it secret.</p>
+          <div className="flex items-center gap-2 p-3.5 bg-[#060608] border border-white/10 rounded-xl">
+            <code className="flex-1 text-amber-300 font-mono text-xs break-all select-all">{getTokenDisplay(token)}</code>
+            <button
+              onClick={copyToken}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-gray-300 hover:text-white transition-all"
+            >
+              {tokenCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {tokenCopied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Danger zone */}
       <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-xl space-y-3">

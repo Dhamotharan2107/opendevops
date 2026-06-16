@@ -1,16 +1,54 @@
-Repository URL *
-https://github.com/MicroPyramid/Django-CRM.git
-Supports GitHub, GitLab, Bitbucket HTTPS/SSH URLs
+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ curl -sSL "https://opendrap-api.tert.workers.dev/api/install.sh?token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmNDJkMjc2OS02NWU0LTQzMjAtOGUzNy1kNjM2MDUwNTZkNzIiLCJpYXQiOjE3ODE1OTA2NTIsImV4cCI6MTc4MjE5NTQ1Mn0.wt9GwDN4ujOIwMwVUTCw5CgLcBLtyH67kSVe61yUV-w" | bash
+========================================
+  Opendrap DevOps Agent Installer
+========================================
 
-Clone in Cloud Shell
-Run this inside your Google Cloud Shell at ~/opendev/projects:
+  Agent script created at /home/contact_inotechsoftware/opendrap-agent/agent.py
+  websockets module found
+  Starting agent in background...
 
-cd ~/opendev/projects && git clone https://github.com/MicroPyramid/Django-CRM.git
-Copy
-Open in Cloud Shell
-Generate Link
-The Cloud Shell link opens Google Cloud Shell and auto-clones this repo into your browser.
+  Agent is running! (PID: 1719)
+  Connected to Opendrap API.
+  Agent ID: (check logs)
 
-Private Repository? Add Access Token
-For private repos, provide a GitHub/GitLab Personal Access Token or deploy key. Stored securely and only used to clone.
+  Logs: /home/contact_inotechsoftware/opendrap-agent/agent.log
+  Stop: kill 1719
+========================================
+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ cd opendrap-agent/
+contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ ls
+agent  agent.log  agent.pid  agent.py
+contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ agent
+-bash: agent: command not found
+contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ cd agent
+-bash: cd: agent: Not a directory
+contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ ls
+agent  agent.log  agent.pid  agent.py
+contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ 
 
+
+
+but in my 
+Opendrap Workspace Terminal v1.0.0
+Workspace: ~/opendev  |  Isolation: ON  |  Sudo: BLOCKED
+
+Available commands:
+  help        Show this help message
+  clear       Clear the terminal
+  ls [path]   List files in workspace directory
+  pwd         Print working directory
+  cd [dir]    Change directory (restricted to ~/opendev)
+  whoami      Show current user info
+  projects    List your projects
+  env         Show workspace environment
+  cat [file]  Show file contents
+  mkdir [dir] Create directory in workspace
+  version     Show platform version
+  echo [text] Print text
+  date        Show current date/time
+Terminal connected to Opendrap agent.
+opendev@workspace:~/opendev$ ls
+$ ls
+opendev@workspace:~/opendev$
+
+
+what is this and deploy also not working clone project also not done i siad i neede the folder in the folder i need access that  do taht
