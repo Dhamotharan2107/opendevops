@@ -15,7 +15,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { useApp } from '../../lib/store';
-import { BASE_URL, githubFetchBranches, getGitHubPat } from '../../lib/api';
+import { BASE_URL, githubFetchBranches, getGitHubPat, apiGetProjects } from '../../lib/api';
 import { cn, getStatusColor, getPriorityColor, getInitials } from '../../lib/utils';
 import type { Project, Deployment, LogEntry, ErrorRecord, AITestResult, APIRequest } from '../../lib/types';
 
@@ -102,6 +102,8 @@ export function ProjectDetails() {
   const [tunnelRunning, setTunnelRunning] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [tunnelPort, setTunnelPort] = useState('8000');
+  const [projectLoading, setProjectLoading] = useState(false);
+  const [projectFetched, setProjectFetched] = useState(false);
   const deployWsRef = useRef<WebSocket | null>(null);
 
   // Branch state
@@ -116,6 +118,17 @@ export function ProjectDetails() {
     () => state.projects.find((p) => p.id === id),
     [id, state.projects]
   );
+
+  // On direct URL navigation projects list may be empty.
+  // Must wait for auth before calling the API.
+  useEffect(() => {
+    if (project || projectFetched || projectLoading || !state.isAuthenticated) return;
+    setProjectLoading(true);
+    apiGetProjects()
+      .then(({ projects }) => dispatch({ type: 'SET_PROJECTS', payload: projects }))
+      .catch(() => {})
+      .finally(() => { setProjectLoading(false); setProjectFetched(true); });
+  }, [project, projectFetched, projectLoading, state.isAuthenticated]);
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Activity },
@@ -194,12 +207,28 @@ export function ProjectDetails() {
   );
 
   if (!project) {
+    const isLoading = projectLoading || !projectFetched || !state.isAuthenticated;
     return (
-      <div className="h-full flex items-center justify-center bg-[#0A0A0F]">
+      <div className="flex-1 flex items-center justify-center min-h-[60vh] bg-[#0A0A0F] p-8">
         <div className="text-center">
-          <Server className="w-12 h-12 text-white/20 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-white mb-1">Project not found</h2>
-          <p className="text-sm text-white/40">The project with ID "{id}" does not exist.</p>
+          {isLoading ? (
+            <>
+              <div className="w-10 h-10 rounded-full border-2 border-violet-500/30 border-t-violet-500 animate-spin mx-auto mb-4" />
+              <p className="text-sm text-white/40">Loading project...</p>
+            </>
+          ) : (
+            <>
+              <Server className="w-12 h-12 text-white/20 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-white mb-2">Project not found</h2>
+              <p className="text-sm text-white/40 mb-6">No project with ID "{id}" was found in your account.</p>
+              <button
+                onClick={() => navigate('/dashboard/projects')}
+                className="px-5 py-2.5 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors"
+              >
+                View all projects
+              </button>
+            </>
+          )}
         </div>
       </div>
     );

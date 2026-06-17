@@ -25,7 +25,7 @@ import { APILabPage } from './pages/APILabPage';
 import { TerminalPage } from './pages/TerminalPage';
 import { TeamPage } from './pages/TeamPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { apiMe, hasToken, isDemoMode, DEMO_PROJECTS, DEMO_DEPLOYMENTS, DEMO_ERRORS } from '../lib/api';
+import { apiMe, apiGetProjects, hasToken, isDemoMode, DEMO_PROJECTS, DEMO_DEPLOYMENTS, DEMO_ERRORS } from '../lib/api';
 import { PlanGate } from './components/PlanGate';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { AdminLayout } from './pages/admin/AdminLayout';
@@ -50,6 +50,7 @@ function AdminProtectedRoute({ children }: { children: React.ReactNode }) {
 function SessionRestorer() {
   const { state, dispatch } = useApp();
 
+  // Restore user session from stored token
   useEffect(() => {
     if (!state.isAuthenticated && hasToken()) {
       apiMe()
@@ -66,6 +67,14 @@ function SessionRestorer() {
         });
     }
   }, []);
+
+  // Pre-load projects the moment auth is confirmed so any direct URL works
+  useEffect(() => {
+    if (!state.isAuthenticated || isDemoMode() || state.projects.length > 0) return;
+    apiGetProjects()
+      .then(({ projects }) => dispatch({ type: 'SET_PROJECTS', payload: projects }))
+      .catch(() => {});
+  }, [state.isAuthenticated]);
 
   return null;
 }
