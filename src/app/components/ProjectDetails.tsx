@@ -930,14 +930,13 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
 }
 
 function TerminalTab({ projectId, projectName }: { projectId: string; projectName: string }) {
-  const projectDir = `~/opendev/projects/${projectName}`;
-  const [cwd, setCwd] = useState(projectDir);
+  const [cwd, setCwd] = useState('~');
+  const [hostname, setHostname] = useState('cloudshell');
   const [command, setCommand] = useState('');
   const [history, setHistory] = useState<string[]>([]);
   const [histIdx, setHistIdx] = useState(-1);
   const [lines, setLines] = useState<{ type: string; text: string }[]>([
-    { type: 'system', text: `Opendrap Terminal — ${projectName}` },
-    { type: 'system', text: 'Connecting to agent...' },
+    { type: 'system', text: `Connecting to agent...` },
   ]);
   const [wsConnected, setWsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -949,7 +948,7 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
     const token = localStorage.getItem('token');
     if (!token) { setLines((p) => [...p, { type: 'error', text: 'No auth token.' }]); return; }
 
-    const ws = new WebSocket(`${wsUrl}/api/terminal/ws?sessionId=project-${projectId}&projectId=${projectId}&token=${token}`);
+    const ws = new WebSocket(`${wsUrl}/api/terminal/ws?sessionId=project-${projectId}&projectId=default&token=${token}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -963,27 +962,30 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
         const text: string = msg.data || msg.message || '';
 
         if (msg.type === 'terminal_output' || msg.type === 'command_output') {
-          // Capture cwd echo — internal marker, never show to user
           if (text.includes('__CWD__:')) {
             const match = text.match(/__CWD__:(.+)/);
-            if (match) {
-              const raw = match[1].trim();
-              setCwd(raw.replace(/^\/home\/[^/]+/, '~').replace(/^\/root/, '~'));
-            }
+            if (match) setCwd(match[1].trim().replace(/\/home\/[^/]+/, '~').replace(/\/root/, '~'));
+            // strip the marker line but show any other output on same chunk
+            const rest = text.replace(/.*__CWD__:.+\n?/g, '').trim();
+            if (rest) setLines((p) => [...p, { type: 'output', text: rest }]);
             return;
           }
-          // Filter the internal "$ cd ~/... && <cmd>" echo the agent sends back
-          if (/^\$\s+cd\s+~\//.test(text) && text.includes(' && ')) return;
           if (text.trim()) setLines((p) => [...p, { type: 'output', text }]);
+        } else if (msg.type === 'cwd') {
+          setCwd(msg.data.replace(/\/home\/[^/]+/, '~').replace(/\/root/, '~'));
         } else if (msg.type === 'agent_connected' || (msg.type === 'session_ready' && msg.agentConnected)) {
+          const h = msg.hostname || 'cloudshell';
+          setHostname(h);
           setWsConnected(true);
-          setLines((p) => [...p, { type: 'system', text: `Agent ready. Navigating to project...` }]);
-          ws.send(JSON.stringify({
-            type: 'terminal_input',
-            input: `mkdir -p ${projectDir} && cd ${projectDir} && echo __CWD__:$(pwd)`,
-          }));
+          // Get real cwd immediately — no forced cd
+          ws.send(JSON.stringify({ type: 'terminal_input', input: 'echo __CWD__:$(pwd)' }));
+          setLines((p) => [...p, { type: 'system', text: `Connected to ${h}.` }]);
+        } else if (msg.type === 'session_ready') {
+          if (msg.hostname) setHostname(msg.hostname);
+          if (msg.cwd) setCwd(msg.cwd.replace(/\/home\/[^/]+/, '~').replace(/\/root/, '~'));
         } else if (msg.type === 'agent_disconnected') {
           setLines((p) => [...p, { type: 'error', text: 'Agent disconnected.' }]);
+          setWsConnected(false);
         } else if (msg.type === 'error' && text) {
           setLines((p) => [...p, { type: 'error', text }]);
         }
@@ -1002,14 +1004,6 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [lines]);
 
-  // Resolve a cd target relative to current cwd
-  function resolveCd(target: string): string {
-    if (!target || target === '~') return projectDir;
-    if (target.startsWith('~/') || target.startsWith('/')) return target;
-    if (target === '..') return cwd.split('/').slice(0, -1).join('/') || '~';
-    return `${cwd}/${target}`;
-  }
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = command.trim();
@@ -1019,29 +1013,18 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
       return;
     }
 
-    // Add to history
     setHistory((h) => [trimmed, ...h.slice(0, 99)]);
     setHistIdx(-1);
     setCommand('');
 
-    // Show prompt with current directory
-    const shortCwd = cwd.replace(projectDir, `.`).replace(/^\/home\/[^/]+/, '~');
-    setLines((p) => [...p, { type: 'command', text: `${shortCwd} $ ${trimmed}` }]);
+    setLines((p) => [...p, { type: 'command', text: `${hostname}:${cwd}$ ${trimmed}` }]);
 
     if (trimmed === 'clear') { setLines([]); return; }
 
-    let actualCmd: string;
-
-    if (trimmed === 'cd' || trimmed.startsWith('cd ') || trimmed.startsWith('cd\t')) {
-      // Handle cd: update tracked cwd, send with pwd echo back
-      const target = trimmed.slice(2).trim();
-      const resolved = resolveCd(target || '~');
-      // Send cd + echo marker so we can capture real cwd
-      actualCmd = `cd ${cwd} && cd ${resolved} && echo __CWD__:$(pwd)`;
-    } else {
-      // All other commands: prefix with cd to keep context
-      actualCmd = `cd ${cwd} && ${trimmed}`;
-    }
+    // For cd, append pwd echo so we track cwd in the UI
+    const actualCmd = (trimmed === 'cd' || trimmed.startsWith('cd ') || trimmed.startsWith('cd\t'))
+      ? `${trimmed} && echo __CWD__:$(pwd)`
+      : trimmed;
 
     wsRef.current.send(JSON.stringify({ type: 'terminal_input', input: actualCmd }));
   };
@@ -1051,23 +1034,20 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
       e.preventDefault();
       const idx = Math.min(histIdx + 1, history.length - 1);
       setHistIdx(idx);
-      setInput(history[idx] || '');
+      setCommand(history[idx] || '');
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
       const idx = Math.max(histIdx - 1, -1);
       setHistIdx(idx);
-      setInput(idx < 0 ? '' : history[idx]);
+      setCommand(idx < 0 ? '' : history[idx]);
     }
   };
 
-  function setInput(v: string) { setCommand(v); }
-
-  const shortCwd = cwd.replace(projectDir, projectName).replace(/^\/home\/[^/]+/, '~');
+  const prompt = `${hostname}:${cwd}$`;
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-7xl mx-auto">
       <motion.div variants={itemVariants} className="border border-white/10 rounded-xl overflow-hidden bg-[#060608]">
-        {/* Title bar */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-[#0F0F14]">
           <div className="flex items-center gap-2">
             <div className="flex gap-1.5">
@@ -1075,7 +1055,7 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
               <div className="w-3 h-3 rounded-full bg-yellow-500/60" />
               <div className="w-3 h-3 rounded-full bg-green-500/60" />
             </div>
-            <span className="text-xs font-mono text-white/30 ml-2">{shortCwd}</span>
+            <span className="text-xs font-mono text-white/30 ml-2">{prompt}</span>
           </div>
           <div className={`flex items-center gap-1.5 text-xs ${wsConnected ? 'text-emerald-400' : 'text-red-400/60'}`}>
             <div className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-400 animate-pulse' : 'bg-red-400/60'}`} />
@@ -1083,7 +1063,7 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
           </div>
         </div>
 
-        <div className="h-[480px] overflow-y-auto p-4 font-mono text-sm space-y-0.5" onClick={() => inputRef.current?.focus()}>
+        <div className="h-[520px] overflow-y-auto p-4 font-mono text-sm space-y-0.5" onClick={() => inputRef.current?.focus()}>
           {lines.map((line, i) => (
             <div
               key={i}
@@ -1099,9 +1079,8 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
             </div>
           ))}
 
-          {/* Live input line */}
-          <div className="flex items-center gap-2 text-violet-400 mt-1">
-            <span className="text-white/30 flex-shrink-0 select-none">{shortCwd} $</span>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-white/40 flex-shrink-0 select-none">{prompt}</span>
             <input
               ref={inputRef}
               value={command}

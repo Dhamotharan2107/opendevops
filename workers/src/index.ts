@@ -172,8 +172,40 @@ async def main():
             async with cm as ws:
                 print("Connected!")
                 retry = 1
-                await ws.send(json.dumps({"type":"agent_connected","agent_id":AGENT_ID,"project_id":"default","info":{"agent_id":AGENT_ID,"version":"0.1.0"}}))
+                hostname = os.popen('hostname').read().strip() or 'cloudshell'
+                await ws.send(json.dumps({"type":"agent_connected","agent_id":AGENT_ID,"project_id":"default","info":{"agent_id":AGENT_ID,"version":"0.1.0","hostname":hostname}}))
                 hb = asyncio.create_task(heartbeat(ws))
+                # Persistent shell — keeps cwd, env, virtualenv across all commands
+                shell_proc = await asyncio.create_subprocess_shell(
+                    SHELL, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT, env=dict(os.environ, TERM='xterm-256color')
+                )
+                async def run_cmd(cmd: str, cid: str):
+                    marker = f"__OPENDRAP_DONE_{cid}__"
+                    payload = cmd.rstrip("\n") + f"\necho '{marker}'\n"
+                    shell_proc.stdin.write(payload.encode())
+                    await shell_proc.stdin.drain()
+                    buf = b""
+                    try:
+                        while True:
+                            chunk = await asyncio.wait_for(shell_proc.stdout.read(4096), timeout=120)
+                            if not chunk:
+                                break
+                            buf += chunk
+                            if marker.encode() in buf:
+                                break
+                        out = buf.decode(errors="replace")
+                        # Strip the marker line from output
+                        out = "\n".join(l for l in out.splitlines() if marker not in l)
+                        if out.strip():
+                            await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":out}))
+                        await ws.send(json.dumps({"type":"command_completed","command_id":cid,"output":"","status":"success"}))
+                    except asyncio.TimeoutError:
+                        await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":"Command timed out after 120s\n"}))
+                        await ws.send(json.dumps({"type":"command_completed","command_id":cid,"output":"","status":"error"}))
+                    except Exception as e:
+                        await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":f"Error: {e}\n"}))
+                        await ws.send(json.dumps({"type":"command_completed","command_id":cid,"output":"","status":"error"}))
                 async for msg in ws:
                     if not running: break
                     try:
@@ -184,20 +216,11 @@ async def main():
                         elif t == "execute_command":
                             cmd = data.get("command","")
                             cid = data.get("command_id","")
-                            try:
-                                proc = await asyncio.create_subprocess_shell(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, executable=SHELL)
-                                while True:
-                                    line = await proc.stdout.readline()
-                                    if not line: break
-                                    await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":line.decode(errors="replace")}))
-                                await proc.wait()
-                                s = "success" if proc.returncode == 0 else "error"
-                            except Exception as e:
-                                s = "error"
-                                await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":f"Error: {e}\\n"}))
-                            await ws.send(json.dumps({"type":"command_completed","command_id":cid,"output":"","status":s}))
+                            asyncio.create_task(run_cmd(cmd, cid))
                     except json.JSONDecodeError: pass
                 hb.cancel()
+                try: shell_proc.terminate()
+                except: pass
         except asyncio.CancelledError: break
         except Exception as e:
             print(f"Disconnected: {e}. Reconnecting in {min(retry,30)}s...")

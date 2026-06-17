@@ -1,14 +1,20 @@
 import asyncio
 import json
 import os
+import sys
 import uuid
+import socket
+import subprocess
+import threading
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
+import websockets
+
 # Configuration
 HTTP_PORT = 8787
-WS_PORT = 8787
+WS_PORT = 8788
 WORKSPACE = os.path.expanduser('~/opendrap-agent')
 
 # Initialize data stores
@@ -29,19 +35,104 @@ users = {
     }
 }
 
-class TerminalMessage:
-    def __init__(self, type, data=None, message=None):
-        self.type = type
-        self.data = data
-        self.message = message
+HOSTNAME = socket.gethostname()
 
-    def to_dict(self):
-        result = {'type': self.type}
-        if self.data is not None:
-            result['data'] = self.data
-        if self.message is not None:
-            result['message'] = self.message
-        return result
+UNIX_TO_WIN = {
+    'ls': 'dir', 'cat': 'type', 'clear': 'cls', 'pwd': 'cd',
+    'rm': 'del', 'mv': 'move', 'cp': 'copy', 'whoami': 'whoami',
+    'mkdir': 'mkdir', 'touch': 'type nul >', 'grep': 'findstr',
+    'head': '', 'tail': '', 'less': 'more',
+}
+
+class TerminalSession:
+    def __init__(self):
+        self.cwd = os.getcwd()
+        self._use_powershell = sys.platform == 'win32'
+
+    def _translate_cmd(self, cmd: str) -> str:
+        if not self._use_powershell:
+            return cmd
+        parts = cmd.split()
+        if not parts:
+            return cmd
+        base = parts[0].lower()
+        if base in UNIX_TO_WIN:
+            rest = cmd[len(parts[0]):]
+            alias = UNIX_TO_WIN[base]
+            if not alias:
+                return f'echo "(command {base} not available on Windows)"'
+            return alias + rest
+        return cmd
+
+    async def execute(self, cmd: str) -> dict:
+        if cmd.startswith('cd '):
+            target = cmd[3:].strip().strip('"').strip("'")
+            if not target:
+                return {'type': 'terminal_output', 'data': ''}
+            if target.startswith('~'):
+                target = os.path.expanduser(target)
+            new_cwd = os.path.abspath(os.path.join(self.cwd, target)) if not os.path.isabs(target) else target
+            if os.path.isdir(new_cwd):
+                self.cwd = new_cwd
+                return {'type': 'cwd', 'data': self.cwd}
+            else:
+                return {'type': 'terminal_output', 'data': f'cd: {target}: No such directory'}
+
+        if cmd.strip() == 'pwd':
+            return {'type': 'terminal_output', 'data': self.cwd}
+
+        translated = self._translate_cmd(cmd)
+
+        try:
+            if self._use_powershell:
+                process = await asyncio.create_subprocess_exec(
+                    'powershell.exe', '-NoProfile', '-Command', '-',
+                    stdin=asyncio.subprocess.PIPE,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                ps_in = f'Set-Location "{self.cwd}"; {translated}\n'
+                stdout, stderr = await asyncio.wait_for(
+                    process.communicate(input=ps_in.encode()), timeout=30
+                )
+            else:
+                full_cmd = f'cd "{self.cwd}" && {translated}'
+                process = await asyncio.create_subprocess_shell(
+                    full_cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30)
+            output = stdout.decode(errors='replace') + stderr.decode(errors='replace')
+            if not output.strip():
+                output = f'(exit code: {process.returncode})'
+            return {'type': 'terminal_output', 'data': output}
+        except asyncio.TimeoutError:
+            return {'type': 'terminal_output', 'data': 'Command timed out after 30s'}
+        except Exception as e:
+            return {'type': 'terminal_output', 'data': f'Error: {e}'}
+
+
+async def handle_terminal_ws(websocket):
+    session = TerminalSession()
+
+    await websocket.send(json.dumps({
+        'type': 'session_ready',
+        'agentConnected': True,
+        'hostname': HOSTNAME,
+        'cwd': session.cwd
+    }))
+
+    async for message in websocket:
+        try:
+            data = json.loads(message)
+            if data.get('type') == 'terminal_input':
+                cmd = data['input']
+                result = await session.execute(cmd)
+                await websocket.send(json.dumps(result))
+        except json.JSONDecodeError:
+            await websocket.send(json.dumps({'type': 'terminal_output', 'data': 'Invalid JSON'}))
+
 
 class APIServer(BaseHTTPRequestHandler):
     def send_cors_headers(self):
@@ -76,7 +167,6 @@ class APIServer(BaseHTTPRequestHandler):
         query = parse_qs(parsed.query)
 
         if path == '/api/auth/me':
-            # Get current user
             token = self.headers.get('Authorization', '')
             if token.startswith('Bearer '):
                 token = token[7:]
@@ -90,7 +180,6 @@ class APIServer(BaseHTTPRequestHandler):
             self.send_response_json({'status': 'ok'})
 
         elif path == '/api/projects':
-            # Get projects (demo data)
             self.send_response_json({
                 'projects': [
                     {
@@ -140,22 +229,15 @@ class APIServer(BaseHTTPRequestHandler):
             })
 
         elif path == '/api/terminal/install.sh':
-            # Return install script
             self.send_response(200)
             self.send_header('Content-Type', 'application/x-sh')
             self.end_headers()
             install_script = """#!/bin/bash
 # Opendrap Agent Install Script
-# Installation date: $(date)
-
 echo "Installing Opendrap Agent..."
 cd ~
-
-# Create workspace
 mkdir -p opendrap-agent
 cd opendrap-agent
-
-# Create agent.py
 cat > agent.py << 'EOF'
 #!/usr/bin/env python3
 import asyncio
@@ -164,7 +246,7 @@ import json
 
 async def main():
     print("Opendrap Agent starting...")
-    ws_url = "ws://localhost:8787/terminal/ws"
+    ws_url = "ws://localhost:8788"
     try:
         async with websockets.connect(ws_url) as websocket:
             print("Connected to Opendrap server")
@@ -178,19 +260,17 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 EOF
-
-# Create requirements.txt
 cat > requirements.txt << 'EOF'
 websockets
 EOF
-
-# Make executable
 chmod +x agent.py
-
 echo "Opendrap Agent installed successfully!"
 echo "Run: cd ~/opendrap-agent && python3 agent.py"
 """
             self.wfile.write(install_script.encode())
+
+        elif path == '/api/hostname':
+            self.send_response_json({'hostname': HOSTNAME, 'cwd': os.getcwd()})
 
         else:
             self.send_error_response('Not found')
@@ -198,7 +278,6 @@ echo "Run: cd ~/opendrap-agent && python3 agent.py"
     def do_POST(self):
         parsed = urlparse(self.path)
         path = parsed.path
-        query = parse_qs(parsed.query)
 
         try:
             content_length = int(self.headers.get('Content-Length', 0))
@@ -206,27 +285,22 @@ echo "Run: cd ~/opendrap-agent && python3 agent.py"
             data = json.loads(body)
 
             if path == '/api/auth/login':
-                # Login
                 email = data.get('email')
                 password = data.get('password')
-
                 if email in users and password == 'demo':
                     user = users[email]
-                    token = email  # In real app, generate a JWT
+                    token = email
                     return self.send_response_json({'token': token, 'user': user})
                 else:
                     return self.send_error_response('Invalid credentials')
 
             elif path == '/api/auth/register':
-                # Register
                 username = data.get('username')
                 name = data.get('name')
                 email = data.get('email')
                 password = data.get('password')
-
                 if email in users:
                     return self.send_error_response('Email already exists')
-
                 user = {
                     'id': str(uuid.uuid4()),
                     'username': username,
@@ -240,45 +314,26 @@ echo "Run: cd ~/opendrap-agent && python3 agent.py"
                     'github': '',
                     'createdAt': datetime.now().isoformat()
                 }
-
                 users[email] = user
                 token = email
-
                 return self.send_response_json({'token': token, 'user': user})
 
             elif path == '/api/auth/logout':
-                # Logout
                 return self.send_response_json({'message': 'Logged out'})
 
             elif path == '/api/terminal/session':
-                # Create terminal session
                 token = self.headers.get('Authorization', '')
                 if token.startswith('Bearer '):
                     token = token[7:]
-
                 if token not in users:
                     return self.send_error_response('Unauthorized')
-
                 session_id = str(uuid.uuid4())
                 sessions[session_id] = {
                     'userId': token,
                     'projectId': data.get('projectId', 'default'),
                     'created_at': datetime.now().isoformat()
                 }
-
                 return self.send_response_json({'sessionId': session_id})
-
-            elif path == '/api/terminal/ws':
-                # WebSocket endpoint for terminal
-                # Just accept the connection and send a welcome message
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                ws_response = json.dumps({
-                    'type': 'session_ready',
-                    'agentConnected': False
-                })
-                self.wfile.write(ws_response.encode())
 
             else:
                 self.send_error_response(f'Unknown endpoint: {path}')
@@ -287,14 +342,29 @@ echo "Run: cd ~/opendrap-agent && python3 agent.py"
             self.send_error_response('Invalid JSON')
 
     def log_message(self, format, *args):
-        pass  # Disable default logging
+        pass
+
+
+async def start_ws_server():
+    async with websockets.serve(handle_terminal_ws, 'localhost', WS_PORT):
+        print(f"WebSocket terminal server running on ws://localhost:{WS_PORT}")
+        await asyncio.Future()
+
+
+def start_http_server():
+    server = HTTPServer(('localhost', HTTP_PORT), APIServer)
+    print(f"HTTP API server running on http://localhost:{HTTP_PORT}")
+    server.serve_forever()
+
 
 if __name__ == '__main__':
     try:
-        print(f"Starting Opendrap API Server on port {HTTP_PORT}...")
-        print(f"Workspace: {WORKSPACE}")
-        server = HTTPServer(('localhost', HTTP_PORT), APIServer)
-        print(f"Server running on http://localhost:{HTTP_PORT}")
-        server.serve_forever()
+        print(f"Starting Opendrap Servers...")
+        print(f"Hostname: {HOSTNAME}  |  Workspace: {WORKSPACE}")
+
+        http_thread = threading.Thread(target=start_http_server, daemon=True)
+        http_thread.start()
+
+        asyncio.run(start_ws_server())
     except KeyboardInterrupt:
-        print("\nServer stopped")
+        print("\nServers stopped")

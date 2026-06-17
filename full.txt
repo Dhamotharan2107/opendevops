@@ -1,70 +1,33 @@
 
-Opendrap Cloud Terminal v1.0.0
-Connecting to agent...
-Terminal connected. Waiting for agent...
-Agent connected. Ready.
-$ l
-/bin/bash: line 1: l: command not found
-
-Command finished with status: error
-$ ls
-b2
-cloudflared-linux-amd64
-cloudflared.log
-main.py
-manager
-opendev
-opendrap-agent
-OpenWA
-r2
-README-cloudshell.txt
-requirements.txt
-startup.sh
-tunnel.log
-whatfy.tar
-
-Command finished with status: success
-$ cd opendve
-/bin/bash: line 1: cd: opendve: No such file or directory
-
-Command finished with status: error
-$ cd opendev
-
-Command finished with status: success
-$ ls
-b2
-cloudflared-linux-amd64
-cloudflared.log
-main.py
-manager
-opendev
-opendrap-agent
-OpenWA
-r2
-README-cloudshell.txt
-requirements.txt
-startup.sh
-tunnel.log
-whatfy.tar
-
-Command finished with status: success
-$ cd opendev
-
-Command finished with status: success
-$ ls
-b2
-cloudflared-linux-amd64
-cloudflared.log
-main.py
-manager
-opendev
-opendrap-agent
-OpenWA
-r2
-README-cloudshell.txt
-requirements.txt
-startup.sh
-tunnel.log
-whatfy.tar
-
-Command finished with status: success
+========================================
+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ ls
+b2  cloudflared-linux-amd64  cloudflared.log  main.py  manager  opendev  opendrap-agent  OpenWA  r2  README-cloudshell.txt  requirements.txt  startup.sh  tunnel.log  whatfy.tar
+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ cd opendev/
+contact_inotechsoftware@cloudshell:~/opendev (focused-mote-472412-e6)$ ls
+projects
+contact_inotechsoftware@cloudshell:~/opendev (focused-mote-472412-e6)$ cd projects/
+contact_inotechsoftware@cloudshell:~/opendev/projects (focused-mote-472412-e6)$ ls
+TRANSFER-Application  tre
+contact_inotechsoftware@cloudshell:~/opendev/projects (focused-mote-472412-e6)$ cd tre/
+contact_inotechsoftware@cloudshell:~/opendev/projects/tre (focused-mote-472412-e6)$ ls
+contact_inotechsoftware@cloudshell:~/opendev/projects/tre (focused-mote-472412-e6)$ cd ..
+contact_inotechsoftware@cloudshell:~/opendev/projects (focused-mote-472412-e6)$ cd TRANSFER-Application/
+contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application (focused-mote-472412-e6)$ ls
+bankin
+contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application (focused-mote-472412-e6)$ cd bankin/
+contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application/bankin (focused-mote-472412-e6)$ ls
+Banking_sector
+contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application/bankin (focused-mote-472412-e6)$ cd Banking_sector/
+contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application/bankin/Banking_sector (focused-mote-472412-e6)$ ls
+Banking_app  Banking_sector  db.sqlite3  front_end  manage.py
+contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application/bankin/Banking_sector (focused-mote-472412-e6)$ cd ..
+contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application/bankin (focused-mote-472412-e6)$ cd ..
+contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application (focused-mote-472412-e6)$ cd ..
+contact_inotechsoftware@cloudshell:~/opendev/projects (focused-mote-472412-e6)$ cd ..
+contact_inotechsoftware@cloudshell:~/opendev (focused-mote-472412-e6)$ cd ..
+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ ls
+b2  cloudflared-linux-amd64  cloudflared.log  main.py  manager  opendev  opendrap-agent  OpenWA  r2  README-cloudshell.txt  requirements.txt  startup.sh  tunnel.log  whatfy.tar
+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ cd opendrap-agent/
+contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ ls
+agent  agent.log  agent.pid  agent.py  hello  restart.sh  token
+contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ 

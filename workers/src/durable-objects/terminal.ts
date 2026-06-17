@@ -105,6 +105,8 @@ export class TerminalDurableObject implements DurableObject {
       sessionId,
       isAgent: sessionId === AGENT_SESSION_ID,
       agentConnected: this.agentSessionId !== null,
+      hostname: this.agentSessionId ? 'cloudshell' : undefined,
+      cwd: this.agentSessionId ? '~' : undefined,
     }));
 
     return new Response(null, { status: 101, webSocket: client });
@@ -183,9 +185,12 @@ export class TerminalDurableObject implements DurableObject {
           });
         }
         ws.send(JSON.stringify({ type: 'agent_connected_ack', sessionId }));
+        const agentInfo = data.info as Record<string, unknown> || {};
+        const hostname = (agentInfo.hostname as string) || 'cloudshell';
         this.broadcastToBrowsers(JSON.stringify({
           type: 'agent_connected',
-          message: 'Agent is now online',
+          hostname,
+          message: `Agent connected from ${hostname}`,
         }), sessionId);
         break;
       }
@@ -228,25 +233,39 @@ export class TerminalDurableObject implements DurableObject {
             ws.send(JSON.stringify({ type: 'terminal_output', data: 'Agent disconnected. Cannot execute command.\n' }));
           }
         } else {
-          ws.send(JSON.stringify({ type: 'terminal_output', data: `$ ${input}` }));
+          ws.send(JSON.stringify({ type: 'terminal_output', data: 'No agent connected. Install the agent to run commands.\n' }));
         }
         break;
       }
 
       case 'command_output': {
         const output = data.output as string;
-        this.broadcastToBrowsers(JSON.stringify({ type: 'terminal_output', data: output }), sessionId);
+        // Strip internal cwd marker lines before broadcasting
+        const filtered = output.split('\n').filter((l) => !l.startsWith('__DONE_')).join('\n');
+        if (filtered.trim()) {
+          this.broadcastToBrowsers(JSON.stringify({ type: 'terminal_output', data: filtered }), sessionId);
+        }
         break;
       }
 
       case 'command_completed': {
-        const status = data.status as string;
         const output = data.output as string;
-        this.broadcastToBrowsers(JSON.stringify({
-          type: 'terminal_output',
-          data: output ? `\n${output}` : `\nCommand finished with status: ${status}\n`,
-          commandCompleted: true,
-        }), sessionId);
+        const status = data.status as string;
+        const newCwd = data.cwd as string | undefined;
+        if (output) {
+          this.broadcastToBrowsers(JSON.stringify({
+            type: 'terminal_output',
+            data: output,
+          }), sessionId);
+        } else if (status === 'error') {
+          this.broadcastToBrowsers(JSON.stringify({
+            type: 'terminal_output',
+            data: 'Command failed (see agent logs)',
+          }), sessionId);
+        }
+        if (newCwd) {
+          this.broadcastToBrowsers(JSON.stringify({ type: 'cwd', data: newCwd }), sessionId);
+        }
         break;
       }
 
