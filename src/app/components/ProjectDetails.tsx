@@ -547,7 +547,7 @@ function ProjectDetailsInner() {
             animate="visible"
             exit="exit"
           >
-            {activeTab === 'overview' && <OverviewTab project={project} tunnelUrl={tunnelUrl} deployLogs={deployLogs} deployPhase={deployPhase} tunnelRunning={tunnelRunning} onStop={handleStop} stopping={stopping} />}
+            {activeTab === 'overview' && <OverviewTab project={project} tunnelUrl={tunnelUrl} deployLogs={deployLogs} deployPhase={deployPhase} tunnelRunning={tunnelRunning} onStop={handleStop} stopping={stopping} deploying={deploying} />}
             {activeTab === 'terminal' && <TerminalTab projectId={project.id} projectName={project.name} />}
             {activeTab === 'logs' && <LogsTab projectId={project.id} />}
             {activeTab === 'errors' && <ErrorsTab projectId={project.id} />}
@@ -563,7 +563,7 @@ function ProjectDetailsInner() {
   );
 }
 
-function OverviewTab({ project, tunnelUrl, deployLogs, deployPhase, tunnelRunning, onStop, stopping }: {
+function OverviewTab({ project, tunnelUrl, deployLogs, deployPhase, tunnelRunning, onStop, stopping, deploying }: {
   project: Project;
   tunnelUrl: string | null;
   deployLogs: string[];
@@ -571,6 +571,7 @@ function OverviewTab({ project, tunnelUrl, deployLogs, deployPhase, tunnelRunnin
   tunnelRunning: boolean;
   onStop: () => void;
   stopping: boolean;
+  deploying: boolean;
 }) {
   const { state } = useApp();
   const deployments = useMemo(
