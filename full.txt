@@ -31,3 +31,73 @@ contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ cd opendrap-agent
 contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ ls
 agent  agent.log  agent.pid  agent.py  hello  restart.sh  token
 contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ 
+
+
+Opendrap Terminal — tre
+Connecting to agent...
+Connected. Waiting for agent...
+Agent ready. Navigating to project...
+. $ ls
+b2
+cloudflared-linux-amd64
+cloudflared.log
+main.py
+manager
+opendev
+opendrap-agent
+OpenWA
+r2
+README-cloudshell.txt
+requirements.txt
+startup.sh
+tunnel.log
+whatfy.tar
+. $ cd opendev
+~/opendev $ ls
+b2
+cloudflared-linux-amd64
+cloudflared.log
+main.py
+manager
+opendev
+opendrap-agent
+OpenWA
+r2
+README-cloudshell.txt
+requirements.txt
+startup.sh
+tunnel.log
+whatfy.tar
+~/opendev $ ls
+b2
+cloudflared-linux-amd64
+cloudflared.log
+main.py
+manager
+opendev
+opendrap-agent
+OpenWA
+r2
+README-cloudshell.txt
+requirements.txt
+startup.sh
+tunnel.log
+whatfy.tar
+~/opendev $ cd opendev
+~/opendev $ ls
+b2
+cloudflared-linux-amd64
+cloudflared.log
+main.py
+manager
+opendev
+opendrap-agent
+OpenWA
+r2
+README-cloudshell.txt
+requirements.txt
+startup.sh
+tunnel.log
+whatfy.tar
+
+fix this @full.txt here you see there

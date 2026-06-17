@@ -1,7 +1,29 @@
-$ mkdir -p ~/opendev/projects && echo "=== Switching to branch: main ===" && cd ~/opendev/projects/revoobig && git fetch --all && git checkout main && git pull origin main && echo "=== Installing dependencies ===" && npm install --prefer-offline && echo "=== Building project ===" && npm run build 2>&1 || true && echo "=== Starting server ===" && python manage.py runserver 0.0.0.0:3000 & && echo "=== Waiting for server ===" && sleep 3 && echo "=== Starting Cloudflare Tunnel ===" && cloudflared tunnel --url http://localhost:3000 --no-autoupdate 2>&1
-
-Opendrap Terminal — revoobig
-Connecting to agent...
-Connected. Waiting for agent...
-. $ ls
-$ cd ~/opendev/projects/revoobig && ls
+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ gcloud --version
+Google Cloud SDK 571.0.0
+alpha 2026.05.29
+app-engine-go 1.9.78
+app-engine-java 5.0.2
+app-engine-python 1.9.118
+app-engine-python-extras 1.9.111
+beta 2026.05.29
+bigtable 
+bq 2.1.32
+bundled-python3-unix 3.14.5
+cbt 1.25.2
+cloud-datastore-emulator 2.3.1
+cloud-run-proxy 0.5.1
+core 2026.05.29
+gcloud-crc32c 1.0.0
+gke-gcloud-auth-plugin 0.5.15
+gsutil 5.37
+istioctl 1.20.877
+kpt 1.0.0-beta.62
+kubectl 1.35.3
+local-extract 1.6.3
+minikube 1.38.1
+nomos 1.24.0-rc.4
+package-go-module 1.0.0
+preview 2026.05.29
+pubsub-emulator 0.8.32
+skaffold 2.21.0
+spanner-cli 1.0.4
