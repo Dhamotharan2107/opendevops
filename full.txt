@@ -1,103 +1,96 @@
+Fix the terminal agent's directory handling.
 
-========================================
-contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ ls
-b2  cloudflared-linux-amd64  cloudflared.log  main.py  manager  opendev  opendrap-agent  OpenWA  r2  README-cloudshell.txt  requirements.txt  startup.sh  tunnel.log  whatfy.tar
-contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ cd opendev/
-contact_inotechsoftware@cloudshell:~/opendev (focused-mote-472412-e6)$ ls
-projects
-contact_inotechsoftware@cloudshell:~/opendev (focused-mote-472412-e6)$ cd projects/
-contact_inotechsoftware@cloudshell:~/opendev/projects (focused-mote-472412-e6)$ ls
-TRANSFER-Application  tre
-contact_inotechsoftware@cloudshell:~/opendev/projects (focused-mote-472412-e6)$ cd tre/
-contact_inotechsoftware@cloudshell:~/opendev/projects/tre (focused-mote-472412-e6)$ ls
-contact_inotechsoftware@cloudshell:~/opendev/projects/tre (focused-mote-472412-e6)$ cd ..
-contact_inotechsoftware@cloudshell:~/opendev/projects (focused-mote-472412-e6)$ cd TRANSFER-Application/
-contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application (focused-mote-472412-e6)$ ls
-bankin
-contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application (focused-mote-472412-e6)$ cd bankin/
-contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application/bankin (focused-mote-472412-e6)$ ls
-Banking_sector
-contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application/bankin (focused-mote-472412-e6)$ cd Banking_sector/
-contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application/bankin/Banking_sector (focused-mote-472412-e6)$ ls
-Banking_app  Banking_sector  db.sqlite3  front_end  manage.py
-contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application/bankin/Banking_sector (focused-mote-472412-e6)$ cd ..
-contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application/bankin (focused-mote-472412-e6)$ cd ..
-contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application (focused-mote-472412-e6)$ cd ..
-contact_inotechsoftware@cloudshell:~/opendev/projects (focused-mote-472412-e6)$ cd ..
-contact_inotechsoftware@cloudshell:~/opendev (focused-mote-472412-e6)$ cd ..
-contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ ls
-b2  cloudflared-linux-amd64  cloudflared.log  main.py  manager  opendev  opendrap-agent  OpenWA  r2  README-cloudshell.txt  requirements.txt  startup.sh  tunnel.log  whatfy.tar
-contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ cd opendrap-agent/
-contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ ls
-agent  agent.log  agent.pid  agent.py  hello  restart.sh  token
-contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ 
+Current bug:
 
+In the web terminal, when I run:
 
-Opendrap Terminal — tre
-Connecting to agent...
-Connected. Waiting for agent...
-Agent ready. Navigating to project...
-. $ ls
-b2
-cloudflared-linux-amd64
-cloudflared.log
-main.py
-manager
-opendev
-opendrap-agent
-OpenWA
-r2
-README-cloudshell.txt
-requirements.txt
-startup.sh
-tunnel.log
-whatfy.tar
-. $ cd opendev
-~/opendev $ ls
-b2
-cloudflared-linux-amd64
-cloudflared.log
-main.py
-manager
-opendev
-opendrap-agent
-OpenWA
-r2
-README-cloudshell.txt
-requirements.txt
-startup.sh
-tunnel.log
-whatfy.tar
-~/opendev $ ls
-b2
-cloudflared-linux-amd64
-cloudflared.log
-main.py
-manager
-opendev
-opendrap-agent
-OpenWA
-r2
-README-cloudshell.txt
-requirements.txt
-startup.sh
-tunnel.log
-whatfy.tar
-~/opendev $ cd opendev
-~/opendev $ ls
-b2
-cloudflared-linux-amd64
-cloudflared.log
-main.py
-manager
-opendev
-opendrap-agent
-OpenWA
-r2
-README-cloudshell.txt
-requirements.txt
-startup.sh
-tunnel.log
-whatfy.tar
+```bash
+pwd
+```
 
-fix this @full.txt here you see there
+I get:
+
+```bash
+/home/contact_inotechsoftware
+```
+
+Then I run:
+
+```bash
+cd b2
+```
+
+The prompt changes to:
+
+```bash
+cloudshell:~/b2$
+```
+
+But when I run:
+
+```bash
+pwd
+```
+
+I still get:
+
+```bash
+/home/contact_inotechsoftware
+```
+
+The displayed prompt changes, but the actual working directory does not.
+
+Expected behavior:
+
+```bash
+cd b2
+pwd
+```
+
+should return:
+
+```bash
+/home/contact_inotechsoftware/b2
+```
+
+Root cause:
+
+The terminal backend is likely executing each command in a separate process (subprocess.run, exec, spawn, etc.), causing the `cd` command to be lost between executions.
+
+Requirements:
+
+1. Implement a persistent shell session (bash/sh) that remains alive for the entire terminal session.
+2. OR maintain a server-side `currentWorkingDirectory` and pass it as the cwd for every command execution.
+3. The terminal prompt must always be generated from the real current working directory.
+4. Support:
+
+   * cd folder
+   * cd ..
+   * cd ~
+   * cd /absolute/path
+   * pwd
+   * ls
+5. Ensure consecutive commands run in the same directory context.
+6. Fix any frontend logic that updates the prompt without updating the actual backend cwd.
+7. After the fix, verify:
+
+```bash
+pwd
+cd b2
+pwd
+cd ..
+pwd
+```
+
+returns:
+
+```bash
+/ home/contact_inotechsoftware
+/ home/contact_inotechsoftware/b2
+/ home/contact_inotechsoftware
+```
+
+8. Audit the entire terminal command execution flow and fix all related issues where state is not persisted between commands.
+
+Provide the complete code changes needed and explain exactly where the bug occurs.
+

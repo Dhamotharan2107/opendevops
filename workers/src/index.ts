@@ -182,8 +182,10 @@ async def main():
                 )
                 async def run_cmd(cmd: str, cid: str):
                     marker = f"__OPENDRAP_DONE_{cid}__"
-                    # Run the command in a subshell block and use concatenation to avoid f-string parsing issues
-                    payload = "(" + cmd.rstrip() + "); if [ $? -eq 0 ]; then echo '__CWD__:$(pwd)'; fi; echo '" + marker + "'\n"
+                    # Using a safer, explicit way to construct the command string
+                    # This ensures the quotes are handled within the string literals correctly
+                    cmd_clean = cmd.rstrip().replace("'", "\\'")
+                    payload = f"({cmd_clean}); if [ $? -eq 0 ]; then echo '__CWD__:$(pwd)'; fi; echo '{marker}'\n"
                     shell_proc.stdin.write(payload.encode())
                     await shell_proc.stdin.drain()
                     buf = b""
