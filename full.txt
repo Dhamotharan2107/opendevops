@@ -1,10 +1,29 @@
-contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ ls
-b2  cloudflared-linux-amd64  cloudflared.log  main.py  manager  opendrap-agent  OpenWA  r2  README-cloudshell.txt  requirements.txt  startup.sh  tunnel.log  whatfy.tar
-contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ cd opendrap-agent/
-contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ ls
-agent  agent.log  agent.pid  agent.py  hello  restart.sh  token
-contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ 
+Opendrap Cloud Terminal v1.0.0
+Connecting to agent...
+Terminal connected. Waiting for agent...
+Agent connected. Ready.
+$ ls
+agent
+agent.log
+agent.pid
+agent.py
+hello
+restart.sh
+token
 
-use see this is my google shell after i run curl but in dashboard 
-cd ~/opendev/projects && git clone https://github.com/Dhamotharan2107/revobig.git && cd revobig
-i try to clone git that showing this there is no opendev and projects then how its do fix that 
+Command finished with status: success
+Agent disconnected.
+Agent connected. Ready.
+$ cd ..
+
+Command finished with status: success
+$ ls
+agent
+agent.log
+agent.pid
+agent.py
+hello
+restart.sh
+token
+
+Command finished with status: success

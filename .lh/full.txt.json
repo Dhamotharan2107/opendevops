@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 49,
+            "activePatchIndex": 50,
             "patches": [
                 {
                     "date": 1780815622476,
@@ -204,6 +204,10 @@
                 {
                     "date": 1781678383708,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,5 +6,5 @@\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \r\n \r\n use see this is my google shell after i run curl but in dashboard \r\n cd ~/opendev/projects && git clone https://github.com/Dhamotharan2107/revobig.git && cd revobig\r\n-i try to clone git that showing this there is no opendev and projects t\n\\ No newline at end of file\n+i try to clone git that showing this there is no opendev and projects then how its do \n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781679174040,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,10 +1,29 @@\n-contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ ls\r\n-b2  cloudflared-linux-amd64  cloudflared.log  main.py  manager  opendrap-agent  OpenWA  r2  README-cloudshell.txt  requirements.txt  startup.sh  tunnel.log  whatfy.tar\r\n-contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ cd opendrap-agent/\r\n-contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ ls\r\n-agent  agent.log  agent.pid  agent.py  hello  restart.sh  token\r\n-contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \r\n+Opendrap Cloud Terminal v1.0.0\r\n+Connecting to agent...\r\n+Terminal connected. Waiting for agent...\r\n+Agent connected. Ready.\r\n\\ No newline at end of file\n+$ ls\r\n+agent\r\n+agent.log\r\n+agent.pid\r\n+agent.py\r\n+hello\r\n+restart.sh\r\n+token\r\n \r\n-use see this is my google shell after i run curl but in dashboard \r\n-cd ~/opendev/projects && git clone https://github.com/Dhamotharan2107/revobig.git && cd revobig\r\n-i try to clone git that showing this there is no opendev and projects then how its do \n+Command finished with status: success\r\n+Agent disconnected.\r\n+Agent connected. Ready.\r\n+$ cd ..\r\n+\r\n+Command finished with status: success\r\n+$ ls\r\n+agent\r\n+agent.log\r\n+agent.pid\r\n+agent.py\r\n+hello\r\n+restart.sh\r\n+token\r\n+\r\n+Command finished with status: success\r\n"
                 }
             ],
             "date": 1780815622476,

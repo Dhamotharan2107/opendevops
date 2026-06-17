@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import {
   LayoutDashboard, FolderGit2, Rocket, Brain, FileCode,
@@ -11,9 +11,69 @@ import { NotificationDropdown } from './NotificationDropdown';
 import { GlobalSearch } from './GlobalSearch';
 import { useApp } from '../../lib/store';
 import { getInitials } from '../../lib/utils';
-import { apiLogout } from '../../lib/api';
+import { apiLogout, BASE_URL } from '../../lib/api';
 import { NewProjectModal } from '../pages/ProjectsPage';
 import { AgentInstallModal } from './AgentInstallModal';
+
+function useAgentStatusMonitor() {
+  const { state, dispatch } = useApp();
+  const wsRef = useRef<WebSocket | null>(null);
+  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!state.isAuthenticated) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const wsBase = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
+
+    function connect() {
+      if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) return;
+
+      const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=status-monitor&projectId=default&token=${encodeURIComponent(token)}`);
+      wsRef.current = ws;
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'agent_connected') {
+            dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: true, lastSeen: new Date().toISOString() } });
+          } else if (msg.type === 'agent_disconnected') {
+            dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: false } });
+          } else if (msg.type === 'session_ready') {
+            dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: !!msg.agentConnected, lastSeen: new Date().toISOString() } });
+          }
+        } catch {}
+      };
+
+      ws.onclose = () => {
+        dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: false } });
+        retryRef.current = setTimeout(connect, 8000);
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+    }
+
+    // Also do a quick HTTP poll on mount (fastest way to get initial status)
+    fetch(`${BASE_URL}/terminal/history?sessionId=agent&projectId=default`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.json()).then((d: any) => {
+      if (d?.data?.agentConnected) {
+        dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: true, lastSeen: new Date().toISOString() } });
+      }
+    }).catch(() => {});
+
+    connect();
+
+    return () => {
+      wsRef.current?.close();
+      wsRef.current = null;
+      if (retryRef.current) clearTimeout(retryRef.current);
+    };
+  }, [state.isAuthenticated]);
+}
 
 export function DashboardLayout() {
   const location = useLocation();
@@ -21,6 +81,8 @@ export function DashboardLayout() {
   const { state, dispatch } = useApp();
   const [showNewProject, setShowNewProject] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useAgentStatusMonitor();
 
   const handleLogout = async () => {
     await apiLogout();

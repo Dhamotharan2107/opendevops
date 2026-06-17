@@ -8,14 +8,14 @@ import {
   RefreshCw, Filter, Search, ChevronRight, Server,
   Globe, Users, Bug, TrendingUp, Download, Plus,
   User, X, Send, Trash2, Square, Link, Loader2,
-  CloudLightning, WifiOff
+  CloudLightning, WifiOff, ChevronDown, Check
 } from 'lucide-react';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { useApp } from '../../lib/store';
-import { BASE_URL } from '../../lib/api';
+import { BASE_URL, githubFetchBranches, getGitHubPat } from '../../lib/api';
 import { cn, getStatusColor, getPriorityColor, getInitials } from '../../lib/utils';
 import type { Project, Deployment, LogEntry, ErrorRecord, AITestResult, APIRequest } from '../../lib/types';
 
@@ -103,6 +103,14 @@ export function ProjectDetails() {
   const [stopping, setStopping] = useState(false);
   const deployWsRef = useRef<WebSocket | null>(null);
 
+  // Branch state
+  const [branches, setBranches] = useState<string[]>([]);
+  const [branchSearch, setBranchSearch] = useState('');
+  const [branchDropdownOpen, setBranchDropdownOpen] = useState(false);
+  const [activeBranch, setActiveBranch] = useState('');
+  const [changingBranch, setChangingBranch] = useState(false);
+  const branchDropdownRef = useRef<HTMLDivElement>(null);
+
   const project = useMemo(
     () => state.projects.find((p) => p.id === id),
     [id, state.projects]
@@ -119,6 +127,70 @@ export function ProjectDetails() {
     { id: 'monitoring', label: 'Monitoring', icon: BarChart3 },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
+
+  // Sync activeBranch whenever project changes
+  useEffect(() => {
+    if (project && !activeBranch) setActiveBranch(project.branch || 'main');
+  }, [project?.branch]);
+
+  // Fetch branches from GitHub when project loads
+  useEffect(() => {
+    if (!project?.repo) return;
+    const pat = getGitHubPat();
+    if (!pat) {
+      // No PAT — just show current branch
+      setBranches(project.branch ? [project.branch] : ['main']);
+      return;
+    }
+    const match = project.repo.match(/github\.com[:/]([^/]+\/[^/.]+)/);
+    if (!match) return;
+    const fullName = match[1];
+    githubFetchBranches(pat, fullName)
+      .then((brs) => { if (brs.length) setBranches(brs); })
+      .catch(() => setBranches(project.branch ? [project.branch] : ['main']));
+  }, [project?.repo]);
+
+  // Close branch dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (branchDropdownRef.current && !branchDropdownRef.current.contains(e.target as Node)) {
+        setBranchDropdownOpen(false);
+        setBranchSearch('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleBranchChange = async (branch: string) => {
+    if (!project || branch === activeBranch) { setBranchDropdownOpen(false); return; }
+    setBranchDropdownOpen(false);
+    setBranchSearch('');
+    setChangingBranch(true);
+
+    const wsBase = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=branch-${Date.now()}&projectId=${project.id}&token=${encodeURIComponent(token)}`);
+        ws.onopen = () => {
+          ws.send(JSON.stringify({
+            type: 'terminal_input',
+            input: `cd ~/opendev/projects/${project.name} && git fetch --all && git checkout ${branch} && git pull origin ${branch} && echo "Switched to ${branch}"`,
+          }));
+          setTimeout(() => ws.close(), 15000);
+        };
+      } catch {}
+    }
+
+    setActiveBranch(branch);
+    dispatch({ type: 'UPDATE_PROJECT', payload: { ...project, branch } });
+    setTimeout(() => setChangingBranch(false), 1500);
+  };
+
+  const filteredBranches = branches.filter((b) =>
+    b.toLowerCase().includes(branchSearch.toLowerCase())
+  );
 
   if (!project) {
     return (
@@ -161,7 +233,7 @@ export function ProjectDetails() {
     const deploymentId = crypto.randomUUID();
     dispatch({ type: 'ADD_DEPLOYMENT', payload: {
       id: deploymentId, projectId: project.id,
-      version: `v${Date.now()}`, commit: 'HEAD', branch: project.branch,
+      version: `v${Date.now()}`, commit: 'HEAD', branch: activeBranch || project.branch,
       status: 'building', time: new Date().toLocaleString(),
     }});
 
@@ -172,10 +244,11 @@ export function ProjectDetails() {
     const { cmd: startCmd, port } = getStartCommand(project.framework || 'node');
     const projectDir = `~/opendev/projects/${project.name}`;
 
+    const branch = activeBranch || project.branch || 'main';
     const deployScript = [
       `mkdir -p ~/opendev/projects`,
-      `echo "=== Pulling latest code ==="`,
-      `cd ${projectDir} && git pull`,
+      `echo "=== Switching to branch: ${branch} ==="`,
+      `cd ${projectDir} && git fetch --all && git checkout ${branch} && git pull origin ${branch}`,
       `echo "=== Installing dependencies ==="`,
       `npm install --prefer-offline`,
       `echo "=== Building project ==="`,
@@ -282,11 +355,55 @@ export function ProjectDetails() {
               <div className="flex items-center gap-4 text-sm text-white/40">
                 <div className="flex items-center gap-2">
                   <Code className="w-4 h-4" />
-                  <span>{project.repo}</span>
+                  <span className="truncate max-w-xs">{project.repo}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <GitBranch className="w-4 h-4" />
-                  <span>{project.branch}</span>
+
+                {/* Branch dropdown — Git Desktop style */}
+                <div className="relative" ref={branchDropdownRef}>
+                  <button
+                    onClick={() => { setBranchDropdownOpen((o) => !o); setBranchSearch(''); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+                  >
+                    {changingBranch
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin text-violet-400" />
+                      : <GitBranch className="w-3.5 h-3.5 text-violet-400" />}
+                    <span className="text-sm font-medium">{activeBranch || project.branch}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${branchDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {branchDropdownOpen && (
+                    <div className="absolute top-full mt-1.5 left-0 z-50 w-64 bg-[#1a1a24] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+                      {/* Search */}
+                      <div className="p-2 border-b border-white/10">
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                          <input
+                            autoFocus
+                            value={branchSearch}
+                            onChange={(e) => setBranchSearch(e.target.value)}
+                            placeholder="Filter branches..."
+                            className="w-full pl-8 pr-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:border-violet-500/50"
+                          />
+                        </div>
+                      </div>
+                      {/* Branch list */}
+                      <div className="max-h-52 overflow-y-auto py-1">
+                        {filteredBranches.length === 0 ? (
+                          <p className="text-xs text-white/30 text-center py-4">No branches found</p>
+                        ) : filteredBranches.map((b) => (
+                          <button
+                            key={b}
+                            onClick={() => handleBranchChange(b)}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-white/5 transition-colors text-left"
+                          >
+                            <GitBranch className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
+                            <span className={`flex-1 text-sm truncate ${b === activeBranch ? 'text-violet-400 font-medium' : 'text-white/70'}`}>{b}</span>
+                            {b === activeBranch && <Check className="w-3.5 h-3.5 text-violet-400 flex-shrink-0" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -379,7 +496,7 @@ export function ProjectDetails() {
             exit="exit"
           >
             {activeTab === 'overview' && <OverviewTab project={project} tunnelUrl={tunnelUrl} deployLogs={deployLogs} deployPhase={deployPhase} tunnelRunning={tunnelRunning} onStop={handleStop} stopping={stopping} />}
-            {activeTab === 'terminal' && <TerminalTab projectId={project.id} />}
+            {activeTab === 'terminal' && <TerminalTab projectId={project.id} projectName={project.name} />}
             {activeTab === 'logs' && <LogsTab projectId={project.id} />}
             {activeTab === 'errors' && <ErrorsTab projectId={project.id} />}
             {activeTab === 'ai-testing' && <AITestingTab projectId={project.id} />}
@@ -744,10 +861,11 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
   );
 }
 
-function TerminalTab({ projectId }: { projectId: string }) {
+function TerminalTab({ projectId, projectName }: { projectId: string; projectName: string }) {
+  const projectDir = `~/opendev/projects/${projectName}`;
   const [command, setCommand] = useState('');
   const [lines, setLines] = useState<{ type: string; text: string }[]>([
-    { type: 'output', text: 'Opendrap Cloud Terminal v1.0.0' },
+    { type: 'output', text: `Opendrap Cloud Terminal — ${projectName}` },
     { type: 'output', text: 'Connecting to agent...' },
   ]);
   const [wsConnected, setWsConnected] = useState(false);
@@ -760,7 +878,7 @@ function TerminalTab({ projectId }: { projectId: string }) {
     const token = localStorage.getItem('token');
     if (!token) { setLines((p) => [...p, { type: 'error', text: 'No auth token. Please log in.' }]); return; }
 
-    const ws = new WebSocket(`${wsUrl}/api/terminal/ws?sessionId=browser&projectId=default&token=${token}`);
+    const ws = new WebSocket(`${wsUrl}/api/terminal/ws?sessionId=project-${projectId}&projectId=${projectId}&token=${token}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -776,7 +894,9 @@ function TerminalTab({ projectId }: { projectId: string }) {
           setLines((p) => [...p, { type: 'output', text: msg.data }]);
         } else if (msg.type === 'agent_connected' || (msg.type === 'session_ready' && msg.agentConnected)) {
           setWsConnected(true);
-          setLines((p) => [...p, { type: 'output', text: 'Agent connected. Ready.' }]);
+          setLines((p) => [...p, { type: 'output', text: `Agent connected. Navigating to ${projectDir}...` }]);
+          // Auto-cd into project directory
+          ws.send(JSON.stringify({ type: 'terminal_input', input: `mkdir -p ${projectDir} && cd ${projectDir} && echo "📂 Working directory: $(pwd)"` }));
         } else if (msg.type === 'agent_disconnected') {
           setLines((p) => [...p, { type: 'error', text: 'Agent disconnected.' }]);
         } else if (msg.type === 'error') {
@@ -811,7 +931,11 @@ function TerminalTab({ projectId }: { projectId: string }) {
         <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/5">
           <div className="flex items-center gap-2 text-xs text-white/40">
             <Terminal className="w-3.5 h-3.5" />
-            <span>{wsConnected ? 'Connected' : 'Disconnected'}</span>
+            <span className="font-mono text-white/30">{projectDir}</span>
+          </div>
+          <div className={`flex items-center gap-1.5 text-xs ${wsConnected ? 'text-emerald-400' : 'text-white/30'}`}>
+            <div className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-400 animate-pulse' : 'bg-white/20'}`} />
+            {wsConnected ? 'Live' : 'Disconnected'}
           </div>
         </div>
         <div className="h-96 overflow-y-auto p-4 font-mono text-sm">
