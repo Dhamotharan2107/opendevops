@@ -101,6 +101,7 @@ export function ProjectDetails() {
   const [tunnelUrl, setTunnelUrl] = useState<string | null>(null);
   const [tunnelRunning, setTunnelRunning] = useState(false);
   const [stopping, setStopping] = useState(false);
+  const [tunnelPort, setTunnelPort] = useState('8000');
   const deployWsRef = useRef<WebSocket | null>(null);
 
   // Branch state
@@ -220,16 +221,19 @@ export function ProjectDetails() {
     }
   }
 
+  // Deploy = cloudflared tunnel only.
+  // User starts the server themselves in the Terminal tab, then clicks Deploy.
   const handleDeploy = async (project: Project) => {
     if (!state.agentConnected) {
-      setDeployLogs(['Agent not connected. Install the agent from Settings → Agent and try again.']);
+      setDeployLogs(['Agent not connected. Start the agent first.']);
       return;
     }
     setDeploying(true);
     setTunnelUrl(null);
     setDeployLogs([]);
-    setDeployPhase('Pulling code...');
+    setDeployPhase('Starting tunnel...');
 
+    const port = parseInt(tunnelPort, 10) || 8000;
     const deploymentId = crypto.randomUUID();
     dispatch({ type: 'ADD_DEPLOYMENT', payload: {
       id: deploymentId, projectId: project.id,
@@ -241,33 +245,15 @@ export function ProjectDetails() {
     const token = localStorage.getItem('token');
     if (!token) { setDeploying(false); return; }
 
-    const { cmd: startCmd, port } = getStartCommand(project.framework || 'node');
-    const projectDir = `~/opendev/projects/${project.name}`;
-
-    const branch = activeBranch || project.branch || 'main';
-    const deployScript = [
-      `mkdir -p ~/opendev/projects`,
-      `echo "=== Switching to branch: ${branch} ==="`,
-      `cd ${projectDir} && git fetch --all && git checkout ${branch} && git pull origin ${branch}`,
-      `echo "=== Installing dependencies ==="`,
-      `npm install --prefer-offline`,
-      `echo "=== Building project ==="`,
-      `npm run build 2>&1 || true`,
-      `echo "=== Starting server ==="`,
-      `${startCmd} &`,
-      `echo "=== Waiting for server ==="`,
-      `sleep 3`,
-      `echo "=== Starting Cloudflare Tunnel ==="`,
-      `cloudflared tunnel --url http://localhost:${port} --no-autoupdate 2>&1`,
-    ].join(' && ');
+    const TUNNEL_REGEX = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/;
+    const tunnelCmd = `cloudflared tunnel --url http://localhost:${port} --no-autoupdate 2>&1`;
 
     try {
-      const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=deploy-${deploymentId}&projectId=${project.id}&token=${encodeURIComponent(token)}`);
+      const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=tunnel-${deploymentId}&projectId=${project.id}&token=${encodeURIComponent(token)}`);
       deployWsRef.current = ws;
-      const TUNNEL_REGEX = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/;
 
       ws.onopen = () => {
-        ws.send(JSON.stringify({ type: 'terminal_input', input: deployScript }));
+        ws.send(JSON.stringify({ type: 'terminal_input', input: tunnelCmd }));
       };
 
       ws.onmessage = (event) => {
@@ -275,15 +261,7 @@ export function ProjectDetails() {
           const msg = JSON.parse(event.data);
           const text: string = msg.data || msg.message || '';
           if (!text) return;
-
           setDeployLogs((prev) => [...prev, text]);
-
-          if (text.includes('Pulling latest code')) setDeployPhase('Pulling code...');
-          else if (text.includes('Installing dependencies')) setDeployPhase('Installing dependencies...');
-          else if (text.includes('Building project')) setDeployPhase('Building...');
-          else if (text.includes('Starting server')) setDeployPhase('Starting server...');
-          else if (text.includes('Cloudflare Tunnel')) setDeployPhase('Creating tunnel...');
-
           const match = text.match(TUNNEL_REGEX);
           if (match) {
             const url = match[0];
@@ -296,12 +274,9 @@ export function ProjectDetails() {
         } catch {}
       };
 
-      ws.onclose = () => {
-        if (deploying) setDeploying(false);
-      };
-
+      ws.onclose = () => { if (deploying) setDeploying(false); };
       ws.onerror = () => {
-        setDeployLogs((prev) => [...prev, 'WebSocket error — check agent connection.']);
+        setDeployLogs((prev) => [...prev, 'Connection error. Is agent running?']);
         setDeploying(false);
       };
     } catch {
@@ -450,18 +425,30 @@ export function ProjectDetails() {
                   className="flex items-center gap-2 px-4 py-2 bg-red-600/20 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-600/30 transition-colors disabled:opacity-50"
                 >
                   <Square className="w-4 h-4" />
-                  <span className="text-sm">{stopping ? 'Stopping...' : 'Stop'}</span>
+                  <span className="text-sm">{stopping ? 'Stopping...' : 'Stop Tunnel'}</span>
                 </button>
               ) : (
-                <button
-                  onClick={() => handleDeploy(project)}
-                  disabled={deploying || !state.agentConnected}
-                  title={!state.agentConnected ? 'Agent must be connected to deploy' : ''}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  {deploying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudLightning className="w-4 h-4" />}
-                  <span className="text-sm">{deploying ? (deployPhase || 'Deploying...') : 'Deploy'}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 border border-white/10 rounded-lg bg-white/5 overflow-hidden">
+                    <span className="pl-3 text-xs text-white/30 select-none">port</span>
+                    <input
+                      type="number"
+                      value={tunnelPort}
+                      onChange={(e) => setTunnelPort(e.target.value)}
+                      className="w-16 px-2 py-2 bg-transparent text-sm text-white outline-none"
+                      placeholder="8000"
+                    />
+                  </div>
+                  <button
+                    onClick={() => handleDeploy(project)}
+                    disabled={deploying || !state.agentConnected}
+                    title={!state.agentConnected ? 'Agent must be connected' : 'Start Cloudflare tunnel to make your server public'}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                  >
+                    {deploying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudLightning className="w-4 h-4" />}
+                    <span className="text-sm">{deploying ? (deployPhase || 'Starting...') : 'Publish'}</span>
+                  </button>
+                </div>
               )}
             </motion.div>
           </div>
@@ -590,7 +577,22 @@ function OverviewTab({ project, tunnelUrl, deployLogs, deployPhase, tunnelRunnin
         </motion.div>
       )}
 
-      {/* Deploy logs */}
+      {/* How-to hint when not yet live */}
+      {!tunnelUrl && !deploying && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex items-start gap-3 p-4 bg-violet-500/5 border border-violet-500/20 rounded-xl text-sm"
+        >
+          <CloudLightning className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" />
+          <div className="text-white/50 leading-relaxed">
+            <span className="text-violet-300 font-medium">How to publish: </span>
+            Open the <strong className="text-white/70">Terminal</strong> tab → start your server (e.g. <code className="bg-white/5 px-1.5 py-0.5 rounded text-xs font-mono text-white/60">python manage.py runserver 0.0.0.0:8000</code>) → come back here and click <strong className="text-white/70">Publish</strong> to create a public Cloudflare tunnel.
+          </div>
+        </motion.div>
+      )}
+
+      {/* Deploy / tunnel logs */}
       {(deployLogs.length > 0 || (deployPhase && deployPhase !== 'Live')) && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -895,12 +897,17 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
         const text: string = msg.data || msg.message || '';
 
         if (msg.type === 'terminal_output' || msg.type === 'command_output') {
-          // Parse pwd output from our cd tracking — suppress the internal echo
-          if (text.startsWith('__CWD__:')) {
-            const newCwd = text.replace('__CWD__:', '').trim();
-            if (newCwd) setCwd(newCwd.replace(/^\/home\/[^/]+/, '~').replace(/^\/root/, '~'));
+          // Capture cwd echo — internal marker, never show to user
+          if (text.includes('__CWD__:')) {
+            const match = text.match(/__CWD__:(.+)/);
+            if (match) {
+              const raw = match[1].trim();
+              setCwd(raw.replace(/^\/home\/[^/]+/, '~').replace(/^\/root/, '~'));
+            }
             return;
           }
+          // Filter the internal "$ cd ~/... && <cmd>" echo the agent sends back
+          if (/^\$\s+cd\s+~\//.test(text) && text.includes(' && ')) return;
           if (text.trim()) setLines((p) => [...p, { type: 'output', text }]);
         } else if (msg.type === 'agent_connected' || (msg.type === 'session_ready' && msg.agentConnected)) {
           setWsConnected(true);

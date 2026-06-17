@@ -1,4 +1,7 @@
-contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ python agent.py 
-Connecting to wss://opendrap-api.tert.workers.dev/api/terminal/ws?sessionId=agent&projectId=default (attempt 1)...
-Connected!
-but in dashboard Agent Offline
+$ mkdir -p ~/opendev/projects && echo "=== Switching to branch: main ===" && cd ~/opendev/projects/revoobig && git fetch --all && git checkout main && git pull origin main && echo "=== Installing dependencies ===" && npm install --prefer-offline && echo "=== Building project ===" && npm run build 2>&1 || true && echo "=== Starting server ===" && python manage.py runserver 0.0.0.0:3000 & && echo "=== Waiting for server ===" && sleep 3 && echo "=== Starting Cloudflare Tunnel ===" && cloudflared tunnel --url http://localhost:3000 --no-autoupdate 2>&1
+
+Opendrap Terminal — revoobig
+Connecting to agent...
+Connected. Waiting for agent...
+. $ ls
+$ cd ~/opendev/projects/revoobig && ls

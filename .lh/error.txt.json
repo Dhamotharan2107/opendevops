@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 5,
+            "activePatchIndex": 7,
             "patches": [
                 {
                     "date": 1780831838443,
@@ -28,6 +28,14 @@
                 {
                     "date": 1781680440627,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,3 +1,4 @@\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ python agent.py \r\n Connecting to wss://opendrap-api.tert.workers.dev/api/terminal/ws?sessionId=agent&projectId=default (attempt 1)...\r\n Connected!\r\n+b\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781680922803,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,4 +1,1 @@\n-contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ python agent.py \r\n-Connecting to wss://opendrap-api.tert.workers.dev/api/terminal/ws?sessionId=agent&projectId=default (attempt 1)...\r\n-Connected!\r\n-b\n\\ No newline at end of file\n+$ mkdir -p ~/opendev/projects && echo \"=== Switching to branch: main ===\" && cd ~/opendev/projects/revoobig && git fetch --all && git checkout main && git pull origin main && echo \"=== Installing dependencies ===\" && npm install --prefer-offline && echo \"=== Building project ===\" && npm run build 2>&1 || true && echo \"=== Starting server ===\" && python manage.py runserver 0.0.0.0:3000 & && echo \"=== Waiting for server ===\" && sleep 3 && echo \"=== Starting Cloudflare Tunnel ===\" && cloudflared tunnel --url http://localhost:3000 --no-autoupdate 2>&1\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781681153457,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,1 +1,1 @@\n-$ mkdir -p ~/opendev/projects && echo \"=== Switching to branch: main ===\" && cd ~/opendev/projects/revoobig && git fetch --all && git checkout main && git pull origin main && echo \"=== Installing dependencies ===\" && npm install --prefer-offline && echo \"=== Building project ===\" && npm run build 2>&1 || true && echo \"=== Starting server ===\" && python manage.py runserver 0.0.0.0:3000 & && echo \"=== Waiting for server ===\" && sleep 3 && echo \"=== Starting Cloudflare Tunnel ===\" && cloudflared tunnel --url http://localhost:3000 --no-autoupdate 2>&1\n\\ No newline at end of file\n+$ mkdir -p ~/opendev/projects && echo \"=== Switching to branch: main ===\" && cd ~/opendev/projects/revoobig && git fetch --all && git checkout main && git pull origin main && echo \"=== Installing dependencies ===\" && npm install --prefer-offline && echo \"=== Building project ===\" && npm run build 2>&1 || true && echo \"=== Starting server ===\" && python manage.py runserver 0.0.0.0:3000 & && echo \"=== Waiting for server ===\" && sleep 3 && echo \"=== Starting Cloudflare Tunnel ===\" && cloudflared tunnel --url http://localhost:3000 --no-autoupdate 2>&1\r\n"
                 }
             ],
             "date": 1780831838443,
