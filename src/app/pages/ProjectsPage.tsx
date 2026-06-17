@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -256,6 +256,8 @@ export function NewProjectModal({
   const [cloneCopied, setCloneCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [runStatus, setRunStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
+  const [cloneOutput, setCloneOutput] = useState<string[]>([]);
+  const cloneOutputRef = useRef<HTMLDivElement>(null);
 
   const WS_URL = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
 
@@ -362,17 +364,18 @@ export function NewProjectModal({
     const token = localStorage.getItem('token');
     if (!token) return;
     setRunStatus('running');
+    setCloneOutput([`$ cd ~/opendev/projects && git clone ${form.repo}`]);
 
     const repoName = form.repo.split('/').pop()?.replace(/\.git$/, '') || 'project';
-    const cmd = `cd ~/opendev/projects && git clone ${form.repo} && cd ${repoName}`;
+    const cmd = `cd ~/opendev/projects && git clone ${form.repo} && cd ${repoName} && echo "Clone complete."`;
 
     try {
       const sessionRes = await fetch(`${BASE_URL}/terminal/session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ projectId: 'default' }),
-      });
-      const sessionData = await sessionRes.json();
+      }).catch(() => null);
+      const sessionData = sessionRes ? await sessionRes.json().catch(() => ({})) : {};
       const sessionId = sessionData?.data?.sessionId || 'default';
 
       const wsUrl = `${WS_URL}/api/terminal/ws?sessionId=${sessionId}&projectId=default&token=${encodeURIComponent(token)}`;
@@ -384,33 +387,41 @@ export function NewProjectModal({
         completionTimer = setTimeout(() => {
           ws.close();
           setRunStatus('done');
-          setTimeout(() => setRunStatus('idle'), 3000);
-        }, 15000);
+        }, 60000);
       };
 
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          if (msg.type === 'terminal_output' && msg.data) {
-            console.log('[clone]', msg.data);
+          const text = msg.data || msg.message || '';
+          if (text) {
+            setCloneOutput((prev) => [...prev, text]);
+            setTimeout(() => cloneOutputRef.current?.scrollTo({ top: 9999, behavior: 'smooth' }), 30);
           }
-          if (msg.type === 'terminal_output' && msg.data?.includes('Command finished')) {
+          const isDone =
+            text.includes('Clone complete.') ||
+            text.includes('already exists') ||
+            msg.type === 'command_done';
+          if (isDone) {
             clearTimeout(completionTimer);
             ws.close();
             setRunStatus('done');
-            setTimeout(() => setRunStatus('idle'), 3000);
           }
         } catch {}
       };
 
       ws.onerror = () => {
         clearTimeout(completionTimer);
+        setCloneOutput((prev) => [...prev, 'Error: Could not connect to agent. Is the agent running?']);
         setRunStatus('error');
-        setTimeout(() => setRunStatus('idle'), 3000);
+      };
+
+      ws.onclose = () => {
+        if (runStatus === 'running') setRunStatus('done');
       };
     } catch {
+      setCloneOutput((prev) => [...prev, 'Error: Failed to start clone.']);
       setRunStatus('error');
-      setTimeout(() => setRunStatus('idle'), 3000);
     }
   }
 
@@ -772,6 +783,31 @@ export function NewProjectModal({
                         : <><Link2 className="w-3.5 h-3.5" /> Generate Link</>}
                     </button>
                   </div>
+
+                  {cloneOutput.length > 0 && (
+                    <div
+                      ref={cloneOutputRef}
+                      className="max-h-32 overflow-y-auto bg-black/60 rounded-lg p-2.5 font-mono text-[11px] text-gray-300 space-y-0.5 border border-white/5"
+                    >
+                      {cloneOutput.map((line, i) => (
+                        <div key={i} className={line.startsWith('$') ? 'text-emerald-400' : line.toLowerCase().includes('error') ? 'text-red-400' : 'text-gray-300'}>
+                          {line}
+                        </div>
+                      ))}
+                      {runStatus === 'running' && (
+                        <div className="flex items-center gap-1.5 text-violet-400 mt-1">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <span>Cloning...</span>
+                        </div>
+                      )}
+                      {runStatus === 'done' && (
+                        <div className="flex items-center gap-1.5 text-emerald-400 mt-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Done — proceed to configure your project below.</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <p className="text-[11px] text-gray-600">
                     The Cloud Shell link opens Google Cloud Shell and auto-clones this repo into your browser.

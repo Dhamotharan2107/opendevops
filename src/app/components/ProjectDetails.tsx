@@ -7,7 +7,8 @@ import {
   BarChart3, CheckCircle2, Clock, Code, Zap, Copy,
   RefreshCw, Filter, Search, ChevronRight, Server,
   Globe, Users, Bug, TrendingUp, Download, Plus,
-  User, X, Send, Trash2
+  User, X, Send, Trash2, Square, Link, Loader2,
+  CloudLightning, WifiOff
 } from 'lucide-react';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -95,6 +96,12 @@ export function ProjectDetails() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [deploying, setDeploying] = useState(false);
+  const [deployPhase, setDeployPhase] = useState('');
+  const [deployLogs, setDeployLogs] = useState<string[]>([]);
+  const [tunnelUrl, setTunnelUrl] = useState<string | null>(null);
+  const [tunnelRunning, setTunnelRunning] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  const deployWsRef = useRef<WebSocket | null>(null);
 
   const project = useMemo(
     () => state.projects.find((p) => p.id === id),
@@ -127,27 +134,132 @@ export function ProjectDetails() {
 
   const statusColor = getStatusColor(project.status);
 
+  function getStartCommand(framework: string): { cmd: string; port: number } {
+    switch (framework) {
+      case 'nextjs':  return { cmd: 'npm run start', port: 3000 };
+      case 'react':   return { cmd: 'npx serve dist -p 3000 -s', port: 3000 };
+      case 'vue':     return { cmd: 'npm run preview -- --port 3000', port: 3000 };
+      case 'nuxt':    return { cmd: 'npm run preview', port: 3000 };
+      case 'svelte':  return { cmd: 'npm run preview -- --port 3000', port: 3000 };
+      case 'python':  return { cmd: 'python app.py', port: 5000 };
+      case 'fastapi': return { cmd: 'uvicorn main:app --host 0.0.0.0 --port 3000', port: 3000 };
+      case 'django':  return { cmd: 'python manage.py runserver 0.0.0.0:3000', port: 3000 };
+      default:        return { cmd: 'npm start', port: 3000 };
+    }
+  }
+
   const handleDeploy = async (project: Project) => {
+    if (!state.agentConnected) {
+      setDeployLogs(['Agent not connected. Install the agent from Settings → Agent and try again.']);
+      return;
+    }
     setDeploying(true);
+    setTunnelUrl(null);
+    setDeployLogs([]);
+    setDeployPhase('Pulling code...');
+
+    const deploymentId = crypto.randomUUID();
     dispatch({ type: 'ADD_DEPLOYMENT', payload: {
-      id: crypto.randomUUID(), projectId: project.id,
+      id: deploymentId, projectId: project.id,
       version: `v${Date.now()}`, commit: 'HEAD', branch: project.branch,
       status: 'building', time: new Date().toLocaleString(),
     }});
-    const wsUrl = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
+
+    const wsBase = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
     const token = localStorage.getItem('token');
-    if (token) {
+    if (!token) { setDeploying(false); return; }
+
+    const { cmd: startCmd, port } = getStartCommand(project.framework || 'node');
+    const projectDir = `~/opendev/projects/${project.name}`;
+
+    const deployScript = [
+      `echo "=== Pulling latest code ==="`,
+      `cd ${projectDir} && git pull`,
+      `echo "=== Installing dependencies ==="`,
+      `npm install --prefer-offline`,
+      `echo "=== Building project ==="`,
+      `npm run build 2>&1 || true`,
+      `echo "=== Starting server ==="`,
+      `${startCmd} &`,
+      `echo "=== Waiting for server ==="`,
+      `sleep 3`,
+      `echo "=== Starting Cloudflare Tunnel ==="`,
+      `cloudflared tunnel --url http://localhost:${port} --no-autoupdate 2>&1`,
+    ].join(' && ');
+
+    try {
+      const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=deploy-${deploymentId}&projectId=${project.id}&token=${encodeURIComponent(token)}`);
+      deployWsRef.current = ws;
+      const TUNNEL_REGEX = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/;
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: 'terminal_input', input: deployScript }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          const text: string = msg.data || msg.message || '';
+          if (!text) return;
+
+          setDeployLogs((prev) => [...prev, text]);
+
+          if (text.includes('Pulling latest code')) setDeployPhase('Pulling code...');
+          else if (text.includes('Installing dependencies')) setDeployPhase('Installing dependencies...');
+          else if (text.includes('Building project')) setDeployPhase('Building...');
+          else if (text.includes('Starting server')) setDeployPhase('Starting server...');
+          else if (text.includes('Cloudflare Tunnel')) setDeployPhase('Creating tunnel...');
+
+          const match = text.match(TUNNEL_REGEX);
+          if (match) {
+            const url = match[0];
+            setTunnelUrl(url);
+            setTunnelRunning(true);
+            setDeployPhase('Live');
+            setDeploying(false);
+            dispatch({ type: 'UPDATE_PROJECT', payload: { ...project, url, status: 'deployed' } });
+          }
+        } catch {}
+      };
+
+      ws.onclose = () => {
+        if (deploying) setDeploying(false);
+      };
+
+      ws.onerror = () => {
+        setDeployLogs((prev) => [...prev, 'WebSocket error — check agent connection.']);
+        setDeploying(false);
+      };
+    } catch {
+      setDeploying(false);
+    }
+  };
+
+  const handleStop = async () => {
+    setStopping(true);
+    const wsBase = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
+    const token = localStorage.getItem('token');
+    if (token && project) {
       try {
-        const ws = new WebSocket(`${wsUrl}/api/terminal/ws?projectId=${project.id}&token=${token}`);
-        await new Promise<void>((resolve, reject) => {
-          ws.onopen = () => resolve();
-          ws.onerror = () => reject(new Error('WS connection failed'));
-        });
-        ws.send(JSON.stringify({ type: 'terminal_input', input: `cd ${project.name} && git pull && npm install && npm run build` }));
-        setTimeout(() => ws.close(), 30000);
+        const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=stop-${Date.now()}&projectId=${project.id}&token=${encodeURIComponent(token)}`);
+        ws.onopen = () => {
+          ws.send(JSON.stringify({ type: 'terminal_input', input: 'pkill -f cloudflared; pkill -f "node.*start"; pkill -f "node.*dev"; echo "Stopped."' }));
+          setTimeout(() => ws.close(), 5000);
+        };
       } catch {}
     }
-    setDeploying(false);
+    if (deployWsRef.current) {
+      deployWsRef.current.close();
+      deployWsRef.current = null;
+    }
+    setTunnelUrl(null);
+    setTunnelRunning(false);
+    setDeployPhase('');
+    setDeployLogs([]);
+    setStopping(false);
+    if (project) {
+      dispatch({ type: 'UPDATE_PROJECT', payload: { ...project, status: 'stopped' } });
+    }
   };
 
   return (
@@ -178,28 +290,61 @@ export function ProjectDetails() {
               </div>
             </motion.div>
             <motion.div
-              className="flex items-center gap-3"
+              className="flex items-center gap-3 flex-wrap"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.15, type: 'spring', stiffness: 300, damping: 22 }}
             >
-              <a
-                href={project.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2 border border-white/10 rounded-lg hover:bg-white/5 text-white/70 hover:text-white transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span className="text-sm">Open App</span>
-              </a>
-              <button
-                onClick={() => handleDeploy(project)}
-                disabled={deploying}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                <Play className={`w-4 h-4 ${deploying ? 'animate-spin' : ''}`} />
-                <span className="text-sm">{deploying ? 'Deploying...' : 'Deploy'}</span>
-              </button>
+              {tunnelUrl ? (
+                <a
+                  href={tunnelUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/20 text-emerald-400 transition-colors max-w-xs"
+                >
+                  <Globe className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-sm truncate">{tunnelUrl.replace('https://', '')}</span>
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
+                </a>
+              ) : project.url ? (
+                <a
+                  href={project.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 border border-white/10 rounded-lg hover:bg-white/5 text-white/70 hover:text-white transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span className="text-sm">Open App</span>
+                </a>
+              ) : null}
+
+              {!state.agentConnected && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-500/20 bg-amber-500/5 text-amber-400 text-xs">
+                  <WifiOff className="w-3.5 h-3.5" />
+                  Agent Offline
+                </div>
+              )}
+
+              {tunnelRunning ? (
+                <button
+                  onClick={handleStop}
+                  disabled={stopping}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600/20 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-600/30 transition-colors disabled:opacity-50"
+                >
+                  <Square className="w-4 h-4" />
+                  <span className="text-sm">{stopping ? 'Stopping...' : 'Stop'}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleDeploy(project)}
+                  disabled={deploying || !state.agentConnected}
+                  title={!state.agentConnected ? 'Agent must be connected to deploy' : ''}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {deploying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudLightning className="w-4 h-4" />}
+                  <span className="text-sm">{deploying ? (deployPhase || 'Deploying...') : 'Deploy'}</span>
+                </button>
+              )}
             </motion.div>
           </div>
 
@@ -232,7 +377,7 @@ export function ProjectDetails() {
             animate="visible"
             exit="exit"
           >
-            {activeTab === 'overview' && <OverviewTab project={project} />}
+            {activeTab === 'overview' && <OverviewTab project={project} tunnelUrl={tunnelUrl} deployLogs={deployLogs} deployPhase={deployPhase} tunnelRunning={tunnelRunning} onStop={handleStop} stopping={stopping} />}
             {activeTab === 'terminal' && <TerminalTab projectId={project.id} />}
             {activeTab === 'logs' && <LogsTab projectId={project.id} />}
             {activeTab === 'errors' && <ErrorsTab projectId={project.id} />}
@@ -248,7 +393,15 @@ export function ProjectDetails() {
   );
 }
 
-function OverviewTab({ project }: { project: Project }) {
+function OverviewTab({ project, tunnelUrl, deployLogs, deployPhase, tunnelRunning, onStop, stopping }: {
+  project: Project;
+  tunnelUrl: string | null;
+  deployLogs: string[];
+  deployPhase: string;
+  tunnelRunning: boolean;
+  onStop: () => void;
+  stopping: boolean;
+}) {
   const { state } = useApp();
   const deployments = useMemo(
     () => state.deployments.filter((d) => d.projectId === project.id),
@@ -270,6 +423,11 @@ function OverviewTab({ project }: { project: Project }) {
 
   const recentDeploys = deployments.slice(0, 4);
 
+  const deployLogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    deployLogRef.current?.scrollTo({ top: 9999, behavior: 'smooth' });
+  }, [deployLogs]);
+
   return (
     <motion.div
       variants={containerVariants}
@@ -277,6 +435,69 @@ function OverviewTab({ project }: { project: Project }) {
       animate="visible"
       className="max-w-7xl mx-auto space-y-6"
     >
+      {/* Live URL banner */}
+      {tunnelUrl && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl"
+        >
+          <div className="flex items-center gap-3">
+            <motion.div variants={pulseVariants} animate="pulse">
+              <Globe className="w-5 h-5 text-emerald-400" />
+            </motion.div>
+            <div>
+              <p className="text-xs text-emerald-400/70 mb-0.5">Live via Cloudflare Tunnel</p>
+              <a href={tunnelUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-300 font-mono text-sm hover:underline flex items-center gap-1">
+                {tunnelUrl}
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigator.clipboard.writeText(tunnelUrl).catch(() => {})}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white/60 hover:text-white transition-colors"
+            >
+              <Copy className="w-3 h-3" /> Copy
+            </button>
+            <button
+              onClick={onStop}
+              disabled={stopping}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+            >
+              <Square className="w-3 h-3" /> {stopping ? 'Stopping...' : 'Stop'}
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Deploy logs */}
+      {(deployLogs.length > 0 || (deployPhase && deployPhase !== 'Live')) && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="border border-white/10 rounded-xl overflow-hidden bg-black"
+        >
+          <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/5">
+            <div className="flex items-center gap-2 text-xs text-white/50">
+              <Loader2 className={`w-3.5 h-3.5 ${deployPhase === 'Live' ? 'hidden' : 'animate-spin'}`} />
+              <span>{deployPhase || 'Deploying...'}</span>
+            </div>
+          </div>
+          <div ref={deployLogRef} className="h-40 overflow-y-auto p-3 font-mono text-xs space-y-0.5">
+            {deployLogs.map((line, i) => (
+              <div key={i} className={
+                line.includes('===') ? 'text-violet-400 font-semibold' :
+                line.toLowerCase().includes('error') ? 'text-red-400' :
+                line.includes('trycloudflare') ? 'text-emerald-400 font-bold' :
+                'text-gray-400'
+              }>{line}</div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
       <div className="grid grid-cols-2 gap-6">
         <motion.div
           variants={itemVariants}
@@ -538,7 +759,7 @@ function TerminalTab({ projectId }: { projectId: string }) {
     const token = localStorage.getItem('token');
     if (!token) { setLines((p) => [...p, { type: 'error', text: 'No auth token. Please log in.' }]); return; }
 
-    const ws = new WebSocket(`${wsUrl}/api/terminal/ws?projectId=${projectId}&token=${token}`);
+    const ws = new WebSocket(`${wsUrl}/api/terminal/ws?sessionId=browser&projectId=default&token=${token}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -552,6 +773,11 @@ function TerminalTab({ projectId }: { projectId: string }) {
           setLines((p) => [...p, { type: 'output', text: msg.data }]);
         } else if (msg.type === 'command_output') {
           setLines((p) => [...p, { type: 'output', text: msg.data }]);
+        } else if (msg.type === 'agent_connected' || (msg.type === 'session_ready' && msg.agentConnected)) {
+          setWsConnected(true);
+          setLines((p) => [...p, { type: 'output', text: 'Agent connected. Ready.' }]);
+        } else if (msg.type === 'agent_disconnected') {
+          setLines((p) => [...p, { type: 'error', text: 'Agent disconnected.' }]);
         } else if (msg.type === 'error') {
           setLines((p) => [...p, { type: 'error', text: msg.message }]);
         }
