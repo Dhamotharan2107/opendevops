@@ -18,7 +18,9 @@ import { AgentInstallModal } from './AgentInstallModal';
 function useAgentStatusMonitor() {
   const { state, dispatch } = useApp();
   const wsRef = useRef<WebSocket | null>(null);
-  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wsRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const missRef = useRef(0); // consecutive poll misses before declaring offline
 
   useEffect(() => {
     if (!state.isAuthenticated) return;
@@ -27,50 +29,75 @@ function useAgentStatusMonitor() {
 
     const wsBase = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
 
-    function connect() {
-      if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) return;
-
-      const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=status-monitor&projectId=default&token=${encodeURIComponent(token)}`);
-      wsRef.current = ws;
-
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === 'agent_connected') {
-            dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: true, lastSeen: new Date().toISOString() } });
-          } else if (msg.type === 'agent_disconnected') {
+    // ── HTTP polling (primary source of truth) ───────────────────────────────
+    async function poll() {
+      try {
+        const r = await fetch(`${BASE_URL}/terminal/history?sessionId=agent&projectId=default`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const d = await r.json() as any;
+        if (d?.data?.agentConnected) {
+          missRef.current = 0;
+          dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: true, lastSeen: new Date().toISOString() } });
+        } else {
+          missRef.current += 1;
+          // Only declare offline after 3 consecutive misses (30 s) to avoid flapping
+          if (missRef.current >= 3) {
             dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: false } });
-          } else if (msg.type === 'session_ready') {
-            dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: !!msg.agentConnected, lastSeen: new Date().toISOString() } });
           }
-        } catch {}
-      };
-
-      ws.onclose = () => {
-        dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: false } });
-        retryRef.current = setTimeout(connect, 8000);
-      };
-
-      ws.onerror = () => {
-        ws.close();
-      };
+        }
+      } catch {
+        missRef.current += 1;
+        if (missRef.current >= 3) {
+          dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: false } });
+        }
+      }
     }
 
-    // Also do a quick HTTP poll on mount (fastest way to get initial status)
-    fetch(`${BASE_URL}/terminal/history?sessionId=agent&projectId=default`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(r => r.json()).then((d: any) => {
-      if (d?.data?.agentConnected) {
-        dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: true, lastSeen: new Date().toISOString() } });
-      }
-    }).catch(() => {});
+    poll(); // immediate check on mount
+    pollRef.current = setInterval(poll, 10000); // then every 10 s
 
-    connect();
+    // ── WebSocket (real-time bonus — updates instantly when agent connects) ──
+    function connectWs() {
+      if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) return;
+
+      try {
+        const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=status-monitor&projectId=default&token=${encodeURIComponent(token)}`);
+        wsRef.current = ws;
+
+        ws.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'agent_connected') {
+              missRef.current = 0;
+              dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: true, lastSeen: new Date().toISOString() } });
+            } else if (msg.type === 'agent_disconnected') {
+              // Let the poll confirm before declaring offline
+              missRef.current += 1;
+            } else if (msg.type === 'session_ready' && msg.agentConnected) {
+              missRef.current = 0;
+              dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: true, lastSeen: new Date().toISOString() } });
+            }
+          } catch {}
+        };
+
+        // WS close: do NOT flip to offline here — Cloudflare Workers WS has a
+        // short idle TTL and closes legitimately. Let the HTTP poll decide.
+        ws.onclose = () => {
+          wsRetryRef.current = setTimeout(connectWs, 10000);
+        };
+
+        ws.onerror = () => ws.close();
+      } catch {}
+    }
+
+    connectWs();
 
     return () => {
       wsRef.current?.close();
       wsRef.current = null;
-      if (retryRef.current) clearTimeout(retryRef.current);
+      if (wsRetryRef.current) clearTimeout(wsRetryRef.current);
+      if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [state.isAuthenticated]);
 }

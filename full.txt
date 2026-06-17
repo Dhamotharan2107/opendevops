@@ -1,29 +1,70 @@
+
 Opendrap Cloud Terminal v1.0.0
 Connecting to agent...
 Terminal connected. Waiting for agent...
 Agent connected. Ready.
+$ l
+/bin/bash: line 1: l: command not found
+
+Command finished with status: error
 $ ls
-agent
-agent.log
-agent.pid
-agent.py
-hello
-restart.sh
-token
+b2
+cloudflared-linux-amd64
+cloudflared.log
+main.py
+manager
+opendev
+opendrap-agent
+OpenWA
+r2
+README-cloudshell.txt
+requirements.txt
+startup.sh
+tunnel.log
+whatfy.tar
 
 Command finished with status: success
-Agent disconnected.
-Agent connected. Ready.
-$ cd ..
+$ cd opendve
+/bin/bash: line 1: cd: opendve: No such file or directory
+
+Command finished with status: error
+$ cd opendev
 
 Command finished with status: success
 $ ls
-agent
-agent.log
-agent.pid
-agent.py
-hello
-restart.sh
-token
+b2
+cloudflared-linux-amd64
+cloudflared.log
+main.py
+manager
+opendev
+opendrap-agent
+OpenWA
+r2
+README-cloudshell.txt
+requirements.txt
+startup.sh
+tunnel.log
+whatfy.tar
+
+Command finished with status: success
+$ cd opendev
+
+Command finished with status: success
+$ ls
+b2
+cloudflared-linux-amd64
+cloudflared.log
+main.py
+manager
+opendev
+opendrap-agent
+OpenWA
+r2
+README-cloudshell.txt
+requirements.txt
+startup.sh
+tunnel.log
+whatfy.tar
 
 Command finished with status: success

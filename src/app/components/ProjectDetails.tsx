@@ -863,10 +863,13 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
 
 function TerminalTab({ projectId, projectName }: { projectId: string; projectName: string }) {
   const projectDir = `~/opendev/projects/${projectName}`;
+  const [cwd, setCwd] = useState(projectDir);
   const [command, setCommand] = useState('');
+  const [history, setHistory] = useState<string[]>([]);
+  const [histIdx, setHistIdx] = useState(-1);
   const [lines, setLines] = useState<{ type: string; text: string }[]>([
-    { type: 'output', text: `Opendrap Cloud Terminal — ${projectName}` },
-    { type: 'output', text: 'Connecting to agent...' },
+    { type: 'system', text: `Opendrap Terminal — ${projectName}` },
+    { type: 'system', text: 'Connecting to agent...' },
   ]);
   const [wsConnected, setWsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -876,37 +879,47 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
   useEffect(() => {
     const wsUrl = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
     const token = localStorage.getItem('token');
-    if (!token) { setLines((p) => [...p, { type: 'error', text: 'No auth token. Please log in.' }]); return; }
+    if (!token) { setLines((p) => [...p, { type: 'error', text: 'No auth token.' }]); return; }
 
     const ws = new WebSocket(`${wsUrl}/api/terminal/ws?sessionId=project-${projectId}&projectId=${projectId}&token=${token}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
       setWsConnected(true);
-      setLines((p) => [...p, { type: 'output', text: 'Terminal connected. Waiting for agent...' }]);
+      setLines((p) => [...p, { type: 'system', text: 'Connected. Waiting for agent...' }]);
     };
+
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
-        if (msg.type === 'terminal_output') {
-          setLines((p) => [...p, { type: 'output', text: msg.data }]);
-        } else if (msg.type === 'command_output') {
-          setLines((p) => [...p, { type: 'output', text: msg.data }]);
+        const text: string = msg.data || msg.message || '';
+
+        if (msg.type === 'terminal_output' || msg.type === 'command_output') {
+          // Parse pwd output from our cd tracking — suppress the internal echo
+          if (text.startsWith('__CWD__:')) {
+            const newCwd = text.replace('__CWD__:', '').trim();
+            if (newCwd) setCwd(newCwd.replace(/^\/home\/[^/]+/, '~').replace(/^\/root/, '~'));
+            return;
+          }
+          if (text.trim()) setLines((p) => [...p, { type: 'output', text }]);
         } else if (msg.type === 'agent_connected' || (msg.type === 'session_ready' && msg.agentConnected)) {
           setWsConnected(true);
-          setLines((p) => [...p, { type: 'output', text: `Agent connected. Navigating to ${projectDir}...` }]);
-          // Auto-cd into project directory
-          ws.send(JSON.stringify({ type: 'terminal_input', input: `mkdir -p ${projectDir} && cd ${projectDir} && echo "📂 Working directory: $(pwd)"` }));
+          setLines((p) => [...p, { type: 'system', text: `Agent ready. Navigating to project...` }]);
+          ws.send(JSON.stringify({
+            type: 'terminal_input',
+            input: `mkdir -p ${projectDir} && cd ${projectDir} && echo __CWD__:$(pwd)`,
+          }));
         } else if (msg.type === 'agent_disconnected') {
           setLines((p) => [...p, { type: 'error', text: 'Agent disconnected.' }]);
-        } else if (msg.type === 'error') {
-          setLines((p) => [...p, { type: 'error', text: msg.message }]);
+        } else if (msg.type === 'error' && text) {
+          setLines((p) => [...p, { type: 'error', text }]);
         }
-      } catch { /* ignore */ }
+      } catch {}
     };
+
     ws.onclose = () => {
       setWsConnected(false);
-      setLines((p) => [...p, { type: 'error', text: 'Connection closed.' }]);
+      setLines((p) => [...p, { type: 'error', text: 'Disconnected.' }]);
     };
 
     return () => ws.close();
@@ -916,57 +929,122 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [lines]);
 
+  // Resolve a cd target relative to current cwd
+  function resolveCd(target: string): string {
+    if (!target || target === '~') return projectDir;
+    if (target.startsWith('~/') || target.startsWith('/')) return target;
+    if (target === '..') return cwd.split('/').slice(0, -1).join('/') || '~';
+    return `${cwd}/${target}`;
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = command.trim();
-    if (!trimmed || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    setLines((p) => [...p, { type: 'command', text: `$ ${trimmed}` }]);
-    wsRef.current.send(JSON.stringify({ type: 'terminal_input', input: trimmed }));
+    if (!trimmed) return;
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      setLines((p) => [...p, { type: 'error', text: 'Not connected to agent.' }]);
+      return;
+    }
+
+    // Add to history
+    setHistory((h) => [trimmed, ...h.slice(0, 99)]);
+    setHistIdx(-1);
     setCommand('');
+
+    // Show prompt with current directory
+    const shortCwd = cwd.replace(projectDir, `.`).replace(/^\/home\/[^/]+/, '~');
+    setLines((p) => [...p, { type: 'command', text: `${shortCwd} $ ${trimmed}` }]);
+
+    if (trimmed === 'clear') { setLines([]); return; }
+
+    let actualCmd: string;
+
+    if (trimmed === 'cd' || trimmed.startsWith('cd ') || trimmed.startsWith('cd\t')) {
+      // Handle cd: update tracked cwd, send with pwd echo back
+      const target = trimmed.slice(2).trim();
+      const resolved = resolveCd(target || '~');
+      // Send cd + echo marker so we can capture real cwd
+      actualCmd = `cd ${cwd} && cd ${resolved} && echo __CWD__:$(pwd)`;
+    } else {
+      // All other commands: prefix with cd to keep context
+      actualCmd = `cd ${cwd} && ${trimmed}`;
+    }
+
+    wsRef.current.send(JSON.stringify({ type: 'terminal_input', input: actualCmd }));
   };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const idx = Math.min(histIdx + 1, history.length - 1);
+      setHistIdx(idx);
+      setInput(history[idx] || '');
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const idx = Math.max(histIdx - 1, -1);
+      setHistIdx(idx);
+      setInput(idx < 0 ? '' : history[idx]);
+    }
+  };
+
+  function setInput(v: string) { setCommand(v); }
+
+  const shortCwd = cwd.replace(projectDir, projectName).replace(/^\/home\/[^/]+/, '~');
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-7xl mx-auto">
-      <motion.div variants={itemVariants} className="border border-white/10 rounded-xl overflow-hidden bg-black">
-        <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/5">
-          <div className="flex items-center gap-2 text-xs text-white/40">
-            <Terminal className="w-3.5 h-3.5" />
-            <span className="font-mono text-white/30">{projectDir}</span>
+      <motion.div variants={itemVariants} className="border border-white/10 rounded-xl overflow-hidden bg-[#060608]">
+        {/* Title bar */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-[#0F0F14]">
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-red-500/60" />
+              <div className="w-3 h-3 rounded-full bg-yellow-500/60" />
+              <div className="w-3 h-3 rounded-full bg-green-500/60" />
+            </div>
+            <span className="text-xs font-mono text-white/30 ml-2">{shortCwd}</span>
           </div>
-          <div className={`flex items-center gap-1.5 text-xs ${wsConnected ? 'text-emerald-400' : 'text-white/30'}`}>
-            <div className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-400 animate-pulse' : 'bg-white/20'}`} />
-            {wsConnected ? 'Live' : 'Disconnected'}
+          <div className={`flex items-center gap-1.5 text-xs ${wsConnected ? 'text-emerald-400' : 'text-red-400/60'}`}>
+            <div className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-400 animate-pulse' : 'bg-red-400/60'}`} />
+            {wsConnected ? 'Live' : 'Offline'}
           </div>
         </div>
-        <div className="h-96 overflow-y-auto p-4 font-mono text-sm">
+
+        <div className="h-[480px] overflow-y-auto p-4 font-mono text-sm space-y-0.5" onClick={() => inputRef.current?.focus()}>
           {lines.map((line, i) => (
-            <motion.div
+            <div
               key={i}
-              initial={{ opacity: 0, x: -4 }}
-              animate={{ opacity: 1, x: 0 }}
               className={cn(
-                'mb-1 whitespace-pre-wrap',
-                line.type === 'command' ? 'text-blue-400' :
-                line.type === 'error' ? 'text-red-400' :
-                line.type === 'success' ? 'text-green-400' : 'text-gray-300'
+                'whitespace-pre-wrap leading-relaxed',
+                line.type === 'command' ? 'text-violet-400' :
+                line.type === 'error'   ? 'text-red-400' :
+                line.type === 'system'  ? 'text-white/30 text-xs' :
+                'text-gray-200'
               )}
             >
               {line.text}
-            </motion.div>
+            </div>
           ))}
-          <form onSubmit={handleSubmit} className="flex items-center gap-2 mt-2">
-            <span className="text-green-400 shrink-0">$</span>
+
+          {/* Live input line */}
+          <div className="flex items-center gap-2 text-violet-400 mt-1">
+            <span className="text-white/30 flex-shrink-0 select-none">{shortCwd} $</span>
             <input
               ref={inputRef}
-              type="text"
               value={command}
               onChange={(e) => setCommand(e.target.value)}
-              className="flex-1 bg-transparent outline-none text-white"
-              placeholder={wsConnected ? 'Type command...' : 'Reconnecting...'}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { handleSubmit(e as any); return; }
+                onKeyDown(e);
+              }}
+              className="flex-1 bg-transparent outline-none text-white font-mono caret-violet-400"
+              placeholder={wsConnected ? '' : 'agent offline...'}
               autoFocus
+              spellCheck={false}
+              autoComplete="off"
               disabled={!wsConnected}
             />
-          </form>
+          </div>
           <div ref={endRef} />
         </div>
       </motion.div>
