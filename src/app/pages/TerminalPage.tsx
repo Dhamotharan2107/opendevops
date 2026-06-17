@@ -25,7 +25,7 @@ const BLOCKED_PATTERNS = [
 const WORKSPACE_FILES: Record<string, string[]> = {
   [WORKSPACE]: ['agent/', 'projects/', 'logs/', 'config/', 'temp/'],
   [`${WORKSPACE}/agent`]: ['agent.py', 'requirements.txt', 'startup.sh'],
-  [`${WORKSPACE}/projects`]: ['(empty — create a project to populate)'],
+  [`${WORKSPACE}/projects`]: ['(run: mkdir -p ~/opendev/projects to create, then git clone your repo here)'],
   [`${WORKSPACE}/logs`]: ['agent.log', 'system.log'],
   [`${WORKSPACE}/config`]: ['settings.json', 'auth.json'],
   [`${WORKSPACE}/temp`]: ['(empty)'],

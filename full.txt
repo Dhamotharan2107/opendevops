@@ -1,36 +1,10 @@
-contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ curl -sSL "https://opendrap-api.tert.workers.dev/api/install.sh?token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmNDJkMjc2OS02NWU0LTQzMjAtOGUzNy1kNjM2MDUwNTZkNzIiLCJpYXQiOjE3ODE1OTA2NTIsImV4cCI6MTc4MjE5NTQ1Mn0.wt9GwDN4ujOIwMwVUTCw5CgLcBLtyH67kSVe61yUV-w" | bash
-========================================
-  Opendrap DevOps Agent Installer
-========================================
-  websockets OK
-  Added auto-start to .bashrc
-  Starting agent...
-  Agent running! (PID: 1130)
-  File: /home/contact_inotechsoftware/opendrap-agent/agent.py
-  Logs: /home/contact_inotechsoftware/opendrap-agent/agent.log
-  Stop: kill 1130
-  Restart: bash ~/opendrap-agent/restart.sh
-  Auto-restarts on disconnect & Cloud Shell login
-========================================
-contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ 
+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ ls
+b2  cloudflared-linux-amd64  cloudflared.log  main.py  manager  opendrap-agent  OpenWA  r2  README-cloudshell.txt  requirements.txt  startup.sh  tunnel.log  whatfy.tar
+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ cd opendrap-agent/
+contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ ls
+agent  agent.log  agent.pid  agent.py  hello  restart.sh  token
+contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ 
 
-
-Agent Status
-Connection
-Offline
-Installed
-Yes
-Agent ID
-agent-9j4dmen8...
-Workspace
-~/opendrap-agent
-Agent is offline. Reconnect by running in Cloud Shell:
-cd ~/opendrap-agent && python3 agent.py
-Reconnect Agent
-Restart Agent
-Download Logs
-Install Command
-Run this in your terminal to install and start the agent automatically.
-
-curl -sSL "https://opendrap-api.tert.workers.dev/api/install.sh?token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmNDJkMjc2OS02NWU0LTQzMjAtOGUzNy1kNjM2MDUwNTZkNzIiLCJpYXQiOjE3ODE1OTA2NTIsImV4cCI6MTc4MjE5NTQ1Mn0.wt9GwDN4ujOIwMwVUTCw5CgLcBLtyH67kSVe61yUV-w" | bash
-Copy
+use see this is my google shell after i run curl but in dashboard 
+cd ~/opendev/projects && git clone https://github.com/Dhamotharan2107/revobig.git && cd revobig
+i try to clone git that showing this there is no opendev and projects then how its do fix that 

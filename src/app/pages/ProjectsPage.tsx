@@ -344,7 +344,7 @@ export function NewProjectModal({
 
   function copyCloneCmd() {
     const repoName = form.repo.split('/').pop()?.replace(/\.git$/, '') || 'project';
-    const cmd = `cd ~/opendev/projects && git clone ${form.repo} && cd ${repoName}`;
+    const cmd = `mkdir -p ~/opendev/projects && cd ~/opendev/projects && git clone ${form.repo} && cd ${repoName}`;
     navigator.clipboard.writeText(cmd).catch(() => {});
     setCloneCopied(true);
     setTimeout(() => setCloneCopied(false), 2500);
@@ -364,10 +364,10 @@ export function NewProjectModal({
     const token = localStorage.getItem('token');
     if (!token) return;
     setRunStatus('running');
-    setCloneOutput([`$ cd ~/opendev/projects && git clone ${form.repo}`]);
-
     const repoName = form.repo.split('/').pop()?.replace(/\.git$/, '') || 'project';
-    const cmd = `cd ~/opendev/projects && git clone ${form.repo} && cd ${repoName} && echo "Clone complete."`;
+    setCloneOutput([`$ mkdir -p ~/opendev/projects && cd ~/opendev/projects && git clone ${form.repo}`]);
+
+    const cmd = `mkdir -p ~/opendev/projects && cd ~/opendev/projects && git clone ${form.repo} && cd ${repoName} && echo "Clone complete."`;
 
     try {
       const sessionRes = await fetch(`${BASE_URL}/terminal/session`, {
@@ -738,7 +738,7 @@ export function NewProjectModal({
                   {/* Command box — no $ prefix so it's clean to copy */}
                   <div className="flex items-center gap-2 p-3 bg-[#060608] border border-white/10 rounded-lg">
                     <code className="flex-1 text-emerald-300 font-mono text-xs break-all leading-relaxed">
-                      {`cd ~/opendev/projects && git clone ${form.repo}`}
+                      {`mkdir -p ~/opendev/projects && cd ~/opendev/projects && git clone ${form.repo}`}
                     </code>
                     <button
                       onClick={copyCloneCmd}

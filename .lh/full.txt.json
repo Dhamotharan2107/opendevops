@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 35,
+            "activePatchIndex": 49,
             "patches": [
                 {
                     "date": 1780815622476,
@@ -148,6 +148,62 @@
                 {
                     "date": 1781611496105,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -12,4 +12,25 @@\n   Restart: bash ~/opendrap-agent/restart.sh\r\n   Auto-restarts on disconnect & Cloud Shell login\r\n ========================================\r\n contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ \r\n+\r\n+\r\n+Agent Status\r\n+Connection\r\n+Offline\r\n+Installed\r\n+Yes\r\n+Agent ID\r\n+agent-9j4dmen8...\r\n+Workspace\r\n+~/opendrap-agent\r\n+Agent is offline. Reconnect by running in Cloud Shell:\r\n+cd ~/opendrap-agent && python3 agent.py\r\n+Reconnect Agent\r\n+Restart Agent\r\n+Download Logs\r\n+Install Command\r\n+Run this in your terminal to install and start the agent automatically.\r\n+\r\n+curl -sSL \"https://opendrap-api.tert.workers.dev/api/install.sh?token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmNDJkMjc2OS02NWU0LTQzMjAtOGUzNy1kNjM2MDUwNTZkNzIiLCJpYXQiOjE3ODE1OTA2NTIsImV4cCI6MTc4MjE5NTQ1Mn0.wt9GwDN4ujOIwMwVUTCw5CgLcBLtyH67kSVe61yUV-w\" | bash\r\n+Copy\r\n"
+                },
+                {
+                    "date": 1781678321393,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,36 +1,6 @@\n-contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ curl -sSL \"https://opendrap-api.tert.workers.dev/api/install.sh?token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmNDJkMjc2OS02NWU0LTQzMjAtOGUzNy1kNjM2MDUwNTZkNzIiLCJpYXQiOjE3ODE1OTA2NTIsImV4cCI6MTc4MjE5NTQ1Mn0.wt9GwDN4ujOIwMwVUTCw5CgLcBLtyH67kSVe61yUV-w\" | bash\r\n-========================================\r\n-  Opendrap DevOps Agent Installer\r\n-========================================\r\n-  websockets OK\r\n-  Added auto-start to .bashrc\r\n-  Starting agent...\r\n-  Agent running! (PID: 1130)\r\n-  File: /home/contact_inotechsoftware/opendrap-agent/agent.py\r\n-  Logs: /home/contact_inotechsoftware/opendrap-agent/agent.log\r\n-  Stop: kill 1130\r\n-  Restart: bash ~/opendrap-agent/restart.sh\r\n-  Auto-restarts on disconnect & Cloud Shell login\r\n-========================================\r\n-contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ \r\n-\r\n-\r\n-Agent Status\r\n-Connection\r\n-Offline\r\n-Installed\r\n-Yes\r\n-Agent ID\r\n-agent-9j4dmen8...\r\n-Workspace\r\n-~/opendrap-agent\r\n-Agent is offline. Reconnect by running in Cloud Shell:\r\n-cd ~/opendrap-agent && python3 agent.py\r\n-Reconnect Agent\r\n-Restart Agent\r\n-Download Logs\r\n-Install Command\r\n-Run this in your terminal to install and start the agent automatically.\r\n-\r\n-curl -sSL \"https://opendrap-api.tert.workers.dev/api/install.sh?token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmNDJkMjc2OS02NWU0LTQzMjAtOGUzNy1kNjM2MDUwNTZkNzIiLCJpYXQiOjE3ODE1OTA2NTIsImV4cCI6MTc4MjE5NTQ1Mn0.wt9GwDN4ujOIwMwVUTCw5CgLcBLtyH67kSVe61yUV-w\" | bash\r\n-Copy\r\n+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ ls\r\n+b2  cloudflared-linux-amd64  cloudflared.log  main.py  manager  opendrap-agent  OpenWA  r2  README-cloudshell.txt  requirements.txt  startup.sh  tunnel.log  whatfy.tar\r\n+contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ cd opendrap-agent/\r\n+contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ ls\r\n+agent  agent.log  agent.pid  agent.py  hello  restart.sh  token\r\n+contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781678326445,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -2,5 +2,7 @@\n b2  cloudflared-linux-amd64  cloudflared.log  main.py  manager  opendrap-agent  OpenWA  r2  README-cloudshell.txt  requirements.txt  startup.sh  tunnel.log  whatfy.tar\r\n contact_inotechsoftware@cloudshell:~ (focused-mote-472412-e6)$ cd opendrap-agent/\r\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ ls\r\n agent  agent.log  agent.pid  agent.py  hello  restart.sh  token\r\n-contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \n\\ No newline at end of file\n+contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \r\n+\r\n+use see th\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781678326558,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -4,5 +4,5 @@\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ ls\r\n agent  agent.log  agent.pid  agent.py  hello  restart.sh  token\r\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \r\n \r\n-use see th\n\\ No newline at end of file\n+use see thi\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781678332030,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -4,5 +4,5 @@\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ ls\r\n agent  agent.log  agent.pid  agent.py  hello  restart.sh  token\r\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \r\n \r\n-use see thi\n\\ No newline at end of file\n+use see this is my g\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781678338150,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -4,5 +4,5 @@\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ ls\r\n agent  agent.log  agent.pid  agent.py  hello  restart.sh  token\r\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \r\n \r\n-use see this is my g\n\\ No newline at end of file\n+use see this is my google shell a\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781678343948,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -4,5 +4,5 @@\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ ls\r\n agent  agent.log  agent.pid  agent.py  hello  restart.sh  token\r\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \r\n \r\n-use see this is my google shell a\n\\ No newline at end of file\n+use see this is my google shell after i run curl b\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781678351655,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -4,5 +4,5 @@\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ ls\r\n agent  agent.log  agent.pid  agent.py  hello  restart.sh  token\r\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \r\n \r\n-use see this is my google shell after i run curl b\n\\ No newline at end of file\n+use see this is my google shell after i run curl but in dashboard \r\n"
+                },
+                {
+                    "date": 1781678356783,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -5,4 +5,6 @@\n agent  agent.log  agent.pid  agent.py  hello  restart.sh  token\r\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \r\n \r\n use see this is my google shell after i run curl but in dashboard \r\n+cd ~/opendev/projects && git clone https://github.com/Dhamotharan2107/revobig.git && cd revobig\r\n+i try \n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781678357420,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,5 +6,5 @@\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \r\n \r\n use see this is my google shell after i run curl but in dashboard \r\n cd ~/opendev/projects && git clone https://github.com/Dhamotharan2107/revobig.git && cd revobig\r\n-i try \n\\ No newline at end of file\n+i try to\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781678362560,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,5 +6,5 @@\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \r\n \r\n use see this is my google shell after i run curl but in dashboard \r\n cd ~/opendev/projects && git clone https://github.com/Dhamotharan2107/revobig.git && cd revobig\r\n-i try to\n\\ No newline at end of file\n+i try to clone g\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781678367951,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,5 +6,5 @@\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \r\n \r\n use see this is my google shell after i run curl but in dashboard \r\n cd ~/opendev/projects && git clone https://github.com/Dhamotharan2107/revobig.git && cd revobig\r\n-i try to clone g\n\\ No newline at end of file\n+i try to clone git that showing this t\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781678373162,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,5 +6,5 @@\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \r\n \r\n use see this is my google shell after i run curl but in dashboard \r\n cd ~/opendev/projects && git clone https://github.com/Dhamotharan2107/revobig.git && cd revobig\r\n-i try to clone git that showing this t\n\\ No newline at end of file\n+i try to clone git that showing this there is no opendev the\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781678378534,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,5 +6,5 @@\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \r\n \r\n use see this is my google shell after i run curl but in dashboard \r\n cd ~/opendev/projects && git clone https://github.com/Dhamotharan2107/revobig.git && cd revobig\r\n-i try to clone git that showing this there is no opendev the\n\\ No newline at end of file\n+i try to clone git that showing this there is no opendev and projects t\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781678383708,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,5 +6,5 @@\n contact_inotechsoftware@cloudshell:~/opendrap-agent (focused-mote-472412-e6)$ \r\n \r\n use see this is my google shell after i run curl but in dashboard \r\n cd ~/opendev/projects && git clone https://github.com/Dhamotharan2107/revobig.git && cd revobig\r\n-i try to clone git that showing this there is no opendev and projects t\n\\ No newline at end of file\n+i try to clone git that showing this there is no opendev and projects then how its do \n\\ No newline at end of file\n"
                 }
             ],
             "date": 1780815622476,

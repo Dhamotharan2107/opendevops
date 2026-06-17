@@ -173,6 +173,7 @@ export function ProjectDetails() {
     const projectDir = `~/opendev/projects/${project.name}`;
 
     const deployScript = [
+      `mkdir -p ~/opendev/projects`,
       `echo "=== Pulling latest code ==="`,
       `cd ${projectDir} && git pull`,
       `echo "=== Installing dependencies ==="`,
