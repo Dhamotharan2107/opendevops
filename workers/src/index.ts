@@ -135,7 +135,7 @@ AGENT_DIR = os.path.expanduser("~/opendrap-agent")
 TOKEN = (os.environ.get("OPENDRAP_AGENT_TOKEN") or
          open(os.path.join(AGENT_DIR, "token")).read().strip() or "")
 AGENT_ID = os.environ.get("OPENDRAP_AGENT_ID", f"agent-{uuid.uuid4().hex[:8]}")
-SHELL = os.environ.get("SHELL", "/bin/bash")
+SHELL = os.environ.get("SHELL", "/bin/bash -i")
 
 running = True
 def handle_signal(sig, frame):
@@ -182,13 +182,15 @@ async def main():
                 )
                 async def run_cmd(cmd: str, cid: str):
                     marker = f"__OPENDRAP_DONE_{cid}__"
-                    payload = cmd.rstrip("\n") + f"\necho '{marker}'\n"
+                    # Run the command in a subshell block and use concatenation to avoid f-string parsing issues
+                    payload = "(" + cmd.rstrip() + "); if [ $? -eq 0 ]; then echo '__CWD__:$(pwd)'; fi; echo '" + marker + "'\n"
                     shell_proc.stdin.write(payload.encode())
                     await shell_proc.stdin.drain()
                     buf = b""
                     try:
                         while True:
-                            chunk = await asyncio.wait_for(shell_proc.stdout.read(4096), timeout=120)
+                            # Longer timeout for potential command execution
+                            chunk = await asyncio.wait_for(shell_proc.stdout.read(4096), timeout=300)
                             if not chunk:
                                 break
                             buf += chunk
@@ -201,7 +203,7 @@ async def main():
                             await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":out}))
                         await ws.send(json.dumps({"type":"command_completed","command_id":cid,"output":"","status":"success"}))
                     except asyncio.TimeoutError:
-                        await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":"Command timed out after 120s\n"}))
+                        await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":"Command timed out after 300s\n"}))
                         await ws.send(json.dumps({"type":"command_completed","command_id":cid,"output":"","status":"error"}))
                     except Exception as e:
                         await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":f"Error: {e}\n"}))
