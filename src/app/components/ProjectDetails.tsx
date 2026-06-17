@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, Component, ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -90,7 +90,36 @@ function generateTimeSeries(points: number, min: number, max: number, label: str
   return data;
 }
 
+class ProjectErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+  state = { error: null };
+  static getDerivedStateFromError(e: Error) { return { error: e.message }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ position: 'fixed', inset: 0, background: '#0A0A0F', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ textAlign: 'center', padding: 32 }}>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
+            <h2 style={{ color: '#fff', fontSize: 18, marginBottom: 8 }}>Failed to load project</h2>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginBottom: 24, maxWidth: 400 }}>{this.state.error}</p>
+            <button
+              onClick={() => window.location.href = '/dashboard/projects'}
+              style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', cursor: 'pointer', fontSize: 14 }}
+            >
+              Back to Projects
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export function ProjectDetails() {
+  return <ProjectErrorBoundary><ProjectDetailsInner /></ProjectErrorBoundary>;
+}
+
+function ProjectDetailsInner() {
   const { id } = useParams();
   const { state, dispatch } = useApp();
   const navigate = useNavigate();
@@ -209,21 +238,28 @@ export function ProjectDetails() {
   if (!project) {
     const isLoading = projectLoading || !projectFetched || !state.isAuthenticated;
     return (
-      <div className="flex-1 flex items-center justify-center min-h-[60vh] bg-[#0A0A0F] p-8">
-        <div className="text-center">
+      <div style={{ position: 'fixed', inset: 0, background: '#0A0A0F', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 40 }}>
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
           {isLoading ? (
             <>
-              <div className="w-10 h-10 rounded-full border-2 border-violet-500/30 border-t-violet-500 animate-spin mx-auto mb-4" />
-              <p className="text-sm text-white/40">Loading project...</p>
+              <div style={{
+                width: 48, height: 48, borderRadius: '50%',
+                border: '3px solid rgba(124,58,237,0.3)',
+                borderTopColor: '#7c3aed',
+                animation: 'spin 0.8s linear infinite',
+                margin: '0 auto 16px',
+              }} />
+              <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>Loading project...</p>
             </>
           ) : (
             <>
-              <Server className="w-12 h-12 text-white/20 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-white mb-2">Project not found</h2>
-              <p className="text-sm text-white/40 mb-6">No project with ID "{id}" was found in your account.</p>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>📂</div>
+              <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Project not found</h2>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginBottom: 24 }}>No project with ID "{id}" exists in your account.</p>
               <button
                 onClick={() => navigate('/dashboard/projects')}
-                className="px-5 py-2.5 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors"
+                style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', cursor: 'pointer', fontSize: 14 }}
               >
                 View all projects
               </button>
