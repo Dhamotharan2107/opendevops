@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 12,
+            "activePatchIndex": 19,
             "patches": [
                 {
                     "date": 1780831838443,
@@ -56,6 +56,34 @@
                 {
                     "date": 1781704432685,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -3,4 +3,10 @@\n No agent connected. Install the agent to run commands.\r\n cloudshell:~$ ls\r\n No agent connected. Install the agent to run commands.\r\n cloudshell:~$\r\n+contact_inotechsoftware@cloudshell:~/b2 (focused-mote-472412-e6)$ cat ~/opendrap-agent/agent.log\r\n+  File \"/home/contact_inotechsoftware/opendrap-agent/agent.py\", line 58\r\n+    payload = \"(\" + cmd.rstrip() + \"); if [ $? -eq 0 ]; then echo '__CWD__:$(pwd)'; fi; echo '\" + marker + \"'\r\n+                                                                                                           ^\r\n+SyntaxError: unterminated string literal (detected at line 58)\r\n+contact_inotechsoftware@cloudshell:~/b2 (focused-mote-472412-e6)$ \n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781764438658,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,12 +1,3 @@\n-Connecting to agent...\r\n-Connected to cloudshell.\r\n-No agent connected. Install the agent to run commands.\r\n-cloudshell:~$ ls\r\n-No agent connected. Install the agent to run commands.\r\n-cloudshell:~$\r\n-contact_inotechsoftware@cloudshell:~/b2 (focused-mote-472412-e6)$ cat ~/opendrap-agent/agent.log\r\n-  File \"/home/contact_inotechsoftware/opendrap-agent/agent.py\", line 58\r\n-    payload = \"(\" + cmd.rstrip() + \"); if [ $? -eq 0 ]; then echo '__CWD__:$(pwd)'; fi; echo '\" + marker + \"'\r\n-                                                                                                           ^\r\n-SyntaxError: unterminated string literal (detected at line 58)\r\n-contact_inotechsoftware@cloudshell:~/b2 (focused-mote-472412-e6)$ \n\\ No newline at end of file\n+Agent Connected\r\n+\r\n+\r\n"
+                },
+                {
+                    "date": 1781764445471,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,3 +1,6 @@\n Agent Connected\r\n \r\n \r\n+Agent Connected\r\n+\r\n+\r\n"
+                },
+                {
+                    "date": 1781764455944,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -3,4 +3,10 @@\n \r\n Agent Connected\r\n \r\n \r\n+Connecting to agent...\r\n+Connected to cloudshell.\r\n+No agent connected. Install the agent to run commands.\r\n+cloudshell:~$ ls\r\n+No agent connected. Install the agent to run commands.\r\n+cloudshell\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781769753117,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,12 +1,2 @@\n-Agent Connected\r\n-\r\n-\r\n-Agent Connected\r\n-\r\n-\r\n-Connecting to agent...\r\n-Connected to cloudshell.\r\n-No agent connected. Install the agent to run commands.\r\n-cloudshell:~$ ls\r\n-No agent connected. Install the agent to run commands.\r\n-cloudshell\n\\ No newline at end of file\n+Agent offline. Run the install command in Google Cloud Shell to connect.\r\n+curl -sSL \"https://opendrap-api.tert.workers.dev/api/install.sh?token=$(cat ~/opendrap-agent/token)\" | bash\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781769758364,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,2 +1,5 @@\n Agent offline. Run the install command in Google Cloud Shell to connect.\r\n-curl -sSL \"https://opendrap-api.tert.workers.dev/api/install.sh?token=$(cat ~/opendrap-agent/token)\" | bash\n\\ No newline at end of file\n+curl -sSL \"https://opendrap-api.tert.workers.dev/api/install.sh?token=$(cat ~/opendrap-agent/token)\" | bash\r\n+\r\n+\r\n+and in my cloud\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1781769780982,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -0,0 +1,5 @@\n+Agent offline. Run the install command in Google Cloud Shell to connect.\r\n+curl -sSL \"https://opendrap-api.tert.workers.dev/api/install.sh?token=$(cat ~/opendrap-agent/token)\" | bash\r\n+\r\n+\r\n+and in my cloud shell \r\n"
+                },
+                {
+                    "date": 1781770031963,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,10 +1,8 @@\n-Agent offline. Run the install command in Google Cloud Shell to connect.\r\n-curl -sSL \"https://opendrap-api.tert.workers.dev/api/install.sh?token=$(cat ~/opendrap-agent/token)\" | bash\r\n-\r\n-\r\n-and in my cloud shell \r\n-Agent offline. Run the install command in Google Cloud Shell to connect.\r\n-curl -sSL \"https://opendrap-api.tert.workers.dev/api/install.sh?token=$(cat ~/opendrap-agent/token)\" | bash\r\n-\r\n-\r\n-and in my cloud\n\\ No newline at end of file\n+Connecting to agent...\r\n+Agent connected — cloudshell\r\n+cloudshell:~$ pwd\r\n+/home/contact_inotechsoftware\r\n+cloudshell:$(pwd)$ cd b2\r\n+cloudshell:~/b2$ pwd\r\n+/home/contact_inotechsoftware\r\n+cloudshell:$(pwd)$\r\n"
                 }
             ],
             "date": 1780831838443,

@@ -180,36 +180,34 @@ async def main():
                     SHELL, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT, env=dict(os.environ, TERM='xterm-256color')
                 )
+                shell_lock = asyncio.Lock()
                 async def run_cmd(cmd: str, cid: str):
-                    marker = f"__OPENDRAP_DONE_{cid}__"
-                    # Using a safer, explicit way to construct the command string
-                    # This ensures the quotes are handled within the string literals correctly
-                    cmd_clean = cmd.rstrip().replace("'", "\\'")
-                    payload = f"({cmd_clean}); if [ $? -eq 0 ]; then echo '__CWD__:$(pwd)'; fi; echo '{marker}'\n"
-                    shell_proc.stdin.write(payload.encode())
-                    await shell_proc.stdin.drain()
-                    buf = b""
-                    try:
-                        while True:
-                            # Longer timeout for potential command execution
-                            chunk = await asyncio.wait_for(shell_proc.stdout.read(4096), timeout=300)
-                            if not chunk:
-                                break
-                            buf += chunk
-                            if marker.encode() in buf:
-                                break
-                        out = buf.decode(errors="replace")
-                        # Strip the marker line from output
-                        out = "\n".join(l for l in out.splitlines() if marker not in l)
-                        if out.strip():
-                            await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":out}))
-                        await ws.send(json.dumps({"type":"command_completed","command_id":cid,"output":"","status":"success"}))
-                    except asyncio.TimeoutError:
-                        await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":"Command timed out after 300s\n"}))
-                        await ws.send(json.dumps({"type":"command_completed","command_id":cid,"output":"","status":"error"}))
-                    except Exception as e:
-                        await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":f"Error: {e}\n"}))
-                        await ws.send(json.dumps({"type":"command_completed","command_id":cid,"output":"","status":"error"}))
+                    async with shell_lock:
+                        marker = f"__OPENDRAP_DONE_{cid}__"
+                        cmd_clean = cmd.rstrip().replace("'", "\\'")
+                        payload = f"{cmd_clean}; if [ $? -eq 0 ]; then echo \\"__CWD__:$(pwd)\\"; fi; echo '{marker}'\\n"
+                        shell_proc.stdin.write(payload.encode())
+                        await shell_proc.stdin.drain()
+                        buf = b""
+                        try:
+                            while True:
+                                chunk = await asyncio.wait_for(shell_proc.stdout.read(4096), timeout=300)
+                                if not chunk:
+                                    break
+                                buf += chunk
+                                if marker.encode() in buf:
+                                    break
+                            out = buf.decode(errors="replace")
+                            out = "\\n".join(l for l in out.splitlines() if marker not in l)
+                            if out.strip():
+                                await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":out}))
+                            await ws.send(json.dumps({"type":"command_completed","command_id":cid,"output":"","status":"success"}))
+                        except asyncio.TimeoutError:
+                            await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":"Command timed out after 300s\\n"}))
+                            await ws.send(json.dumps({"type":"command_completed","command_id":cid,"output":"","status":"error"}))
+                        except Exception as e:
+                            await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":f"Error: {e}\\n"}))
+                            await ws.send(json.dumps({"type":"command_completed","command_id":cid,"output":"","status":"error"}))
                 async for msg in ws:
                     if not running: break
                     try:
@@ -221,6 +219,11 @@ async def main():
                             cmd = data.get("command","")
                             cid = data.get("command_id","")
                             asyncio.create_task(run_cmd(cmd, cid))
+                        elif t == "ctrl_c":
+                            try:
+                                shell_proc.stdin.write(b'\\x03')
+                                await shell_proc.stdin.drain()
+                            except: pass
                     except json.JSONDecodeError: pass
                 hb.cancel()
                 try: shell_proc.terminate()

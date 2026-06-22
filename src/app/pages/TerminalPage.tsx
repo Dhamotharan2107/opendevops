@@ -57,7 +57,6 @@ export function TerminalPage() {
 
       ws.onopen = () => {
         setWsConnected(true);
-        dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: true, lastSeen: new Date().toISOString() } });
       };
 
       ws.onmessage = (event) => {
@@ -78,10 +77,16 @@ export function TerminalPage() {
             setCwd(msg.data.replace(/\/home\/[^/]+/, '~').replace(/\/root/, '~'));
           } else if (msg.type === 'session_ready') {
             const h = msg.hostname || 'cloudshell';
+            const agentConnected = msg.agentConnected === true;
             setHostname(h);
             if (msg.cwd) setCwd(msg.cwd.replace(/\/home\/[^/]+/, '~').replace(/\/root/, '~'));
-            dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: true, lastSeen: new Date().toISOString() } });
-            setLines((prev) => [...prev, { type: 'system', text: `Connected to ${h}.` }]);
+            dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: agentConnected, lastSeen: new Date().toISOString() } });
+            setLines((prev) => [...prev, {
+              type: 'system',
+              text: agentConnected
+                ? `Agent connected — ${h}`
+                : 'Agent offline — run: bash ~/opendrap-agent/restart.sh',
+            }]);
             // Get real cwd on connect
             ws.send(JSON.stringify({ type: 'terminal_input', input: 'echo __CWD__:$(pwd)' }));
           } else if (msg.type === 'agent_connected') {
@@ -132,7 +137,7 @@ export function TerminalPage() {
 
     if (cmd === 'clear') { setLines([]); return; }
 
-    if (wsConnected) {
+    if (wsConnected && state.agentConnected) {
       // cd: append pwd echo so prompt updates
       const actualCmd = (cmd === 'cd' || cmd.startsWith('cd ') || cmd.startsWith('cd\t'))
         ? `${cmd} && echo __CWD__:$(pwd)`
@@ -142,13 +147,26 @@ export function TerminalPage() {
       return;
     }
 
-    // Offline fallback
-    newLines.push({ type: 'error', text: 'No agent connected. Install the agent to run commands.' });
+    // Agent offline — show restart command
+    newLines.push({ type: 'error', text: 'Agent not connected. Restart it in Cloud Shell:' });
+    newLines.push({ type: 'error', text: '  bash ~/opendrap-agent/restart.sh' });
     setLines((prev) => [...prev, ...newLines]);
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') { submit(); return; }
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      setInput((prev) => prev + '\t');
+      return;
+    }
+    if (e.ctrlKey && e.key === 'c') {
+      e.preventDefault();
+      setLines((prev) => [...prev, { type: 'input', text: '^C' }]);
+      setInput('');
+      if (wsConnected) sendToWs({ type: 'ctrl_c' });
+      return;
+    }
     if (e.key === 'ArrowUp') {
       const idx = Math.min(histIdx + 1, history.length - 1);
       setHistIdx(idx);
@@ -172,18 +190,20 @@ export function TerminalPage() {
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Terminal</h1>
             <p className="text-gray-400 text-sm">
-              {wsConnected ? `${hostname} — full shell access` : 'Connect the agent to enable terminal'}
+              {state.agentConnected ? `${hostname} — full shell access` : wsConnected ? 'Agent not installed — run the install command' : 'Connect the agent to enable terminal'}
             </p>
           </div>
           <div className="flex items-center gap-3">
             <div className={cn(
               'flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium',
-              wsConnected || state.agentConnected
+              state.agentConnected
                 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                : 'bg-gray-500/10 border-gray-500/20 text-gray-500'
+                : wsConnected
+                  ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                  : 'bg-gray-500/10 border-gray-500/20 text-gray-500'
             )}>
-              {wsConnected || state.agentConnected ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
-              {wsConnected || state.agentConnected ? 'Agent Connected' : 'Agent Offline'}
+              {state.agentConnected ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+              {state.agentConnected ? 'Agent Connected' : wsConnected ? 'No Agent Connected' : 'Agent Offline'}
             </div>
             <button onClick={copyAll} className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 hover:bg-white/10 transition-colors">
               <Copy className="w-4 h-4" />
@@ -194,16 +214,22 @@ export function TerminalPage() {
           </div>
         </div>
 
-        {!wsConnected && !state.agentConnected && (
+        {!state.agentConnected && (
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-sm text-amber-400 flex-shrink-0"
           >
-            <strong>Agent offline.</strong> Run the install command in Google Cloud Shell to connect.
+            <strong>Agent offline.</strong> Run this in Google Cloud Shell to reconnect:
             <code className="block mt-2 bg-black/30 px-2 py-1 rounded font-mono text-xs">
-              curl -sSL "{WS_URL.replace('wss://', 'https://').replace('ws://', 'http://')}/api/install.sh?token=$(cat ~/opendrap-agent/token)" | bash
+              bash ~/opendrap-agent/restart.sh
             </code>
+            <span className="block mt-2 text-amber-400/60 text-xs">
+              First time? Run:{' '}
+              <span className="font-mono">
+                curl -sSL "{WS_URL.replace('wss://', 'https://').replace('ws://', 'http://')}/api/install.sh" | bash
+              </span>
+            </span>
           </motion.div>
         )}
 

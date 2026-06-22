@@ -1,96 +1,16 @@
-Fix the terminal agent's directory handling.
+contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application/bankin/Banking_sector$ python manage.py runserver 0.0.0.0:7004
+Watching for file changes with StatReloader
+Performing system checks...
 
-Current bug:
+System check identified no issues (0 silenced).
+June 22, 2026 - 12:23:16
+Django version 6.0.6, using settings 'Banking_sector.settings'
+Starting development server at http://0.0.0.0:7004/
+Quit the server with CONTROL-C.
 
-In the web terminal, when I run:
+WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+For more information on production servers see: https://docs.djangoproject.com/en/6.0/howto/deployment/
 
-```bash
-pwd
-```
 
-I get:
-
-```bash
-/home/contact_inotechsoftware
-```
-
-Then I run:
-
-```bash
-cd b2
-```
-
-The prompt changes to:
-
-```bash
-cloudshell:~/b2$
-```
-
-But when I run:
-
-```bash
-pwd
-```
-
-I still get:
-
-```bash
-/home/contact_inotechsoftware
-```
-
-The displayed prompt changes, but the actual working directory does not.
-
-Expected behavior:
-
-```bash
-cd b2
-pwd
-```
-
-should return:
-
-```bash
-/home/contact_inotechsoftware/b2
-```
-
-Root cause:
-
-The terminal backend is likely executing each command in a separate process (subprocess.run, exec, spawn, etc.), causing the `cd` command to be lost between executions.
-
-Requirements:
-
-1. Implement a persistent shell session (bash/sh) that remains alive for the entire terminal session.
-2. OR maintain a server-side `currentWorkingDirectory` and pass it as the cwd for every command execution.
-3. The terminal prompt must always be generated from the real current working directory.
-4. Support:
-
-   * cd folder
-   * cd ..
-   * cd ~
-   * cd /absolute/path
-   * pwd
-   * ls
-5. Ensure consecutive commands run in the same directory context.
-6. Fix any frontend logic that updates the prompt without updating the actual backend cwd.
-7. After the fix, verify:
-
-```bash
-pwd
-cd b2
-pwd
-cd ..
-pwd
-```
-
-returns:
-
-```bash
-/ home/contact_inotechsoftware
-/ home/contact_inotechsoftware/b2
-/ home/contact_inotechsoftware
-```
-
-8. Audit the entire terminal command execution flow and fix all related issues where state is not persisted between commands.
-
-Provide the complete code changes needed and explain exactly where the bug occurs.
-
+here  in cloud shell 
+in dashboard i given the deploye 7004 but i get thsi only No agent connected. Install the agent to run commands. fix that issue 

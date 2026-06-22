@@ -74,13 +74,20 @@ export class TerminalDurableObject implements DurableObject {
     server.accept();
     this.websockets.set(sessionId, server);
 
-    const session = this.sessions.get(sessionId);
-    if (session) {
-      for (const line of session.buffer) {
-        try {
-          server.send(JSON.stringify({ type: 'terminal_output', data: line }));
-        } catch {}
-      }
+    let session = this.sessions.get(sessionId);
+    if (!session) {
+      session = {
+        id: sessionId,
+        projectId,
+        buffer: [],
+        createdAt: new Date().toISOString(),
+      };
+      this.sessions.set(sessionId, session);
+    }
+    for (const line of session.buffer) {
+      try {
+        server.send(JSON.stringify({ type: 'terminal_output', data: line }));
+      } catch {}
     }
 
     server.addEventListener('message', (event: MessageEvent) => {
@@ -240,10 +247,17 @@ export class TerminalDurableObject implements DurableObject {
 
       case 'command_output': {
         const output = data.output as string;
-        // Strip internal cwd marker lines before broadcasting
         const filtered = output.split('\n').filter((l) => !l.startsWith('__DONE_')).join('\n');
         if (filtered.trim()) {
-          this.broadcastToBrowsers(JSON.stringify({ type: 'terminal_output', data: filtered }), sessionId);
+          for (const [sid, ws] of this.websockets.entries()) {
+            if (sid === AGENT_SESSION_ID) continue;
+            const s = this.sessions.get(sid);
+            if (s) {
+              s.buffer.push(filtered);
+              if (s.buffer.length > 1000) s.buffer.splice(0, s.buffer.length - 1000);
+            }
+            try { ws.send(JSON.stringify({ type: 'terminal_output', data: filtered })); } catch {}
+          }
         }
         break;
       }
@@ -273,6 +287,20 @@ export class TerminalDurableObject implements DurableObject {
         const cols = data.cols as number;
         const rows = data.rows as number;
         ws.send(JSON.stringify({ type: 'terminal_resized', cols, rows }));
+        break;
+      }
+
+      case 'ctrl_c': {
+        if (this.agentSessionId) {
+          const agentWs = this.websockets.get(this.agentSessionId);
+          if (agentWs) {
+            try {
+              agentWs.send(JSON.stringify({ type: 'ctrl_c' }));
+            } catch {
+              this.handleAgentOffline(this.agentSessionId);
+            }
+          }
+        }
         break;
       }
 

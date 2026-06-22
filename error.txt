@@ -1,12 +1,8 @@
 Connecting to agent...
-Connected to cloudshell.
-No agent connected. Install the agent to run commands.
-cloudshell:~$ ls
-No agent connected. Install the agent to run commands.
-cloudshell:~$
-contact_inotechsoftware@cloudshell:~/b2 (focused-mote-472412-e6)$ cat ~/opendrap-agent/agent.log
-  File "/home/contact_inotechsoftware/opendrap-agent/agent.py", line 58
-    payload = "(" + cmd.rstrip() + "); if [ $? -eq 0 ]; then echo '__CWD__:$(pwd)'; fi; echo '" + marker + "'
-                                                                                                           ^
-SyntaxError: unterminated string literal (detected at line 58)
-contact_inotechsoftware@cloudshell:~/b2 (focused-mote-472412-e6)$ 
+Agent connected — cloudshell
+cloudshell:~$ pwd
+/home/contact_inotechsoftware
+cloudshell:$(pwd)$ cd b2
+cloudshell:~/b2$ pwd
+/home/contact_inotechsoftware
+cloudshell:$(pwd)$

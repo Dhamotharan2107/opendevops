@@ -311,7 +311,7 @@ function ProjectDetailsInner() {
     if (!token) { setDeploying(false); return; }
 
     const TUNNEL_REGEX = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/;
-    const tunnelCmd = `cloudflared tunnel --url http://localhost:${port} --no-autoupdate 2>&1`;
+    const tunnelCmd = `mkdir -p ~/bin && (which cloudflared >/dev/null 2>&1 || (echo "=== Installing cloudflared..." && curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o ~/bin/cloudflared && chmod +x ~/bin/cloudflared && echo "=== cloudflared installed")) && PATH="$HOME/bin:$PATH" cloudflared tunnel --url http://localhost:${port} --no-autoupdate 2>&1`;
 
     try {
       const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=tunnel-${deploymentId}&projectId=${project.id}&token=${encodeURIComponent(token)}`);
@@ -939,6 +939,7 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
     { type: 'system', text: `Connecting to agent...` },
   ]);
   const [wsConnected, setWsConnected] = useState(false);
+  const [agentConnected, setAgentConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -976,16 +977,18 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
         } else if (msg.type === 'agent_connected' || (msg.type === 'session_ready' && msg.agentConnected)) {
           const h = msg.hostname || 'cloudshell';
           setHostname(h);
-          setWsConnected(true);
-          // Get real cwd immediately — no forced cd
+          setAgentConnected(true);
           ws.send(JSON.stringify({ type: 'terminal_input', input: 'echo __CWD__:$(pwd)' }));
-          setLines((p) => [...p, { type: 'system', text: `Connected to ${h}.` }]);
+          setLines((p) => [...p, { type: 'system', text: `Agent connected — ${h}` }]);
         } else if (msg.type === 'session_ready') {
           if (msg.hostname) setHostname(msg.hostname);
           if (msg.cwd) setCwd(msg.cwd.replace(/\/home\/[^/]+/, '~').replace(/\/root/, '~'));
+          if (!msg.agentConnected) {
+            setLines((p) => [...p, { type: 'system', text: 'Agent offline — run: bash ~/opendrap-agent/restart.sh' }]);
+          }
         } else if (msg.type === 'agent_disconnected') {
-          setLines((p) => [...p, { type: 'error', text: 'Agent disconnected.' }]);
-          setWsConnected(false);
+          setAgentConnected(false);
+          setLines((p) => [...p, { type: 'error', text: 'Agent disconnected. Run: bash ~/opendrap-agent/restart.sh' }]);
         } else if (msg.type === 'error' && text) {
           setLines((p) => [...p, { type: 'error', text }]);
         }
@@ -994,6 +997,7 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
 
     ws.onclose = () => {
       setWsConnected(false);
+      setAgentConnected(false);
       setLines((p) => [...p, { type: 'error', text: 'Disconnected.' }]);
     };
 
@@ -1009,7 +1013,16 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
     const trimmed = command.trim();
     if (!trimmed) return;
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      setLines((p) => [...p, { type: 'error', text: 'Not connected to agent.' }]);
+      setLines((p) => [...p, { type: 'error', text: 'Not connected. Check your network.' }]);
+      return;
+    }
+    if (!agentConnected) {
+      setLines((p) => [
+        ...p,
+        { type: 'command', text: `${hostname}:${cwd}$ ${trimmed}` },
+        { type: 'error', text: 'Agent not connected. Run: bash ~/opendrap-agent/restart.sh' },
+      ]);
+      setCommand('');
       return;
     }
 
@@ -1030,7 +1043,17 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowUp') {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      setCommand((prev) => prev + '\t');
+    } else if (e.ctrlKey && e.key === 'c') {
+      e.preventDefault();
+      setLines((p) => [...p, { type: 'command', text: '^C' }]);
+      setCommand('');
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'ctrl_c' }));
+      }
+    } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       const idx = Math.min(histIdx + 1, history.length - 1);
       setHistIdx(idx);
