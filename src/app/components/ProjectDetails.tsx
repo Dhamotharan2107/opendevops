@@ -215,7 +215,7 @@ function ProjectDetailsInner() {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=branch-${Date.now()}&projectId=${project.id}&token=${encodeURIComponent(token)}`);
+        const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=branch-${Date.now()}&projectId=default&token=${encodeURIComponent(token)}`);
         ws.onopen = () => {
           ws.send(JSON.stringify({
             type: 'terminal_input',
@@ -314,7 +314,7 @@ function ProjectDetailsInner() {
     const tunnelCmd = `mkdir -p ~/bin && (which cloudflared >/dev/null 2>&1 || (echo "=== Installing cloudflared..." && curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o ~/bin/cloudflared && chmod +x ~/bin/cloudflared && echo "=== cloudflared installed")) && PATH="$HOME/bin:$PATH" cloudflared tunnel --url http://localhost:${port} --no-autoupdate 2>&1`;
 
     try {
-      const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=tunnel-${deploymentId}&projectId=${project.id}&token=${encodeURIComponent(token)}`);
+      const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=tunnel-${deploymentId}&projectId=default&token=${encodeURIComponent(token)}`);
       deployWsRef.current = ws;
 
       ws.onopen = () => {
@@ -355,7 +355,7 @@ function ProjectDetailsInner() {
     const token = localStorage.getItem('token');
     if (token && project) {
       try {
-        const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=stop-${Date.now()}&projectId=${project.id}&token=${encodeURIComponent(token)}`);
+        const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=stop-${Date.now()}&projectId=default&token=${encodeURIComponent(token)}`);
         ws.onopen = () => {
           ws.send(JSON.stringify({ type: 'terminal_input', input: 'pkill -f cloudflared; pkill -f "node.*start"; pkill -f "node.*dev"; echo "Stopped."' }));
           setTimeout(() => ws.close(), 5000);

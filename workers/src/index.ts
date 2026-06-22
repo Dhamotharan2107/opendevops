@@ -105,193 +105,282 @@ print(t)
   echo "  Signed in successfully"
 fi`;
 
+
   const script = `#!/bin/bash
-# Opendrap DevOps Agent Installer
+# Opendrap DevOps Agent Installer (Node.js v2)
 API_BASE="https://opendrap-api.tert.workers.dev"
 AGENT_DIR="$HOME/opendrap-agent"
-AGENT_FILE="$AGENT_DIR/agent.py"
+AGENT_FILE="$AGENT_DIR/agent.js"
 LOG_FILE="$AGENT_DIR/agent.log"
 PID_FILE="$AGENT_DIR/agent.pid"
 
 echo "========================================"
-echo "  Opendrap DevOps Agent Installer"
+echo "  Opendrap DevOps Agent Installer v2"
 echo "========================================"
 
 ${tokenLine}
 ${promptBlock}
 
 mkdir -p "$AGENT_DIR"
-
-# Save token to file for auto-restart
 echo "$OPENDRAP_AGENT_TOKEN" > "$AGENT_DIR/token"
 
-cat > "$AGENT_FILE" << 'PYEOF'
-#!/usr/bin/env python3
-"""Opendrap DevOps Agent - auto-reconnects forever."""
-import asyncio, json, os, uuid, subprocess, sys, signal
+# Ensure Node.js is available (Google Cloud Shell has it pre-installed)
+if ! command -v node &>/dev/null; then
+  echo "  Node.js not found — installing via nvm..."
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+  nvm install --lts
+fi
+echo "  Node.js: $(node --version)"
 
-API_BASE = os.environ.get("OPENDRAP_API", "https://opendrap-api.tert.workers.dev")
-AGENT_DIR = os.path.expanduser("~/opendrap-agent")
-TOKEN = (os.environ.get("OPENDRAP_AGENT_TOKEN") or
-         open(os.path.join(AGENT_DIR, "token")).read().strip() or "")
-AGENT_ID = os.environ.get("OPENDRAP_AGENT_ID", f"agent-{uuid.uuid4().hex[:8]}")
-SHELL = os.environ.get("SHELL", "/bin/bash -i")
+# Install ws WebSocket library
+cd "$AGENT_DIR"
+if [ ! -f package.json ]; then
+  echo '{"name":"opendrap-agent","version":"2.0.0","private":true}' > package.json
+fi
+if [ ! -d node_modules/ws ]; then
+  echo "  Installing ws..."
+  npm install ws --save-quiet 2>/dev/null || npm install ws 2>&1 | tail -3
+fi
+echo "  ws: OK"
 
-running = True
-def handle_signal(sig, frame):
-    global running
-    running = False
-signal.signal(signal.SIGTERM, handle_signal)
-signal.signal(signal.SIGINT, handle_signal)
+cat > "$AGENT_FILE" << 'JSEOF'
+'use strict';
+const WebSocket = require('ws');
+const { spawn } = require('child_process');
+const os = require('os');
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 
-async def heartbeat(ws):
-    while running:
-        await asyncio.sleep(30)
-        try:
-            await ws.send(json.dumps({"type": "heartbeat", "agent_id": AGENT_ID}))
-        except: break
+const API_BASE = process.env.OPENDRAP_API || 'https://opendrap-api.tert.workers.dev';
+const AGENT_DIR = path.join(os.homedir(), 'opendrap-agent');
+const TOKEN = (() => {
+  const e = (process.env.OPENDRAP_AGENT_TOKEN || '').trim();
+  if (e) return e;
+  try { return fs.readFileSync(path.join(AGENT_DIR, 'token'), 'utf8').trim(); } catch(_) { return ''; }
+})();
+if (!TOKEN) { console.error('ERROR: No token found — create ~/opendrap-agent/token'); process.exit(1); }
 
-async def main():
-    if not TOKEN:
-        print("ERROR: OPENDRAP_AGENT_TOKEN not set")
-        sys.exit(1)
-    ws_url = API_BASE.replace("https://", "wss://") + "/api/terminal/ws?sessionId=agent&projectId=default"
-    headers = {"Authorization": f"Bearer {TOKEN}"}
-    retry = 1
-    # Detect websockets API version once
-    import websockets
-    ws_ver = tuple(int(x) for x in getattr(websockets, '__version__', '0.0').split('.')[:2])
-    use_additional = ws_ver >= (10, 0)
-    while running:
-        try:
-            print(f"Connecting to {ws_url} (attempt {retry})...")
-            if use_additional:
-                cm = websockets.connect(ws_url, additional_headers=headers, ping_interval=20, ping_timeout=10)
-            else:
-                cm = websockets.connect(ws_url, extra_headers=headers, ping_interval=20, ping_timeout=10)
-            async with cm as ws:
-                print("Connected!")
-                retry = 1
-                hostname = os.popen('hostname').read().strip() or 'cloudshell'
-                await ws.send(json.dumps({"type":"agent_connected","agent_id":AGENT_ID,"project_id":"default","info":{"agent_id":AGENT_ID,"version":"0.1.0","hostname":hostname}}))
-                hb = asyncio.create_task(heartbeat(ws))
-                # Persistent shell — keeps cwd, env, virtualenv across all commands
-                shell_proc = await asyncio.create_subprocess_shell(
-                    SHELL, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT, env=dict(os.environ, TERM='xterm-256color')
-                )
-                shell_lock = asyncio.Lock()
-                async def run_cmd(cmd: str, cid: str):
-                    async with shell_lock:
-                        marker = f"__OPENDRAP_DONE_{cid}__"
-                        cmd_clean = cmd.rstrip().replace("'", "\\'")
-                        payload = f"{cmd_clean}; if [ $? -eq 0 ]; then echo \\"__CWD__:$(pwd)\\"; fi; echo '{marker}'\\n"
-                        shell_proc.stdin.write(payload.encode())
-                        await shell_proc.stdin.drain()
-                        buf = b""
-                        try:
-                            while True:
-                                chunk = await asyncio.wait_for(shell_proc.stdout.read(4096), timeout=300)
-                                if not chunk:
-                                    break
-                                buf += chunk
-                                if marker.encode() in buf:
-                                    break
-                            out = buf.decode(errors="replace")
-                            out = "\\n".join(l for l in out.splitlines() if marker not in l)
-                            if out.strip():
-                                await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":out}))
-                            await ws.send(json.dumps({"type":"command_completed","command_id":cid,"output":"","status":"success"}))
-                        except asyncio.TimeoutError:
-                            await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":"Command timed out after 300s\\n"}))
-                            await ws.send(json.dumps({"type":"command_completed","command_id":cid,"output":"","status":"error"}))
-                        except Exception as e:
-                            await ws.send(json.dumps({"type":"command_output","command_id":cid,"output":f"Error: {e}\\n"}))
-                            await ws.send(json.dumps({"type":"command_completed","command_id":cid,"output":"","status":"error"}))
-                async for msg in ws:
-                    if not running: break
-                    try:
-                        data = json.loads(msg)
-                        t = data.get("type","")
-                        if t == "heartbeat_ping":
-                            await ws.send(json.dumps({"type":"heartbeat","agent_id":AGENT_ID}))
-                        elif t == "execute_command":
-                            cmd = data.get("command","")
-                            cid = data.get("command_id","")
-                            asyncio.create_task(run_cmd(cmd, cid))
-                        elif t == "ctrl_c":
-                            try:
-                                shell_proc.stdin.write(b'\\x03')
-                                await shell_proc.stdin.drain()
-                            except: pass
-                    except json.JSONDecodeError: pass
-                hb.cancel()
-                try: shell_proc.terminate()
-                except: pass
-        except asyncio.CancelledError: break
-        except Exception as e:
-            print(f"Disconnected: {e}. Reconnecting in {min(retry,30)}s...")
-            await asyncio.sleep(min(retry, 30))
-            retry = min(retry + 2, 60)
+const AGENT_ID = 'agent-' + crypto.randomBytes(4).toString('hex');
+const procs = new Map(); // cmdId -> { proc, cmd, cwd, timer }
+let cwd = os.homedir();
+let ws = null;
+let reconnDelay = 2000;
 
-if __name__ == "__main__":
-    try: asyncio.run(main())
-    except KeyboardInterrupt: pass
-PYEOF
+const isWin = process.platform === 'win32';
+const SH = isWin ? 'cmd.exe' : (process.env.SHELL || '/bin/bash');
+const SF = isWin ? '/c' : '-c';
+
+function send(obj) {
+  if (ws && ws.readyState === 1) {
+    try { ws.send(JSON.stringify(obj)); } catch(_) {}
+  }
+}
+
+// Spawn a child process for every command — non-blocking, supports long-running processes.
+// stdout + stderr are streamed in real time via 100ms flush intervals.
+function runProc(cmdId, command, cmdCwd) {
+  const wdir = cmdCwd || cwd;
+  let proc;
+  try {
+    proc = spawn(SH, [SF, command], {
+      cwd: wdir,
+      env: Object.assign({}, process.env, { TERM: 'xterm-256color', PYTHONUNBUFFERED: '1' }),
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } catch(e) {
+    send({ type: 'command_output', command_id: cmdId, output: 'spawn error: ' + e.message + '\n' });
+    send({ type: 'command_completed', command_id: cmdId, output: '', status: 'error' });
+    return;
+  }
+
+  let buf = '';
+  let timer = setInterval(() => {
+    if (buf) { send({ type: 'command_output', command_id: cmdId, output: buf }); buf = ''; }
+  }, 100);
+
+  const onChunk = (chunk) => {
+    const text = chunk.toString();
+    buf += text;
+    // Update agent cwd when shell emits __CWD__: marker (from 'cd ... && echo __CWD__:$(pwd)')
+    const cwdM = text.match(/__CWD__:([^\r\n]+)/);
+    if (cwdM) {
+      const raw = cwdM[1].trim().replace(/^~/, os.homedir());
+      try { if (fs.statSync(raw).isDirectory()) cwd = raw; } catch(_) {}
+    }
+    // Flush immediately so the browser gets the cloudflared URL without waiting 100ms
+    if (text.indexOf('trycloudflare.com') >= 0) {
+      clearInterval(timer);
+      send({ type: 'command_output', command_id: cmdId, output: buf }); buf = '';
+      timer = setInterval(() => {
+        if (buf) { send({ type: 'command_output', command_id: cmdId, output: buf }); buf = ''; }
+      }, 100);
+    }
+  };
+
+  proc.stdout.on('data', onChunk);
+  proc.stderr.on('data', onChunk);
+  procs.set(cmdId, { proc: proc, cmd: command, cwd: wdir, timer: timer });
+
+  proc.on('close', (code) => {
+    clearInterval(timer);
+    if (buf) { send({ type: 'command_output', command_id: cmdId, output: buf }); buf = ''; }
+    procs.delete(cmdId);
+    send({ type: 'command_completed', command_id: cmdId, output: '', status: code === 0 ? 'success' : 'error', exit_code: code, cwd: cwd.replace(os.homedir(), '~') });
+  });
+
+  proc.on('error', (e) => {
+    clearInterval(timer);
+    procs.delete(cmdId);
+    send({ type: 'command_output', command_id: cmdId, output: 'Error: ' + e.message + '\n' });
+    send({ type: 'command_completed', command_id: cmdId, output: '', status: 'error' });
+  });
+}
+
+function handleMsg(msg) {
+  const t = msg.type;
+  if (t === 'execute_command') {
+    const cmd = (msg.command || '').trim();
+    // Handle standalone 'cd' in Node.js to keep the agent's cwd in sync.
+    // Compound commands like 'cd x && echo __CWD__:$(pwd)' go to runProc (shell handles them).
+    if (/^cd(\s+.*)?$/.test(cmd) && cmd.indexOf('&&') < 0 && cmd.indexOf(';') < 0 && cmd.indexOf('|') < 0) {
+      const parts = cmd.split(/\s+/);
+      const target = parts.length > 1 ? parts.slice(1).join(' ').replace(/^~/, os.homedir()) : os.homedir();
+      const newdir = path.resolve(cwd, target);
+      try {
+        if (fs.statSync(newdir).isDirectory()) {
+          cwd = newdir;
+          const cwdShort = cwd.replace(os.homedir(), '~');
+          send({ type: 'cwd', data: cwdShort });
+          send({ type: 'command_completed', command_id: msg.command_id, output: '', status: 'success', cwd: cwdShort });
+          return;
+        }
+      } catch(_) {}
+      send({ type: 'command_output', command_id: msg.command_id, output: 'cd: ' + target + ': No such file or directory\n' });
+      send({ type: 'command_completed', command_id: msg.command_id, output: '', status: 'error', cwd: cwd.replace(os.homedir(), '~') });
+      return;
+    }
+    runProc(msg.command_id, cmd, msg.cwd);
+  } else if (t === 'stop_process') {
+    const entry = procs.get(msg.process_id);
+    if (entry) {
+      try { entry.proc.kill('SIGTERM'); } catch(_) {}
+      setTimeout(() => { if (procs.has(msg.process_id)) try { entry.proc.kill('SIGKILL'); } catch(_) {} }, 3000);
+    }
+  } else if (t === 'list_processes') {
+    const list = [];
+    procs.forEach((e, id) => list.push({ id: id, cmd: e.cmd, pid: e.proc.pid, cwd: e.cwd }));
+    send({ type: 'process_list', processes: list });
+  } else if (t === 'ctrl_c') {
+    // If a specific process_id is given, kill only that one; otherwise kill all running processes
+    const target = msg.process_id ? procs.get(msg.process_id) : null;
+    if (target) {
+      try { target.proc.kill('SIGINT'); } catch(_) {}
+    } else {
+      procs.forEach((e) => { try { e.proc.kill('SIGINT'); } catch(_) {} });
+    }
+  } else if (t === 'heartbeat_ping') {
+    send({ type: 'heartbeat', agent_id: AGENT_ID });
+  }
+}
+
+function connect() {
+  const wsUrl = API_BASE.replace('https://', 'wss://') + '/api/terminal/ws?sessionId=agent&projectId=default';
+  console.log('Connecting to ' + wsUrl + ' ...');
+  ws = new WebSocket(wsUrl, { headers: { Authorization: 'Bearer ' + TOKEN } });
+  let hbt = null;
+
+  ws.on('open', () => {
+    reconnDelay = 2000;
+    console.log('Connected! Agent ID: ' + AGENT_ID);
+    ws.send(JSON.stringify({ type: 'agent_connected', agent_id: AGENT_ID, project_id: 'default', info: { hostname: os.hostname(), version: '2.0.0', node: process.version } }));
+    // Application-level heartbeat — Cloudflare Workers do not respond to WebSocket ping frames
+    hbt = setInterval(() => {
+      if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'heartbeat', agent_id: AGENT_ID }));
+    }, 30000);
+  });
+
+  ws.on('message', (raw) => { try { handleMsg(JSON.parse(raw.toString())); } catch(_) {} });
+
+  ws.on('close', () => {
+    clearInterval(hbt);
+    console.log('Disconnected. Retry in ' + (reconnDelay / 1000) + 's...');
+    setTimeout(() => { reconnDelay = Math.min(reconnDelay * 2, 30000); connect(); }, reconnDelay);
+  });
+
+  ws.on('error', (e) => { console.error('WS error: ' + e.message); });
+}
+
+function cleanup() {
+  procs.forEach((e) => { try { e.proc.kill('SIGTERM'); } catch(_) {} });
+  if (ws) try { ws.close(); } catch(_) {}
+}
+process.on('SIGTERM', cleanup);
+process.on('SIGINT', cleanup);
+
+connect();
+JSEOF
 
 chmod +x "$AGENT_FILE" 2>/dev/null || true
 
-if python3 -c "import websockets" 2>/dev/null; then
-    echo "  websockets OK"
-else
-    echo "  Installing websockets..."
-    pip3 install websockets -q 2>/dev/null || pip install websockets -q 2>/dev/null || true
-fi
-
-# Write restart helper
+# Restart helper
 cat > "$AGENT_DIR/restart.sh" << 'SHEOF'
 #!/bin/bash
 cd ~/opendrap-agent
-kill $(cat agent.pid 2>/dev/null) 2>/dev/null || true
-sleep 1
-nohup python3 -u agent.py > agent.log 2>&1 &
+if [ -f agent.pid ]; then
+  kill $(cat agent.pid) 2>/dev/null || true
+  sleep 1
+fi
+nohup node agent.js > agent.log 2>&1 &
 echo $! > agent.pid
 sleep 2
-echo "Agent restarted (PID: $(cat agent.pid))"
+if kill -0 $(cat agent.pid) 2>/dev/null; then
+  echo "Agent restarted (PID: $(cat agent.pid))"
+else
+  echo "Failed. Check: tail -20 ~/opendrap-agent/agent.log"
+fi
 SHEOF
-chmod +x "$AGENT_DIR/restart.sh" 2>/dev/null || true
+chmod +x "$AGENT_DIR/restart.sh"
 
-# Add to .bashrc for auto-start on Cloud Shell login
+# Auto-start on Cloud Shell login
 BASHRC="$HOME/.bashrc"
-START_LINE="cd ~/opendrap-agent && nohup python3 -u agent.py > agent.log 2>&1 &"
 if ! grep -q "opendrap-agent" "$BASHRC" 2>/dev/null; then
-    echo "" >> "$BASHRC"
-    echo "# Opendrap Agent auto-start" >> "$BASHRC"
-    echo "if [ -f ~/opendrap-agent/agent.py ] && [ -f ~/opendrap-agent/token ]; then" >> "$BASHRC"
-    echo "  if [ ! -f ~/opendrap-agent/agent.pid ] || ! kill -0 \$(cat ~/opendrap-agent/agent.pid 2>/dev/null) 2>/dev/null; then" >> "$BASHRC"
-    echo "    $START_LINE" >> "$BASHRC"
-    echo "  fi" >> "$BASHRC"
-    echo "fi" >> "$BASHRC"
-    echo "  Added auto-start to .bashrc"
+  cat >> "$BASHRC" << 'BASHEOF'
+
+# Opendrap Agent auto-start
+if [ -f ~/opendrap-agent/agent.js ] && [ -f ~/opendrap-agent/token ]; then
+  if [ ! -f ~/opendrap-agent/agent.pid ] || ! kill -0 $(cat ~/opendrap-agent/agent.pid 2>/dev/null) 2>/dev/null; then
+    cd ~/opendrap-agent && nohup node agent.js > agent.log 2>&1 &
+    echo $! > ~/opendrap-agent/agent.pid
+  fi
+fi
+BASHEOF
+  echo "  Added auto-start to .bashrc"
 fi
 
-echo "  Starting agent..."
-nohup python3 -u "$AGENT_FILE" > "$LOG_FILE" 2>&1 &
+# Kill old Python agent if running
+pkill -f "python.*opendrap" 2>/dev/null || true
+kill $(cat "$PID_FILE" 2>/dev/null) 2>/dev/null || true
+sleep 1
+
+echo "  Starting Node.js agent..."
+cd "$AGENT_DIR"
+nohup node "$AGENT_FILE" > "$LOG_FILE" 2>&1 &
 echo $! > "$PID_FILE"
 sleep 2
 
 if kill -0 $(cat "$PID_FILE") 2>/dev/null; then
-    echo "  Agent running! (PID: $(cat "$PID_FILE"))"
+  echo "  Agent running! (PID: $(cat "$PID_FILE"))"
 else
-    echo "  Check logs: $LOG_FILE"
-    echo "  Manual: python3 $AGENT_FILE"
+  echo "  Start failed. Check: tail -20 $LOG_FILE"
 fi
 
+echo ""
 echo "  File: $AGENT_FILE"
-echo "  Logs: $LOG_FILE"
-echo "  Stop: kill \$(cat $PID_FILE)"
+echo "  Logs: tail -f $LOG_FILE"
 echo "  Restart: bash ~/opendrap-agent/restart.sh"
-echo "  Auto-restarts on disconnect & Cloud Shell login"
 echo "========================================"
 `;
   return c.newResponse(script, 200, {

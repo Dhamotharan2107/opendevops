@@ -264,22 +264,55 @@ export class TerminalDurableObject implements DurableObject {
 
       case 'command_completed': {
         const output = data.output as string;
-        const status = data.status as string;
         const newCwd = data.cwd as string | undefined;
-        if (output) {
+        if (output && output.trim()) {
           this.broadcastToBrowsers(JSON.stringify({
             type: 'terminal_output',
             data: output,
-          }), sessionId);
-        } else if (status === 'error') {
-          this.broadcastToBrowsers(JSON.stringify({
-            type: 'terminal_output',
-            data: 'Command failed (see agent logs)',
           }), sessionId);
         }
         if (newCwd) {
           this.broadcastToBrowsers(JSON.stringify({ type: 'cwd', data: newCwd }), sessionId);
         }
+        break;
+      }
+
+      case 'stop_process': {
+        // Browser → agent: stop a running process by ID
+        if (this.agentSessionId) {
+          const agentWs = this.websockets.get(this.agentSessionId);
+          if (agentWs) {
+            try {
+              agentWs.send(JSON.stringify({ type: 'stop_process', process_id: data.process_id as string }));
+            } catch {
+              this.handleAgentOffline(this.agentSessionId);
+            }
+          }
+        }
+        break;
+      }
+
+      case 'list_processes': {
+        // Browser → agent: request list of running processes
+        if (this.agentSessionId) {
+          const agentWs = this.websockets.get(this.agentSessionId);
+          if (agentWs) {
+            try {
+              agentWs.send(JSON.stringify({ type: 'list_processes' }));
+            } catch {
+              this.handleAgentOffline(this.agentSessionId);
+            }
+          }
+        }
+        break;
+      }
+
+      case 'process_list': {
+        // Agent → browsers: current list of running processes
+        this.broadcastToBrowsers(JSON.stringify({
+          type: 'process_list',
+          processes: data.processes,
+        }), sessionId);
         break;
       }
 

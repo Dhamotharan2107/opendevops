@@ -1,16 +1,38 @@
-contact_inotechsoftware@cloudshell:~/opendev/projects/TRANSFER-Application/bankin/Banking_sector$ python manage.py runserver 0.0.0.0:7004
-Watching for file changes with StatReloader
-Performing system checks...
+I have already built a TypeScript agent that receives commands from a WebSocket server and executes them using `child_process.spawn()`. Simple commands like `pwd`, `ls`, and `echo` work correctly.
 
-System check identified no issues (0 silenced).
-June 22, 2026 - 12:23:16
-Django version 6.0.6, using settings 'Banking_sector.settings'
-Starting development server at http://0.0.0.0:7004/
-Quit the server with CONTROL-C.
+However, long-running commands such as:
 
-WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
-For more information on production servers see: https://docs.djangoproject.com/en/6.0/howto/deployment/
+* `python manage.py runserver`
+* `cloudflared tunnel --url http://127.0.0.1:8000`
+* `npm run dev`
+* `node server.js`
 
+either do not start correctly, exit immediately, or block the agent.
 
-here  in cloud shell 
-in dashboard i given the deploye 7004 but i get thsi only No agent connected. Install the agent to run commands. fix that issue 
+I want you to refactor my TypeScript agent to properly support long-running background processes.
+
+### Requirements
+
+1. Use `child_process.spawn()` instead of `exec()`.
+2. Support both one-time commands and persistent processes.
+3. Each spawned process should have a unique process ID stored in a `Map`.
+4. Stream `stdout` and `stderr` back to the WebSocket in real time.
+5. Send process status updates (`started`, `running`, `exited`, `error`) to the server.
+6. Allow specifying a custom working directory (`cwd`) for commands like `python manage.py runserver`.
+7. Preserve environment variables (`env: process.env`).
+8. Do not block the WebSocket while a process is running.
+9. Support running multiple processes simultaneously (for example, Django and Cloudflare Tunnel at the same time).
+10. Add commands to:
+
+    * start a process
+    * stop a process
+    * list running processes
+    * restart a process
+11. Handle Windows, Linux, and macOS correctly.
+12. Ensure `python manage.py runserver` keeps running until explicitly stopped.
+13. Ensure `cloudflared tunnel --url http://127.0.0.1:8000` also runs continuously and streams logs.
+14. If the command requires an interactive shell, use the correct `shell` option.
+15. Properly clean up child processes when the agent disconnects or exits.
+16. Include complete TypeScript code with best practices and error handling.
+
+Also explain why my current implementation fails for long-running commands and how your implementation fixes those issues.
