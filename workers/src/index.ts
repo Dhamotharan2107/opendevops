@@ -254,7 +254,7 @@ cat > "$AGENT_DIR/restart.sh" << 'SHEOF'
 cd ~/opendrap-agent
 kill $(cat agent.pid 2>/dev/null) 2>/dev/null || true
 sleep 1
-nohup python3 agent.py > agent.log 2>&1 &
+nohup python3 -u agent.py > agent.log 2>&1 &
 echo $! > agent.pid
 sleep 2
 echo "Agent restarted (PID: $(cat agent.pid))"
@@ -263,7 +263,7 @@ chmod +x "$AGENT_DIR/restart.sh" 2>/dev/null || true
 
 # Add to .bashrc for auto-start on Cloud Shell login
 BASHRC="$HOME/.bashrc"
-START_LINE="cd ~/opendrap-agent && nohup python3 agent.py > agent.log 2>&1 &"
+START_LINE="cd ~/opendrap-agent && nohup python3 -u agent.py > agent.log 2>&1 &"
 if ! grep -q "opendrap-agent" "$BASHRC" 2>/dev/null; then
     echo "" >> "$BASHRC"
     echo "# Opendrap Agent auto-start" >> "$BASHRC"
@@ -276,7 +276,7 @@ if ! grep -q "opendrap-agent" "$BASHRC" 2>/dev/null; then
 fi
 
 echo "  Starting agent..."
-nohup python3 "$AGENT_FILE" > "$LOG_FILE" 2>&1 &
+nohup python3 -u "$AGENT_FILE" > "$LOG_FILE" 2>&1 &
 echo $! > "$PID_FILE"
 sleep 2
 
