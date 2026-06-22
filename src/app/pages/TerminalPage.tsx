@@ -51,11 +51,18 @@ export function TerminalPage() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    async function connect() {
+    let destroyed = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryDelay = 2000;
+
+    function connect() {
+      if (destroyed) return;
       const wsUrl = `${WS_URL}/api/terminal/ws?sessionId=browser&projectId=default&token=${encodeURIComponent(token!)}`;
       const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
       ws.onopen = () => {
+        retryDelay = 2000;
         setWsConnected(true);
       };
 
@@ -87,7 +94,6 @@ export function TerminalPage() {
                 ? `Agent connected — ${h}`
                 : 'Agent offline — run: bash ~/opendrap-agent/restart.sh',
             }]);
-            // Get real cwd on connect
             ws.send(JSON.stringify({ type: 'terminal_input', input: 'echo __CWD__:$(pwd)' }));
           } else if (msg.type === 'agent_connected') {
             const h = msg.hostname || 'cloudshell';
@@ -97,7 +103,7 @@ export function TerminalPage() {
             ws.send(JSON.stringify({ type: 'terminal_input', input: 'echo __CWD__:$(pwd)' }));
           } else if (msg.type === 'agent_disconnected') {
             dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: false } });
-            setLines((prev) => [...prev, { type: 'system', text: 'Agent disconnected.' }]);
+            setLines((prev) => [...prev, { type: 'system', text: 'Agent disconnected. Run: bash ~/opendrap-agent/restart.sh' }]);
           } else if (msg.type === 'error' && text) {
             setLines((prev) => [...prev, { type: 'error', text }]);
           }
@@ -107,16 +113,23 @@ export function TerminalPage() {
       ws.onclose = () => {
         setWsConnected(false);
         dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: false } });
+        if (!destroyed) {
+          setLines((prev) => [...prev, { type: 'system', text: `Connection lost. Reconnecting in ${retryDelay / 1000}s...` }]);
+          retryTimer = setTimeout(() => {
+            connect();
+            retryDelay = Math.min(retryDelay * 2, 30000);
+          }, retryDelay);
+        }
       };
 
       ws.onerror = () => setWsConnected(false);
-
-      wsRef.current = ws;
     }
 
     connect();
 
     return () => {
+      destroyed = true;
+      if (retryTimer) clearTimeout(retryTimer);
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;

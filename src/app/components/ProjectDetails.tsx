@@ -945,63 +945,82 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const wsUrl = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
+    const wsBase = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
     const token = localStorage.getItem('token');
     if (!token) { setLines((p) => [...p, { type: 'error', text: 'No auth token.' }]); return; }
 
-    const ws = new WebSocket(`${wsUrl}/api/terminal/ws?sessionId=project-${projectId}&projectId=default&token=${token}`);
-    wsRef.current = ws;
+    let destroyed = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryDelay = 2000;
 
-    ws.onopen = () => {
-      setWsConnected(true);
-      setLines((p) => [...p, { type: 'system', text: 'Connected. Waiting for agent...' }]);
-    };
+    function connect() {
+      if (destroyed) return;
+      const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=project-${projectId}&projectId=default&token=${token}`);
+      wsRef.current = ws;
 
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        const text: string = msg.data || msg.message || '';
+      ws.onopen = () => {
+        retryDelay = 2000;
+        setWsConnected(true);
+        setLines((p) => [...p, { type: 'system', text: 'Connected. Waiting for agent...' }]);
+      };
 
-        if (msg.type === 'terminal_output' || msg.type === 'command_output') {
-          if (text.includes('__CWD__:')) {
-            const match = text.match(/__CWD__:(.+)/);
-            if (match) setCwd(match[1].trim().replace(/\/home\/[^/]+/, '~').replace(/\/root/, '~'));
-            // strip the marker line but show any other output on same chunk
-            const rest = text.replace(/.*__CWD__:.+\n?/g, '').trim();
-            if (rest) setLines((p) => [...p, { type: 'output', text: rest }]);
-            return;
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          const text: string = msg.data || msg.message || '';
+
+          if (msg.type === 'terminal_output' || msg.type === 'command_output') {
+            if (text.includes('__CWD__:')) {
+              const match = text.match(/__CWD__:(.+)/);
+              if (match) setCwd(match[1].trim().replace(/\/home\/[^/]+/, '~').replace(/\/root/, '~'));
+              const rest = text.replace(/.*__CWD__:.+\n?/g, '').trim();
+              if (rest) setLines((p) => [...p, { type: 'output', text: rest }]);
+              return;
+            }
+            if (text.trim()) setLines((p) => [...p, { type: 'output', text }]);
+          } else if (msg.type === 'cwd') {
+            setCwd(msg.data.replace(/\/home\/[^/]+/, '~').replace(/\/root/, '~'));
+          } else if (msg.type === 'agent_connected' || (msg.type === 'session_ready' && msg.agentConnected)) {
+            const h = msg.hostname || 'cloudshell';
+            setHostname(h);
+            setAgentConnected(true);
+            ws.send(JSON.stringify({ type: 'terminal_input', input: 'echo __CWD__:$(pwd)' }));
+            setLines((p) => [...p, { type: 'system', text: `Agent connected — ${h}` }]);
+          } else if (msg.type === 'session_ready') {
+            if (msg.hostname) setHostname(msg.hostname);
+            if (msg.cwd) setCwd(msg.cwd.replace(/\/home\/[^/]+/, '~').replace(/\/root/, '~'));
+            if (!msg.agentConnected) {
+              setLines((p) => [...p, { type: 'system', text: 'Agent offline — run: bash ~/opendrap-agent/restart.sh' }]);
+            }
+          } else if (msg.type === 'agent_disconnected') {
+            setAgentConnected(false);
+            setLines((p) => [...p, { type: 'error', text: 'Agent disconnected. Run: bash ~/opendrap-agent/restart.sh' }]);
+          } else if (msg.type === 'error' && text) {
+            setLines((p) => [...p, { type: 'error', text }]);
           }
-          if (text.trim()) setLines((p) => [...p, { type: 'output', text }]);
-        } else if (msg.type === 'cwd') {
-          setCwd(msg.data.replace(/\/home\/[^/]+/, '~').replace(/\/root/, '~'));
-        } else if (msg.type === 'agent_connected' || (msg.type === 'session_ready' && msg.agentConnected)) {
-          const h = msg.hostname || 'cloudshell';
-          setHostname(h);
-          setAgentConnected(true);
-          ws.send(JSON.stringify({ type: 'terminal_input', input: 'echo __CWD__:$(pwd)' }));
-          setLines((p) => [...p, { type: 'system', text: `Agent connected — ${h}` }]);
-        } else if (msg.type === 'session_ready') {
-          if (msg.hostname) setHostname(msg.hostname);
-          if (msg.cwd) setCwd(msg.cwd.replace(/\/home\/[^/]+/, '~').replace(/\/root/, '~'));
-          if (!msg.agentConnected) {
-            setLines((p) => [...p, { type: 'system', text: 'Agent offline — run: bash ~/opendrap-agent/restart.sh' }]);
-          }
-        } else if (msg.type === 'agent_disconnected') {
-          setAgentConnected(false);
-          setLines((p) => [...p, { type: 'error', text: 'Agent disconnected. Run: bash ~/opendrap-agent/restart.sh' }]);
-        } else if (msg.type === 'error' && text) {
-          setLines((p) => [...p, { type: 'error', text }]);
+        } catch {}
+      };
+
+      ws.onclose = () => {
+        setWsConnected(false);
+        setAgentConnected(false);
+        if (!destroyed) {
+          setLines((p) => [...p, { type: 'system', text: `Connection lost. Reconnecting in ${retryDelay / 1000}s...` }]);
+          retryTimer = setTimeout(() => {
+            connect();
+            retryDelay = Math.min(retryDelay * 2, 30000);
+          }, retryDelay);
         }
-      } catch {}
-    };
+      };
+    }
 
-    ws.onclose = () => {
-      setWsConnected(false);
-      setAgentConnected(false);
-      setLines((p) => [...p, { type: 'error', text: 'Disconnected.' }]);
-    };
+    connect();
 
-    return () => ws.close();
+    return () => {
+      destroyed = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
+    };
   }, [projectId]);
 
   useEffect(() => {
