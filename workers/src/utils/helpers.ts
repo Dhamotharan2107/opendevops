@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { AppError } from './errors';
 
 export function generateId(): string {
   return crypto.randomUUID();
@@ -38,9 +39,21 @@ export function success(c: Context, data: unknown, status: number = 200) {
 
 export function fail(c: Context, e: unknown, status?: number) {
   const err = e as Error & { status?: number; code?: string };
-  const s = status || err.status || 500;
-  const message = err.message || 'Internal server error';
-  return c.json({ success: false, error: message, code: err.code }, s as any);
+  const explicit = status ?? err.status;
+  const isClientError = typeof explicit === 'number' && explicit >= 400 && explicit < 500;
+
+  // Only surface messages for expected (AppError / explicit 4xx) failures.
+  // Unexpected errors return a generic message and are logged server-side, so we
+  // don't leak internal details (stack traces, DB errors) to clients.
+  if (err instanceof AppError || isClientError) {
+    return c.json(
+      { success: false, error: err.message || 'Request failed', code: err.code },
+      (explicit ?? 400) as any,
+    );
+  }
+
+  console.error('Unhandled error:', err);
+  return c.json({ success: false, error: 'Internal server error' }, (explicit ?? 500) as any);
 }
 
 export function paginated(c: Context, data: unknown, total: number, page: number, limit: number) {

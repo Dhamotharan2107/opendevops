@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Opendrap DevOps AI Platform — Architecture & Performance Audit</title>
+<style>
+  :root{
+    --bg:#0a0e1f; --bg2:#0e1430; --card:rgba(255,255,255,.04); --card-bd:rgba(255,255,255,.09);
+    --txt:#e8ecf8; --muted:#94a0c4; --mono:#aeb9e6;
+    --g1:#7c3aed; --g2:#ec4899; --g3:#f97316;
+    --crit:#ef4444; --high:#f97316; --med:#eab308; --low:#38bdf8; --ok:#22c55e;
+    --grad:linear-gradient(110deg,#7c3aed,#ec4899 55%,#f97316);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:radial-gradient(1200px 700px at 80% -10%,#1b1147 0%,transparent 55%),
+    radial-gradient(900px 600px at -10% 10%,#3a0d3a 0%,transparent 50%),var(--bg);
+    color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55;min-height:100vh;
+  }
+  code,.mono{font-family:"SF Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace}
+  a{color:#c4b5fd;text-decoration:none}
+  /* NAV */
+  nav{
+    position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
+    background:rgba(10,14,31,.78);border-bottom:1px solid var(--card-bd);
+  }
+  .nav-in{max-width:1240px;margin:0 auto;padding:10px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .brand{font-weight:800;letter-spacing:.3px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+  .tab{
+    border:1px solid transparent;background:transparent;color:var(--muted);
+    padding:7px 13px;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;transition:.18s;white-space:nowrap}
+  .tab:hover{color:var(--txt);background:rgba(255,255,255,.05)}
+  .tab.active{color:#fff;background:var(--grad);box-shadow:0 6px 20px -8px var(--g2)}
+  .search{position:relative}
+  .search input{
+    background:rgba(255,255,255,.05);border:1px solid var(--card-bd);color:var(--txt);
+    padding:8px 12px 8px 32px;border-radius:10px;font-size:13px;width:210px;outline:none}
+  .search input:focus{border-color:var(--g2)}
+  .search svg{position:absolute;left:9px;top:8px;opacity:.5}
+  /* LAYOUT */
+  main{max-width:1240px;margin:0 auto;padding:28px 18px 90px}
+  .panel{display:none;animation:fade .4s ease}
+  .panel.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  h1{font-size:clamp(26px,4vw,40px);margin:0 0 6px;line-height:1.1}
+  h2{font-size:22px;margin:34px 0 14px;display:flex;align-items:center;gap:9px}
+  h3{font-size:16px;margin:0 0 8px}
+  .sub{color:var(--muted);max-width:760px}
+  .grad-txt{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  /* HERO */
+  .hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:26px 0}
+  .stat{
+    background:var(--card);border:1px solid var(--card-bd);border-radius:16px;padding:18px;
+    position:relative;overflow:hidden}
+  .stat::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--grad)}
+  .stat .n{font-size:34px;font-weight:800;line-height:1}
+  .stat .l{color:var(--muted);font-size:12.5px;margin-top:6px;text-transform:uppercase;letter-spacing:.5px}
+  /* CARDS */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+  .rcard{
+    background:var(--card);border:1px solid var(--card-bd);border-radius:16px;padding:18px;cursor:pointer;transition:.2s}
+  .rcard:hover{transform:translateY(-3px);border-color:var(--g2);box-shadow:0 16px 40px -22px var(--g2)}
+  .rcard .ico{font-size:24px}
+  .rcard h3{margin:8px 0 4px}
+  .rcard p{color:var(--muted);font-size:13px;margin:0}
+  .rcard .pill{display:inline-block;margin-top:10px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.06)}
+  /* CALLOUT */
+  .callout{
+    border:1px solid var(--card-bd);border-left:3px solid var(--g2);
+    background:linear-gradient(100deg,rgba(124,58,237,.10),rgba(236,72,153,.05));
+    border-radius:12px;padding:14px 16px;margin:14px 0;font-size:14px}
+  .callout b{color:#fff}
+  .callout .tag{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#f0abfc}
+  /* FILTER CHIPS */
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+  .chip{border:1px solid var(--card-bd);background:transparent;color:var(--muted);padding:6px 13px;border-radius:20px;font-size:12.5px;cursor:pointer;font-weight:700;transition:.15s}
+  .chip:hover{color:var(--txt)}
+  .chip.active{background:#fff;color:#0a0e1f;border-color:#fff}
+  .chip .c{opacity:.7;font-weight:600}
+  /* FINDING CARD */
+  .finding{
+    background:var(--card);border:1px solid var(--card-bd);border-radius:14px;margin:11px 0;overflow:hidden;
+    position:relative;transition:.2s}
+  .finding:hover{border-color:rgba(255,255,255,.2)}
+  .finding .rail{position:absolute;left:0;top:0;bottom:0;width:4px}
+  .fhead{display:flex;align-items:center;gap:12px;padding:14px 16px 14px 20px;cursor:pointer}
+  .fid{font-family:ui-monospace,monospace;font-size:12px;font-weight:700;color:#0a0e1f;background:#fff;padding:2px 8px;border-radius:6px;flex-shrink:0}
+  .ftitle{font-weight:700;font-size:15px;flex:1}
+  .floc{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--mono);background:rgba(255,255,255,.05);padding:3px 8px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
+  .badge{font-size:10.5px;font-weight:800;letter-spacing:.5px;padding:3px 9px;border-radius:20px;flex-shrink:0;text-transform:uppercase}
+  .metric{font-size:11.5px;color:var(--muted);font-family:ui-monospace,monospace;flex-shrink:0}
+  .chev{transition:.2s;opacity:.6;flex-shrink:0}
+  .finding.open .chev{transform:rotate(90deg)}
+  .fbody{display:none;padding:0 16px 16px 20px;font-size:13.5px}
+  .finding.open .fbody{display:block;animation:fade .25s}
+  .fbody .lbl{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:12px 0 4px}
+  .fix-box{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:12px 14px;margin-top:6px}
+  .fix-box .lbl{color:#86efac}
+  pre{background:#070a16;border:1px solid var(--card-bd);border-radius:10px;padding:12px;overflow:auto;font-size:12px;margin:6px 0}
+  pre code{color:#c8d3ff}
+  .cmt{color:#6b7aa8}
+  /* SEV COLORS */
+  .s-critical{background:var(--crit)} .s-high{background:var(--high)} .s-medium{background:var(--med)} .s-low{background:var(--low)}
+  .b-critical{background:rgba(239,68,68,.16);color:#fca5a5} .b-high{background:rgba(249,115,22,.16);color:#fdba74}
+  .b-medium{background:rgba(234,179,8,.16);color:#fde047} .b-low{background:rgba(56,189,248,.16);color:#7dd3fc}
+  /* TABLE */
+  .tbl{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;background:var(--card);border-radius:12px;overflow:hidden;border:1px solid var(--card-bd)}
+  .tbl th{text-align:left;padding:10px 12px;background:rgba(255,255,255,.04);font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+  .tbl td{padding:9px 12px;border-top:1px solid var(--card-bd);vertical-align:top}
+  .tbl td.mono{font-family:ui-monospace,monospace;font-size:12px;color:var(--mono)}
+  .vp{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:14px}
+  .vp.ok{background:rgba(34,197,94,.15);color:#86efac}
+  .vp.warn{background:rgba(234,179,8,.15);color:#fde047}
+  .vp.bad{background:rgba(239,68,68,.15);color:#fca5a5}
+  /* WATERFALL */
+  .wf{margin:14px 0}
+  .wf-row{display:flex;align-items:center;gap:12px;margin:7px 0;font-size:12.5px}
+  .wf-lab{width:230px;flex-shrink:0;color:var(--muted);font-family:ui-monospace,monospace;font-size:11.5px}
+  .wf-track{flex:1;background:rgba(255,255,255,.04);border-radius:8px;height:26px;position:relative;overflow:hidden}
+  .wf-bar{position:absolute;top:0;bottom:0;border-radius:8px;background:var(--grad);width:0;transition:width 1s cubic-bezier(.2,.8,.2,1);display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:11px;font-weight:700;color:#fff;min-width:34px}
+  .wf-bar.par{background:linear-gradient(110deg,#22c55e,#16a34a)}
+  /* SIM */
+  .sim{background:var(--card);border:1px solid var(--card-bd);border-radius:18px;padding:20px;margin:16px 0}
+  .sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .ctrl{margin:14px 0}
+  .ctrl label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;color:var(--muted)}
+  .ctrl label b{color:#fff}
+  input[type=range]{width:100%;accent-color:var(--g2);height:5px}
+  .toggle{display:flex;align-items:center;gap:10px;margin:18px 0;font-size:14px}
+  .switch{position:relative;width:52px;height:28px;background:rgba(255,255,255,.12);border-radius:20px;cursor:pointer;transition:.2s;flex-shrink:0}
+  .switch.on{background:linear-gradient(110deg,#22c55e,#16a34a)}
+  .switch .knob{position:absolute;top:3px;left:3px;width:22px;height:22px;background:#fff;border-radius:50%;transition:.2s}
+  .switch.on .knob{left:27px}
+  .out{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px}
+  .outc{background:rgba(255,255,255,.04);border:1px solid var(--card-bd);border-radius:12px;padding:14px;text-align:center;transition:.3s}
+  .outc .v{font-size:24px;font-weight:800;line-height:1}
+  .outc .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:5px}
+  .dots{display:flex;flex-wrap:wrap;gap:5px;margin-top:14px;align-content:flex-start;max-height:180px;overflow:hidden}
+  .dot{width:13px;height:13px;border-radius:50%;background:var(--g2);transition:.4s;opacity:.9}
+  .dot.done{background:rgba(255,255,255,.10)}
+  /* GAUGES */
+  .gauges{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-top:12px}
+  .gauge{background:var(--card);border:1px solid var(--card-bd);border-radius:16px;padding:16px;text-align:center}
+  .gauge svg{transform:rotate(-90deg)}
+  .gauge .gv{font-size:22px;font-weight:800}
+  .gauge .gl{font-size:12.5px;color:var(--muted);margin-top:4px}
+  /* TIMELINE */
+  .tl{position:relative;margin:18px 0 0;padding-left:26px}
+  .tl::before{content:"";position:absolute;left:8px;top:6px;bottom:6px;width:2px;background:linear-gradient(var(--g1),var(--g3))}
+  .tl-item{position:relative;margin-bottom:16px}
+  .tl-item::before{content:"";position:absolute;left:-22px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--grad);box-shadow:0 0 0 4px rgba(124,58,237,.18)}
+  .tl-item .t{font-weight:700}
+  .tl-item .d{color:var(--muted);font-size:13px}
+  .tl-item .loc{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--mono)}
+  /* BAR CHART */
+  .bars{margin-top:10px}
+  .bar-row{display:flex;align-items:center;gap:12px;margin:6px 0;font-size:12.5px}
+  .bar-lab{width:180px;flex-shrink:0;font-family:ui-monospace,monospace;font-size:11.5px;color:var(--muted)}
+  .bar-track{flex:1;height:20px;background:rgba(255,255,255,.04);border-radius:6px;overflow:hidden}
+  .bar-fill{height:100%;width:0;background:var(--grad);border-radius:6px;transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+  .bar-val{width:54px;text-align:right;font-family:ui-monospace,monospace;font-size:11.5px;color:var(--muted)}
+  .reveal{opacity:0;transform:translateY(18px);transition:.6s}
+  .reveal.in{opacity:1;transform:none}
+  .empty{color:var(--muted);text-align:center;padding:40px;font-style:italic}
+  .note{font-size:12px;color:var(--muted);font-style:italic;margin-top:8px}
+  /* back to top */
+  #top{position:fixed;right:22px;bottom:22px;z-index:60;width:46px;height:46px;border-radius:50%;border:none;
+    background:var(--grad);color:#fff;font-size:20px;cursor:pointer;opacity:0;pointer-events:none;transition:.3s;box-shadow:0 10px 30px -8px var(--g2)}
+  #top.show{opacity:1;pointer-events:auto}
+  @media(max-width:720px){
+    .sim-grid{grid-template-columns:1fr}
+    .floc{display:none}
+    .wf-lab,.bar-lab{width:120px}
+    .search input{width:140px}
+    .nav-in{gap:8px}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-in">
+    <span class="brand">◆ OPENDRAP AUDIT</span>
+    <div class="tabs" id="tabs"></div>
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
+      <input id="search" placeholder="Search findings…" autocomplete="off"/>
+    </div>
+  </div>
+</nav>
+
+<main id="main"></main>
+
+<button id="top" title="Back to top">↑</button>
+
+<script>
+/* ============================================================
+   DATA  — every claim cites a real file:line from the codebase.
+   Estimates are explicitly marked "(est)".
+   ============================================================ */
+
+const REPORTS = [
+  {id:"overview",   icon:"🛰️", name:"Overview",        blurb:"Hero stats, health scorecard & the top fixes."},
+  {id:"security",   icon:"🛡️", name:"Security",         blurb:"Auth, secrets, IDOR & injection across the Worker."},
+  {id:"agent",      icon:"💻", name:"Local Agent (server.py)", blurb:"The localhost shell agent — unauth RCE & injection."},
+  {id:"concurrency",icon:"⚙️", name:"Concurrency",      blurb:"Durable Objects, the LLM hot path & a live simulator."},
+  {id:"perf",       icon:"🚀", name:"Backend Perf",     blurb:"D1 query patterns, N+1 writes & the dashboard waterfall."},
+  {id:"db",         icon:"🗄️", name:"Database (D1)",    blurb:"26-table schema, missing indexes & data-type smells."},
+  {id:"frontend",   icon:"🎨", name:"Frontend",         blurb:"React bundle, code-splitting, polling & token storage."},
+];
+
+const FINDINGS = [
+  /* ---------- SECURITY (Cloudflare Worker) ---------- */
+  {id:"SEC-1",tab:"security",sev:"critical",title:"Hardcoded admin key grants full admin to anyone",
+   loc:"workers/src/middleware/admin.ts:3",metric:"static secret",
+   plain:"The whole admin panel is 'protected' by one password baked into the source code. Anyone who reads the repo can list, edit and delete every user and read every secret.",
+   problem:"<code>const ADMIN_KEY = 'opendrapdev@2026';</code> and <code>if (key !== ADMIN_KEY)</code> (admin.ts:3,7). The key is a compile-time constant in git, not tied to any user or role. Admin routes (routes/admin.ts:11) trust only the <code>X-Admin-Key</code> header, exposing user delete/role-change and <code>listEnvVars</code> which returns secrets in cleartext (controllers/admin.ts:126-130).",
+   fix:"Remove the constant. Require a verified JWT plus a DB <code>role === 'admin'</code> check (the <code>users.role</code> column already exists). Rotate the leaked key."},
+  {id:"SEC-2",tab:"security",sev:"critical",title:"Weak, unsalted password hashing (plain SHA-256)",
+   loc:"workers/src/auth/index.ts:23-29",metric:"no salt / 1 round",
+   plain:"Passwords are stored as a single-round SHA-256 with no salt — trivially cracked with GPU/rainbow tables, and identical passwords get identical hashes.",
+   problem:"<code>crypto.subtle.digest('SHA-256', data)</code> → hex (auth/index.ts:26). No salt, no key-stretching. Confirmed in DB: seed.sql:8 stores a bare 64-hex hash. <code>comparePassword</code> also uses non-constant-time <code>hashed === hash</code> (auth/index.ts:36).",
+   fix:"Use PBKDF2 via WebCrypto (<code>deriveBits</code>, 100k+ iterations, random per-user salt) or scrypt/argon2. Store salt+iterations, use a constant-time compare, re-hash on next login."},
+  {id:"SEC-3",tab:"security",sev:"critical",title:"JWT/dev secret committed to git",
+   loc:"workers/.dev.vars:2",metric:"secret in repo",
+   plain:"A secrets file is committed containing the JWT signing key. Anyone with repo access can forge valid login tokens for any user if that value is reused anywhere.",
+   problem:"<code>git ls-files</code> confirms <code>workers/.dev.vars</code> is tracked; no <code>workers/.gitignore</code> and the root .gitignore doesn't cover it. JWTs are signed with <code>env.JWT_SECRET</code> (auth/index.ts:5-11); a known secret lets an attacker mint <code>{sub:&lt;anyUserId&gt;}</code> tokens and impersonate anyone, including admins.",
+   fix:"<code>git rm --cached workers/.dev.vars</code>, add to .gitignore, rotate the secret, and set production <code>JWT_SECRET</code> only via <code>wrangler secret put</code>. Treat the current value as compromised."},
+  {id:"SEC-4",tab:"security",sev:"critical",title:"IDOR: bugs & tasks have no project-membership check",
+   loc:"workers/src/controllers/bugs.ts:62 · tasks.ts:60",metric:"broken access control",
+   plain:"Any logged-in user can read, edit or delete any bug or task in any project just by guessing the id — there's no check that they belong to the project.",
+   problem:"Handlers fetch by id and act with no membership verification: bugs.ts getBug(:62) updateBug(:75) deleteBug(:97) addBugComment(:110); listBugs(:44) takes <code>project_id</code> from the query unchecked; reportBug(:7) accepts arbitrary <code>body.project_id</code>. Same in tasks.ts (:60,:73,:94,:41,:7). Contrast projects.ts:72-76 which does it correctly.",
+   fix:"In every bug/task handler resolve the project, load <code>ProjectRepository.getMembers()</code> and reject non-members — mirror the <code>updateProject</code> pattern."},
+  {id:"SEC-5",tab:"security",sev:"critical",title:"IDOR → cross-tenant terminal command execution",
+   loc:"workers/src/controllers/terminal.ts:32 · chat.ts:64",metric:"cross-tenant RCE",
+   plain:"Any logged-in user can open ANY project's terminal WebSocket and run shell commands on that project's agent, and read/post in any chat — just by supplying the id.",
+   problem:"<code>getWebSocket</code> (terminal.ts:32) derives the Durable Object from a user-supplied <code>projectId</code> query param (:35-39) with no membership check, then upgrades the socket; commands sent over it are executed by the connected agent. Chat: getChat(:64) getChatMessages(:77) sendMessage(:92) chatWebSocket(:141) all skip membership checks.",
+   fix:"Verify project membership before creating/joining a terminal session and chat membership before any chat socket; reject otherwise."},
+  {id:"SEC-6",tab:"security",sev:"high",title:"CORS wildcard origin combined with credentials",
+   loc:"workers/src/index.ts:31-35",metric:"origin: '*'",
+   plain:"The API tells every website 'you may call me and send credentials', widening CSRF/exfiltration exposure.",
+   problem:"<code>cors({ origin:'*', credentials:true, allowHeaders:[…] })</code>. <code>ACAO:*</code> with <code>ACAC:true</code> is an invalid/insecure combination. Auth is Bearer-token so impact is reduced, but the policy intent is wrong.",
+   fix:"Set <code>origin</code> to an explicit allowlist (e.g. <code>FRONTEND_URL</code>) and only enable credentials if cookies are actually used."},
+  {id:"SEC-7",tab:"security",sev:"high",title:"Auth token accepted from URL query string",
+   loc:"workers/src/middleware/auth.ts:15",metric:"token in URL",
+   plain:"Tokens can be passed as ?token=… in the URL, which leaks into server/proxy logs, browser history and Referer headers.",
+   problem:"<code>const queryToken = c.req.query('token')</code> (auth.ts:15,20-21). The WS/install flows embed <code>&token=…</code> in URLs. Combined with 7-day tokens (SEC-8) this is high-risk credential leakage.",
+   fix:"Prefer <code>Authorization: Bearer</code> only. For WebSockets use a subprotocol header or a short-lived single-use ticket, never a long-lived JWT in the URL."},
+  {id:"SEC-8",tab:"security",sev:"high",title:"7-day JWTs with no revocation; logout is a no-op",
+   loc:"workers/src/auth/index.ts:10",metric:"exp: 7d",
+   plain:"Login tokens last a full week and can't be revoked. A stolen token works for 7 days; 'logout' does nothing server-side.",
+   problem:"<code>.setExpirationTime('7d')</code> (auth/index.ts:10). <code>logout</code> is a no-op (controllers/auth.ts:75-77). No token versioning/denylist. Compounds with SEC-3 and SEC-7.",
+   fix:"Short access-token lifetime (15-60 min) + refresh tokens, or a <code>token_version</code> claim compared against the user row (already loaded at auth.ts:31). Support real revocation."},
+  {id:"SEC-9",tab:"security",sev:"high",title:"Admin can escalate any account to admin",
+   loc:"workers/src/controllers/admin.ts:91-94",metric:"priv-esc primitive",
+   plain:"The admin update endpoint lets the (public, hardcoded) key set any user's role to admin and delete any user with no safeguards.",
+   problem:"<code>if (VALID_ROLES.includes(body.role)) { fields.push('role = ?') … }</code> writes role directly (admin.ts:91-94); <code>deleteUserAdmin</code> (:118-122) deletes by id with no 'last admin' protection or audit. Given SEC-1, this is a direct privilege-escalation primitive.",
+   fix:"Fix SEC-1 first; restrict role changes to genuine admins, log them, and prevent removing the final admin."},
+  {id:"SEC-10",tab:"security",sev:"medium",title:"Verbose internal error messages returned to clients",
+   loc:"workers/src/utils/helpers.ts:39-44",metric:"info leak",
+   plain:"When something breaks, the raw internal error message is sent back to the client with HTTP 500.",
+   problem:"<code>fail()</code> returns <code>error: err.message</code> and defaults to 500 for any non-AppError; used pervasively (bugs.ts, tasks.ts, chat.ts, terminal.ts…). The global onError (index.ts:392-398) is safe, but per-controller <code>fail()</code> bypasses it.",
+   fix:"Only echo messages for known <code>AppError</code>s; for unexpected errors return a generic message and log server-side."},
+  {id:"SEC-11",tab:"security",sev:"medium",title:"OAuth flows missing state parameter (login CSRF)",
+   loc:"workers/src/controllers/auth.ts:92-103",metric:"no CSRF state",
+   plain:"Google/GitHub login don't use a state parameter, so an attacker can stitch their auth code onto a victim's session.",
+   problem:"<code>googleAuth</code>/<code>githubAuth</code> build the authorize URL with no <code>state</code>; callbacks (:105,:136) never validate one. Tokens are returned via redirect query <code>?token=…</code> (:115,:145).",
+   fix:"Generate & verify a random <code>state</code> (plus PKCE for Google) tied to the session; return tokens via a non-URL mechanism."},
+  {id:"SEC-12",tab:"security",sev:"medium",title:"reportBug / createTask write unvalidated body to DB",
+   loc:"workers/src/controllers/bugs.ts:10-36",metric:"no schema validation",
+   plain:"Bug/task create & update do only ad-hoc 'if missing' checks and pass the rest of the body straight to the DB.",
+   problem:"Zod schemas <code>createBugSchema</code>/<code>updateBugSchema</code>/<code>createTaskSchema</code> exist (validators/index.ts:71-106) but aren't used; <code>updateBug</code>/<code>updateTask</code> pass the whole body to the repo. Values are bound (no injection) but invalid enums/foreign keys persist.",
+   fix:"Apply the existing Zod schemas, as auth.ts/users.ts/projects.ts already do."},
+  {id:"SEC-13",tab:"security",sev:"low",title:"Account-linking on unverified OAuth email",
+   loc:"workers/src/auth/oauth.ts:61-66",metric:"account takeover",
+   plain:"If an OAuth email matches an existing account it's auto-linked, even when the provider email is unverified.",
+   problem:"GitHub path falls back to <code>emails[0]?.email</code> (oauth.ts:138) without checking <code>verified</code>, then links to the matching local account (:147-152).",
+   fix:"Only link on provider-verified emails."},
+
+  /* ---------- LOCAL AGENT (server.py) ---------- */
+  {id:"AGT-1",tab:"agent",sev:"critical",title:"Unauthenticated arbitrary command execution (WS)",
+   loc:"server.py:116-134",metric:"unauth RCE",
+   plain:"Anyone who can open a WebSocket to port 8788 can run any shell command on the developer's machine. The handler never checks a token, session or origin.",
+   problem:"<code>handle_terminal_ws</code> sends <code>session_ready</code> then loops <code>async for message</code>, calling <code>session.execute(cmd)</code> (:131) on any <code>terminal_input</code> with zero auth. The HTTP <code>/api/terminal/session</code> check (:324-329) is never enforced on the WS. Bound to localhost, but reachable via local processes, DNS-rebinding (wildcard CORS) or a tunnel.",
+   fix:"Validate a session token on the WS connection, check <code>Origin</code> against an allowlist, bind to 127.0.0.1 with a per-session secret, and sandbox/allowlist commands."},
+  {id:"AGT-2",tab:"agent",sev:"critical",title:"Command injection in subprocess construction",
+   loc:"server.py:94 · server.py:99",metric:"shell injection",
+   plain:"Even the 'safe-looking' parts build a command by gluing strings, so input can break out and run extra commands.",
+   problem:"Windows: <code>ps_in = f'Set-Location \"{self.cwd}\"; {translated}\\n'</code> (:94) injects the command into a PowerShell script — <code>;</code> <code>|</code> <code>&</code> <code>$(…)</code> all execute. POSIX: <code>full_cmd = f'cd \"{self.cwd}\" &amp;&amp; {translated}'</code> run via <code>create_subprocess_shell</code> (:99-104) = <code>/bin/sh -c</code>. <code>self.cwd</code> is user-controlled too.",
+   fix:"Don't build shell strings — use argv execution (<code>create_subprocess_exec</code>, no shell), or a locked-down PTY/container. Never interpolate cwd or input into a shell string."},
+  {id:"AGT-3",tab:"agent",sev:"critical",title:"Hardcoded universal password 'demo'; token = email",
+   loc:"server.py:290",metric:"auth bypass",
+   plain:"Any known account logs in with the password 'demo', and the token issued is just the email — guessable and forgeable.",
+   problem:"<code>if email in users and password == 'demo'</code> (:290); on success <code>token = email</code> (:292,318). <code>/api/auth/me</code> (:174) and <code>/api/terminal/session</code> (:328) trust this token with no signature or expiry.",
+   fix:"Remove the hardcoded password; store salted hashes; issue signed, expiring tokens; never use the email as the bearer token."},
+  {id:"AGT-4",tab:"agent",sev:"high",title:"CORS wildcard on all responses incl. auth",
+   loc:"server.py:138-141",metric:"ACAO: *",
+   plain:"Any website your browser visits can call this local API — the enabling layer for DNS-rebinding against the RCE.",
+   problem:"<code>send_cors_headers</code> sets <code>Access-Control-Allow-Origin: *</code> and allows <code>Authorization</code> on every response, including <code>/api/auth/login</code> (password 'demo') and <code>/api/terminal/session</code>.",
+   fix:"Restrict Allow-Origin to the trusted frontend origin; validate Origin; never reflect * on auth endpoints."},
+  {id:"AGT-5",tab:"agent",sev:"medium",title:"Info disclosure: hostname + cwd without auth",
+   loc:"server.py:272-273",metric:"recon",
+   plain:"Anyone can read the machine's hostname and current directory path with no login.",
+   problem:"<code>/api/hostname</code> returns <code>{hostname, cwd: os.getcwd()}</code> (:273) unauthenticated; <code>session_ready</code> also leaks hostname & cwd over WS before any auth (:119-124).",
+   fix:"Gate behind auth; avoid returning absolute filesystem paths."},
+  {id:"AGT-6",tab:"agent",sev:"medium",title:"Unauthenticated /api/projects and install.sh",
+   loc:"server.py:182-229",metric:"open endpoints",
+   plain:"Project data and a downloadable bash installer are served to anyone.",
+   problem:"<code>/api/projects</code> (:182) returns data with no token; <code>/api/terminal/install.sh</code> (:231) serves an executable bash script hardcoding <code>ws://localhost:8788</code> (:249) — a curl|bash installer.",
+   fix:"Require auth for project data; sign/document the installer."},
+  {id:"AGT-7",tab:"agent",sev:"medium",title:"Path traversal via cd — no workspace jail",
+   loc:"server.py:68-77",metric:"no sandbox",
+   plain:"The cd command lets the client move the working directory anywhere on disk, then run commands there.",
+   problem:"<code>execute</code> resolves <code>cd</code> targets (incl. <code>~</code> and absolute paths) with <code>os.path.abspath</code> and only checks <code>isdir</code> (:72-77) — no confinement. <code>WORKSPACE = ~/opendrap-agent</code> (:18) is defined but never enforced.",
+   fix:"Confine sessions to WORKSPACE; reject targets resolving outside it; drop ~ expansion."},
+  {id:"AGT-8",tab:"agent",sev:"medium",title:"Blocking single-threaded HTTP server",
+   loc:"server.py:355-357",metric:"serial requests",
+   plain:"The HTTP server handles one request at a time and each command can block 30s; concurrent users queue or stall.",
+   problem:"<code>HTTPServer</code> (not <code>ThreadingHTTPServer</code>) serves serially (:355). Each WS command awaits <code>communicate()</code> up to 30s (:95-97,105) and buffers all output in RAM (:106); no input-size cap (:129).",
+   fix:"Use <code>ThreadingHTTPServer</code> / migrate to ASGI; stream subprocess output; cap output & input sizes."},
+  {id:"AGT-9",tab:"agent",sev:"low",title:"In-memory, race-prone, non-persistent state",
+   loc:"server.py:21-22",metric:"no locking",
+   plain:"Users and sessions live only in memory and are mutated without locking; all state is lost on restart.",
+   problem:"Module-level dicts <code>sessions</code>/<code>users</code> (:21-22) mutated from the HTTP thread (:317,331). Safe under the current single-threaded server, but a threading fix introduces races.",
+   fix:"Add locking if threading is introduced; persist to a real store if durability matters."},
+
+  /* ---------- CONCURRENCY ---------- */
+  {id:"CON-1",tab:"concurrency",sev:"critical",title:"All terminal traffic funneled through ONE Durable Object id",
+   loc:"workers/src/controllers/terminal.ts:12 · index.ts:290",metric:"single thread for all",
+   plain:"The installed agent always uses projectId='default', and browsers connect to the same id — so a single, single-threaded Durable Object instance is the bottleneck for the entire deployment.",
+   problem:"<code>idFromName(`terminal-${projectId}`)</code> (terminal.ts:12,39) and the install script forces <code>projectId=default</code> (index.ts:290). Every output frame loops over ALL websockets and splices per-session 1000-line buffers (terminal.ts:248-263). With N viewers each output chunk does N sends + N array splices on one thread.",
+   fix:"Shard the DO id per session/user (<code>terminal-${projectId}-${userId}</code>); use the Hibernatable WebSocket API (<code>state.acceptWebSocket()</code>); keep one shared ring buffer per DO instead of per-session 1000-line arrays."},
+  {id:"CON-2",tab:"concurrency",sev:"high",title:"setInterval heartbeats inside Durable Objects",
+   loc:"workers/src/durable-objects/terminal.ts:365-380",metric:"blocks hibernation",
+   plain:"Timers inside a Durable Object keep it alive (and billable) 24/7 and are lost on eviction, so a crashed agent can look 'online'.",
+   problem:"<code>startHeartbeatTimer</code> (terminal.ts:365-380, 30s) and <code>startHeartbeat</code> (agent.ts:140-146, 30s) use <code>setInterval</code>. It blocks hibernation and isn't durable; on eviction the timer is lost while persisted <code>agentSessionId</code> remains.",
+   fix:"Replace with Durable Object Alarms (<code>state.storage.setAlarm()</code>) — durable, survive eviction, allow hibernation between checks."},
+  {id:"CON-3",tab:"concurrency",sev:"high",title:"Blocking external LLM call on the request thread",
+   loc:"workers/src/ai/index.ts:78-104",metric:"~2-8s/req (est)",
+   plain:"Every AI endpoint holds the request open for the entire LLM generation (seconds), with no timeout, no streaming and an unguarded JSON.parse of the result.",
+   problem:"<code>callGLM</code> does <code>await fetch(…)</code> (ai/index.ts:81) for glm-4-flash, max_tokens 2048 (:91) — ~2-8s/req (est), the dominant cost by ~3 orders of magnitude vs D1. Results are <code>JSON.parse</code>d assuming valid JSON (:35,63,75); only <code>test-run</code> catches errors. No fetch timeout, no retry/backoff.",
+   fix:"Add an AbortController timeout; for long jobs return 202 and run in <code>ctx.waitUntil()</code>/a Queue with D1 polling; stream (<code>stream:true</code>) via SSE; wrap JSON.parse in try/catch + validate."},
+  {id:"CON-4",tab:"concurrency",sev:"high",title:"Synchronous activity-log write on every /api/* request",
+   loc:"workers/src/index.ts:38-56",metric:"+10-60ms/req (est)",
+   plain:"Every API call pays for a logging DB write on the hot path — and pointlessly re-SELECTs the row it just inserted, then throws the result away.",
+   problem:"The global middleware does <code>await repo.create(…)</code> after each request; <code>LogRepository.create</code> is TWO round trips — INSERT then <code>SELECT * WHERE id=?</code> (repositories/logs.ts:69-76) — and the returned value is discarded (index.ts:48). Plus auth adds one D1 SELECT per request (middleware/auth.ts:31).",
+   fix:"Drop the post-insert SELECT (build the object in memory); move the write into <code>ctx.waitUntil()</code> (it's already best-effort) or batch via Queues/Analytics Engine."},
+  {id:"CON-5",tab:"concurrency",sev:"medium",title:"O(connections) work per terminal output frame",
+   loc:"workers/src/durable-objects/terminal.ts:248-263",metric:"~1-3ms/frame×N (est)",
+   plain:"Each agent output chunk is split/filtered/re-joined and then pushed into a per-viewer 1000-line buffer with an O(n) array splice — all on the single DO thread.",
+   problem:"<code>output.split('\\n').filter(...).join('\\n')</code> per frame + per-session <code>push</code>/<code>splice(0,len-1000)</code> + stringify + send (terminal.ts:248-263). 4KB chunk × 50 viewers ≈ 1-3ms/frame (est); hundreds of frames/sec saturates the thread (compounds CON-1).",
+   fix:"One shared index-based ring buffer per DO (no splice); filter once; combine with CON-1 sharding."},
+  {id:"CON-6",tab:"concurrency",sev:"medium",title:"Un-awaited Durable Object storage writes",
+   loc:"workers/src/durable-objects/terminal.ts:183-184",metric:"persistence race",
+   plain:"Storage writes the cold-start path depends on aren't awaited, so the handler returns before persistence is acknowledged.",
+   problem:"<code>this.state.storage.put(…)</code>/<code>.delete(…)</code> with no <code>await</code> (terminal.ts:183-184,212,128-129,353-354; agent.ts:228). The persisted <code>lastHeartbeat</code>/<code>agentSessionId</code> read on restart (terminal.ts:31-46) may lag reality; rejections are silent.",
+   fix:"<code>await</code> at least the writes whose values are read on restart."},
+  {id:"CON-7",tab:"concurrency",sev:"medium",title:"ChatDO rewrites the entire message array per message",
+   loc:"workers/src/durable-objects/chat-do.ts:60-62",metric:"O(history)/msg",
+   plain:"Every chat message serializes and rewrites the whole message history, which grows unbounded and is also double-stored in D1.",
+   problem:"<code>this.chatState.messages.push(message); await storage.put('chatState', this.chatState)</code> (chat-do.ts:60-62) — O(history) write per message, never trimmed. <code>sendMessage</code> (controllers/chat.ts:109-130) ALSO writes to D1, so messages are stored twice.",
+   fix:"Store messages as keyed entries (<code>msg:${id}</code>) or make the DO broadcast-only and rely on D1; cap in-memory history."},
+  {id:"CON-8",tab:"concurrency",sev:"low",title:"Serial storage reads inside blockConcurrencyWhile",
+   loc:"workers/src/durable-objects/terminal.ts:31-46",metric:"cold-start stall",
+   plain:"On cold start the DO does two storage reads one after another while blocking all incoming requests to that id.",
+   problem:"Two serial <code>await storage.get</code> in <code>blockConcurrencyWhile</code> (terminal.ts:32-33). Shared by everyone reconnecting after eviction (worsened by the single 'default' id, CON-1).",
+   fix:"Batch: <code>const [stored,lastHb] = await Promise.all([...])</code>."},
+
+  /* ---------- BACKEND PERF ---------- */
+  {id:"PERF-1",tab:"perf",sev:"high",title:"N+1 INSERTs when creating a chat with members",
+   loc:"workers/src/controllers/chat.ts:37-43",metric:"1 + N round trips",
+   plain:"Each chat member is inserted with its own separate, sequential database call instead of in one batch.",
+   problem:"<code>for (const memberId of body.member_ids) { … await repo.addMember(chat.id, memberId) }</code> (chat.ts:37-43) → repositories/chat.ts:58-68 (one INSERT each). For a 20-person group that's ~22 sequential round trips (~1.1s+ at 50ms each). No cap on <code>member_ids</code>.",
+   fix:"Use <code>D1.batch()</code> to send all member INSERTs in one round trip, and cap the member count server-side."},
+  {id:"PERF-2",tab:"perf",sev:"high",title:"Dashboard fires 8 sequential queries (should be parallel)",
+   loc:"workers/src/controllers/dashboard.ts:11-34",metric:"~400ms → ~50ms",
+   plain:"The dashboard runs eight independent database calls back-to-back, waiting for each before starting the next — ~400ms of pure serial latency for work that could finish in ~50ms.",
+   problem:"No <code>Promise.all</code> (dashboard.ts:11-34): 4 COUNTs then 4 LIMITed lists, all <code>await</code>ed one by one. Also <code>SELECT COUNT(*) FROM error_logs</code> (:15) has NO WHERE — it counts platform-wide errors, not the user's (likely a correctness bug + unbounded scan).",
+   fix:"Wrap all 8 in one <code>Promise.all([...])</code> (collapses ~400ms→~50ms) and scope the error count to the user's projects. Optionally fold the 4 counts into one subquery."},
+  {id:"PERF-3",tab:"perf",sev:"medium",title:"Every list endpoint runs count + page as 2 serial queries",
+   loc:"workers/src/repositories/deployment.ts:26-37",metric:"2× queries / list",
+   plain:"Every 'list' screen runs two DB queries — one for the rows, one for the total — and in most repos they run one after the other instead of together.",
+   problem:"Pervasive count-then-select, not parallelized: deployment.ts:26-37, logs.ts:56-60/105-109, task.ts:39-45, bug.ts:34-40, project.ts:24-39, chat.ts:30-32/79-84, company/connection/notification/test/ai repos. admin.ts:49 already does it right with <code>Promise.all</code>.",
+   fix:"At minimum <code>const [rows,total] = await Promise.all([...])</code>. Better: a window count <code>COUNT(*) OVER()</code> in the same query to drop the second round trip."},
+  {id:"PERF-4",tab:"perf",sev:"medium",title:"getProject/update do redundant repeated round trips",
+   loc:"workers/src/controllers/projects.ts:69-78",metric:"~5 round trips/update",
+   plain:"These endpoints read the row, then read members, then write, then re-read members — several serial waits, and members are sometimes fetched twice.",
+   problem:"<code>updateProject</code> ≈ 5 round trips: findById(:69)→getMembers(:72)→update(:78, which itself re-findById twice in project.ts:114,139). <code>addMember</code>/<code>updateMember</code> re-call <code>getMembers</code> after mutating (projects.ts:124). Read paths (getProject:51-54, getCompany) don't parallelize.",
+   fix:"<code>Promise.all</code> the independent reads; reuse the in-memory members array; have <code>update()</code> return the merged object instead of re-findById."},
+  {id:"PERF-5",tab:"perf",sev:"low",title:"Chat total counted from chat_members, not the JOIN",
+   loc:"workers/src/repositories/chat.ts:30-33",metric:"count mismatch",
+   plain:"The chat list total can overstate the rows actually returned.",
+   problem:"<code>total</code> is <code>COUNT(*) FROM chat_members WHERE user_id=?</code> but the list is <code>chats INNER JOIN chat_members</code> (chat.ts:30-33); a chat_members row to a deleted chat inflates the count.",
+   fix:"Use a windowed count so the total always matches the returned set (see PERF-3)."},
+  {id:"PERF-6",tab:"perf",sev:"low",title:"register() does 2 sequential existence checks",
+   loc:"workers/src/controllers/auth.ts:20-28",metric:"~4 round trips",
+   plain:"Registration checks email then username one after the other, then re-reads the new row.",
+   problem:"<code>findByEmail</code>(:20) then <code>findByUsername</code>(:25) serial, plus <code>create</code> re-findById (user.ts:101) ≈ 4 round trips. Low impact (rare path).",
+   fix:"<code>Promise.all</code> the two checks; have <code>create</code> return the constructed object."},
+
+  /* ---------- DATABASE (D1) ---------- */
+  {id:"DB-1",tab:"db",sev:"medium",title:"Foreign keys with ON DELETE CASCADE but no index",
+   loc:"workers/migrations/0001_initial.sql:145,179,230",metric:"full-scan on delete",
+   plain:"Several foreign keys (created_by / user_id / sender_id) have no index, so 'by user' queries and user-deletion cascades force full table scans.",
+   problem:"Unindexed FK columns: tasks.created_by (0001:145,150), bugs.created_by (:179,184), task_comments.user_id (:160,164), bug_comments.user_id (:194,198), messages.sender_id (:230,237), chats.created_by (:208,211), deployments.created_by (:116,119), api_collections.created_by (:278,281), ai_test_runs.created_by (:305,308), test_runs.created_by (0002:11,15). All have ON DELETE CASCADE.",
+   fix:"Add indexes, e.g. <code>CREATE INDEX idx_tasks_created_by ON tasks(created_by);</code> for each. messages.sender_id is the most urgent (largest table)."},
+  {id:"DB-2",tab:"db",sev:"medium",title:"JSON blobs stored as TEXT, un-indexable",
+   loc:"workers/migrations/0001_initial.sql:80",metric:"parse-per-row",
+   plain:"Columns that hold JSON are stored as TEXT, so any filtering on their contents must parse every row in JS — no index can help.",
+   problem:"projects.environment (0001:80), api_requests.headers (:291), ai_test_runs.results (:304), test_runs.test_results/screenshots/config (0002:6,7,10). App code reads these fields.",
+   fix:"If filtered, promote hot keys to real columns or use generated columns + index on <code>json_extract(...)</code>; otherwise document as opaque blobs."},
+  {id:"DB-3",tab:"db",sev:"low",title:"command_results: no created_at index, no status CHECK",
+   loc:"workers/migrations/0003_agent_logs.sql:18-19",metric:"scan on order/prune",
+   plain:"Per-session command output is time-series data but has no time index, and its status column (unlike every other table) has no allowed-value constraint.",
+   problem:"<code>command_results</code> only indexes session_id (0003:22); listing/pruning by <code>created_at</code> (:19) scans. <code>status</code> (:18) is free-form NOT NULL TEXT — every other status column uses <code>CHECK(status IN (...))</code>.",
+   fix:"<code>CREATE INDEX idx_command_results_created ON command_results(created_at);</code> and add a CHECK constraint matching the convention."},
+  {id:"DB-4",tab:"db",sev:"low",title:"Redundant indexes duplicating UNIQUE constraints",
+   loc:"workers/migrations/0005_plan_env.sql:8-15",metric:"wasted writes",
+   plain:"A few explicit indexes duplicate an existing UNIQUE constraint, costing extra write throughput and storage for no benefit.",
+   problem:"<code>env_vars.key</code> is UNIQUE (0005:8) yet <code>idx_env_vars_key</code> (:15) re-indexes it. Same for <code>users.email</code>/<code>username</code> — idx (0001:25,26) duplicate the UNIQUE constraints (0001:9,11).",
+   fix:"Drop the redundant indexes; UNIQUE already creates an implicit unique index."},
+  {id:"DB-5",tab:"db",sev:"low",title:"Time-ordered list tables missing created_at index",
+   loc:"workers/migrations/0001_initial.sql:117,180,146",metric:"unindexed ORDER BY (est)",
+   plain:"Some tables shown as 'latest N' lists have no created_at index, so date sorts/ranges run unindexed.",
+   problem:"deployments (0001:117), bugs (:180), tasks (:146), error_logs (:322), test_runs (0002:12) lack created_at indexes, while messages/agent_logs/notifications/activity_logs got them. (est — depends on real query patterns.)",
+   fix:"Add <code>created_at</code> (or composite <code>(project_id, created_at)</code>) indexes where lists sort by time."},
+  {id:"DB-6",tab:"db",sev:"low",title:"All timestamps stored as TEXT; inconsistent id generation",
+   loc:"workers/migrations/0001_initial.sql:22-23",metric:"data-type smell",
+   plain:"Timestamps are ISO strings (fragile sort if any non-ISO value sneaks in) and one table generates ids in the DB while all others rely on the app.",
+   problem:"Every created_at/updated_at is TEXT (e.g. 0001:22-23). <code>env_vars.id</code> has a DB default <code>lower(hex(randomblob(8)))</code> (0005:7) while all other ids are bare app-supplied TEXT.",
+   fix:"Enforce strict ISO-8601 (or store integer epoch) and standardize id generation across tables."},
+
+  /* ---------- FRONTEND ---------- */
+  {id:"FE-1",tab:"frontend",sev:"high",title:"Hardcoded admin key shipped in the client bundle",
+   loc:"src/lib/adminApi.ts:2",metric:"secret in JS",
+   plain:"The master admin key is written into frontend source, so anyone can open DevTools, read it, and call the admin API. The admin gate is just a localStorage flag.",
+   problem:"<code>const ADMIN_KEY = 'opendrapdev@2026';</code> sent as <code>X-Admin-Key</code> (adminApi.ts:2,9), bundled into client JS. Admin access is gated only by <code>opendrap_admin_session === 'true'</code> in localStorage (App.tsx:45-46), settable from the console. Also a hardcoded <code>DEMO_TOKEN</code> (api.ts:2).",
+   fix:"Remove the key from the client; authenticate admin endpoints server-side via the user's JWT + role check (also fixes SEC-1)."},
+  {id:"FE-2",tab:"frontend",sev:"high",title:"Auth token in localStorage and leaked in WS URLs",
+   loc:"src/lib/api.ts:80",metric:"XSS-readable",
+   plain:"The JWT lives in localStorage (any injected script can steal it) and the same token is placed in WebSocket URLs, where it ends up in logs and history.",
+   problem:"<code>localStorage.getItem('token')</code> (api.ts:80,109,114,123); interpolated into WS URLs at ProjectsPage.tsx:381, DashboardLayout.tsx:65, ProjectDetails.tsx:218/317/358. <code>github_pat</code> also in localStorage (api.ts:357).",
+   fix:"Use httpOnly+Secure+SameSite cookies, or keep a header token in memory; send the WS token in the first message after onopen, not the URL."},
+  {id:"FE-3",tab:"frontend",sev:"high",title:"No route code-splitting — entire app in one bundle",
+   loc:"src/app/App.tsx:4-34",metric:"0 lazy() routes",
+   plain:"Every page (docs, landing, all dashboards, admin) loads up front, so the first paint downloads code for screens the user may never visit.",
+   problem:"All 30+ route components are static imports (App.tsx:4-34); zero <code>React.lazy</code>/<code>Suspense</code> (grep = 0). Heaviest pulled in eagerly: ProjectDetails (1793 lines), DocsPage (1064), ProjectsPage (1008), Landing pages, recharts-heavy Monitoring. No <code>manualChunks</code> in vite.config.ts.",
+   fix:"<code>const X = lazy(() => import('./pages/X'))</code> + a <code>&lt;Suspense&gt;</code> boundary; split admin & landing; add manualChunks for recharts/radix vendors."},
+  {id:"FE-4",tab:"frontend",sev:"high",title:"ProjectDetails.tsx is a 1793-line god component",
+   loc:"src/app/components/ProjectDetails.tsx:1",metric:"1793 lines",
+   plain:"One file owns overview, deployments, terminal, logs, errors, AI testing, API lab, monitoring and settings plus 3+ WebSocket lifecycles — hard to maintain and it re-renders far more than needed.",
+   problem:"9 tabs inline (ProjectDetails.tsx:162-172), 14 useMemo/useCallback in one file, 3+ WebSocket refs/handlers (:136,943,218,317,358). Any state change re-renders the whole tree.",
+   fix:"Split each tab into its own lazy-loaded child; move WS connections into dedicated hooks (also enables FE-3 per-tab splitting)."},
+  {id:"FE-5",tab:"frontend",sev:"medium",title:"LogsPage polls every 5s and refetches on every keystroke",
+   loc:"src/app/pages/LogsPage.tsx:61-97",metric:"no debounce",
+   plain:"The logs screen hits the API every 5 seconds, and every character typed in the search box tears down and restarts the polling loop with an immediate extra fetch.",
+   problem:"<code>fetchLogs</code> is keyed on <code>[levelFilter,search]</code> (LogsPage.tsx:72); the polling effect depends on <code>[…,fetchLogs]</code> (:97), so each keystroke → new fetchLogs → clearInterval/setInterval restart + immediate fetch (:93). <code>search</code> goes to the API with no debounce. DashboardLayout also polls /terminal/history every 10s (:58).",
+   fix:"Debounce <code>search</code> (~300ms, as AdminUsersPage already does at :43-50); key the interval on <code>[paused]</code> only and read filters via refs; consider the existing WebSocket instead of polling."},
+  {id:"FE-6",tab:"frontend",sev:"medium",title:"List pages fetch all rows, filter in the browser, no pagination",
+   loc:"src/app/pages/BugsPage.tsx:157-184",metric:"unbounded fetch",
+   plain:"Bugs, tasks, companies, team and deployments load the entire dataset and do all searching/filtering client-side — fine now, but it won't scale.",
+   problem:"<code>apiGetBugs()</code> has no pagination params (api.ts:158-162); BugsPage loads everything (:157-158) then filters the full array (:169-184). DeploymentsPage filters in render (:38-44); TeamPage filters all members (:51-54). Only AdminUsersPage and apiGetProjects paginate server-side.",
+   fix:"Add page/limit/q params to these endpoints and move filtering server-side (mirror AdminUsersPage)."},
+  {id:"FE-7",tab:"frontend",sev:"medium",title:"Large unused dependencies bloat the tree",
+   loc:"package.json",metric:"0 app imports (est)",
+   plain:"Several big libraries are installed but never imported, and two charting/carousel stacks coexist.",
+   problem:"(est, via grep of src/) <code>@mui/material</code>+<code>@mui/icons-material</code>+<code>@emotion/*</code> have 0 imports; react-slick, react-responsive-masonry, react-dnd, react-popper likewise unused. recharts coexists with motion + embla/react-slick.",
+   fix:"Confirm with <code>npx depcheck</code>, then remove MUI/emotion, react-slick, masonry, react-dnd, popper; standardize on one chart + one carousel."},
+  {id:"FE-8",tab:"frontend",sev:"low",title:"MonitoringPage re-renders all charts every 2s",
+   loc:"src/app/pages/MonitoringPage.tsx:49-67",metric:"wasteful renders",
+   plain:"The monitoring dashboard rebuilds and re-renders every chart series twice a second, and the logs view smooth-scrolls on every new line.",
+   problem:"<code>setInterval(…,2000)</code> rebuilds the whole data record + re-renders all recharts (MonitoringPage.tsx:50-65); <code>currentValues</code> recomputed in render each tick (:69-73). LogsPage <code>scrollIntoView({behavior:'smooth'})</code> on every logs change (:99-103). Mock-data driven today, so low impact.",
+   fix:"Throttle updates / <code>isAnimationActive={false}</code>; use <code>behavior:'auto'</code> and only auto-scroll when pinned to bottom."},
+];
+
+/* D1 tables (subset of 26) for the models table */
+const TABLES = [
+  {n:"users",c:21,idx:"email, username, role, plan, is_disabled",flag:"warn",note:"email/username idx duplicate UNIQUE"},
+  {n:"projects",c:16,idx:"created_by, company_id, status",flag:"ok",note:"environment is a JSON blob"},
+  {n:"deployments",c:10,idx:"project_id, status",flag:"warn",note:"created_by & created_at unindexed"},
+  {n:"tasks",c:11,idx:"project_id, assignee_id, status",flag:"warn",note:"created_by unindexed"},
+  {n:"bugs",c:12,idx:"project_id, assigned_to, status",flag:"warn",note:"created_by unindexed"},
+  {n:"messages",c:8,idx:"chat_id, created_at",flag:"bad",note:"sender_id FK unindexed (large table)"},
+  {n:"chats",c:6,idx:"project_id",flag:"warn",note:"created_by unindexed"},
+  {n:"notifications",c:8,idx:"user_id, read, created_at",flag:"ok",note:"well indexed"},
+  {n:"activity_logs",c:6,idx:"user_id, project_id, created_at",flag:"ok",note:"written per /api/* request"},
+  {n:"error_logs",c:11,idx:"project_id, severity, status",flag:"warn",note:"counted unscoped by dashboard"},
+  {n:"command_results",c:6,idx:"session_id",flag:"bad",note:"no created_at idx, no status CHECK"},
+  {n:"env_vars",c:7,idx:"key (UNIQUE + dup idx)",flag:"warn",note:"holds secrets in cleartext"},
+];
+
+/* dashboard waterfall steps (estimated, ~50ms/query) */
+const WF = [
+  {l:"COUNT projects (dashboard.ts:11)",ms:50},
+  {l:"COUNT deployments (:13)",ms:50},
+  {l:"COUNT error_logs — no WHERE (:15)",ms:50},
+  {l:"COUNT bugs (:17)",ms:50},
+  {l:"recent projects LIMIT 5 (:20)",ms:50},
+  {l:"recent deployments JOIN (:24)",ms:50},
+  {l:"recent activity LIMIT 10 (:28)",ms:50},
+  {l:"notifications LIMIT 5 (:32)",ms:50},
+];
+
+/* biggest frontend files (lines, real wc -l) */
+const FILES = [
+  {n:"ProjectDetails.tsx",v:1793},{n:"DocsPage.tsx",v:1064},{n:"ProjectsPage.tsx",v:1008},
+  {n:"BugsPage.tsx",v:938},{n:"ChatPage.tsx",v:889},{n:"LandingPage.tsx",v:851},
+  {n:"ui/sidebar.tsx",v:726},{n:"CompaniesPage.tsx",v:704},{n:"NewLandingPage.tsx",v:695},
+  {n:"TasksPage.tsx",v:585},{n:"AdminUsersPage.tsx",v:547},
+];
+
+/* qualitative health scores (auditor rating 0-100, not a measured metric) */
+const GAUGES = [
+  {l:"Security",v:22,id:"security"},
+  {l:"Local Agent",v:12,id:"agent"},
+  {l:"Concurrency",v:42,id:"concurrency"},
+  {l:"Backend Perf",v:64,id:"perf"},
+  {l:"Database",v:74,id:"db"},
+  {l:"Frontend",v:58,id:"frontend"},
+];
+
+/* top fixes timeline */
+const FIXES = [
+  {t:"Lock down the local agent (server.py)",d:"Add WS auth + Origin check, switch to argv (no shell), remove the 'demo' password. Closes unauth RCE.",loc:"server.py:116,94,290 — AGT-1/2/3"},
+  {t:"Kill the hardcoded admin key (server + client)",d:"Replace X-Admin-Key with JWT + role check; remove the key from the bundle.",loc:"middleware/admin.ts:3 · adminApi.ts:2 — SEC-1/FE-1"},
+  {t:"Add ownership checks to bugs/tasks/chat/terminal",d:"Verify project/chat membership before acting on an id — stops cross-tenant access & terminal RCE.",loc:"bugs.ts:62 · terminal.ts:32 — SEC-4/5"},
+  {t:"Rotate the committed JWT secret",d:"git rm --cached .dev.vars, rotate, set prod secret via wrangler secret put.",loc:"workers/.dev.vars:2 — SEC-3"},
+  {t:"Parallelize the dashboard (Promise.all)",d:"~400ms → ~50ms with one line; scope the error count to the user.",loc:"dashboard.ts:11-34 — PERF-2"},
+  {t:"Shard the terminal Durable Object id",d:"Stop funneling all terminals through 'terminal-default'; use Hibernatable WebSockets.",loc:"terminal.ts:12 · index.ts:290 — CON-1"},
+  {t:"Make the LLM call non-blocking",d:"Timeout + 202/queue + streaming; guard JSON.parse.",loc:"ai/index.ts:78-104 — CON-3"},
+];
+
+const BEFORE_AFTER = {
+  before:`<span class="cmt">// dashboard.ts:11-34 — 8 queries, strictly sequential (~400ms)</span>
+const projectCount    = await db.prepare('SELECT COUNT(*) … projects …').first();
+const deploymentCount = await db.prepare('SELECT COUNT(*) … deployments …').first();
+const errorCount      = await db.prepare('SELECT COUNT(*) FROM error_logs').first(); <span class="cmt">// no WHERE!</span>
+const bugCount        = await db.prepare('SELECT COUNT(*) … bugs …').first();
+const recentProjects  = await db.prepare('SELECT * … LIMIT 5').all();
+const recentDeploys   = await db.prepare('SELECT … JOIN … LIMIT 5').all();
+const recentActivity  = await db.prepare('SELECT * … LIMIT 10').all();
+const notifications   = await db.prepare('SELECT * … LIMIT 5').all();`,
+  after:`<span class="cmt">// Parallel — all 8 fire at once (~50ms), error count scoped to user</span>
+const [counts, recentProjects, recentDeploys, recentActivity, notifications] =
+  await Promise.all([
+    db.prepare(\`SELECT
+        (SELECT COUNT(*) FROM projects     WHERE created_by=?1) AS projects,
+        (SELECT COUNT(*) FROM deployments  WHERE created_by=?1) AS deployments,
+        (SELECT COUNT(*) FROM error_logs e JOIN projects p ON e.project_id=p.id
+                                           WHERE p.created_by=?1) AS errors,
+        (SELECT COUNT(*) FROM bugs         WHERE assigned_to=?1) AS bugs\`).bind(user.id).first(),
+    db.prepare('SELECT * … LIMIT 5').bind(user.id).all(),
+    db.prepare('SELECT … JOIN … LIMIT 5').bind(user.id).all(),
+    db.prepare('SELECT * … LIMIT 10').bind(user.id).all(),
+    db.prepare('SELECT * … LIMIT 5').bind(user.id).all(),
+  ]);`
+};
+
+/* ============================================================ RENDER ============================================================ */
+const $ = (s,r=document)=>r.querySelector(s);
+const sevRank={critical:0,high:1,medium:2,low:3};
+const cap=s=>s[0].toUpperCase()+s.slice(1);
+let activeTab="overview", sevFilter="all", searchQ="";
+
+function countBy(tab){
+  const f = FINDINGS.filter(x=>!tab||x.tab===tab);
+  return {all:f.length,critical:f.filter(x=>x.sev==="critical").length,high:f.filter(x=>x.sev==="high").length,
+          medium:f.filter(x=>x.sev==="medium").length,low:f.filter(x=>x.sev==="low").length};
+}
+
+function findingCard(f){
+  return `<div class="finding" data-sev="${f.sev}" data-txt="${(f.id+' '+f.title+' '+f.loc+' '+f.plain).toLowerCase().replace(/"/g,'')}">
+    <div class="rail s-${f.sev}"></div>
+    <div class="fhead">
+      <span class="fid">${f.id}</span>
+      <span class="ftitle">${f.title}</span>
+      <span class="metric">${f.metric||""}</span>
+      <span class="floc">${f.loc}</span>
+      <span class="badge b-${f.sev}">${f.sev}</span>
+      <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+    <div class="fbody">
+      <div class="callout" style="margin:10px 0 0"><span class="tag">In plain English</span><br>${f.plain}</div>
+      <div class="lbl">The problem</div><div>${f.problem}</div>
+      <div class="fix-box"><div class="lbl">The fix</div><div>${f.fix}</div></div>
+    </div>
+  </div>`;
+}
+
+function tabFindings(tab){
+  return `<div class="chips" data-chipset>
+    ${["all","critical","high","medium","low"].map(s=>{
+      const c=countBy(tab); return `<button class="chip ${s==='all'?'active':''}" data-sev="${s}">${cap(s)} <span class="c">${c[s]}</span></button>`;
+    }).join("")}
+  </div>
+  <div data-findings>${FINDINGS.filter(f=>f.tab===tab).sort((a,b)=>sevRank[a.sev]-sevRank[b.sev]).map(findingCard).join("")}</div>`;
+}
+
+function panelOverview(){
+  const c=countBy(null);
+  return `<div class="panel" id="p-overview">
+    <h1>Architecture &amp; Performance <span class="grad-txt">Audit</span></h1>
+    <p class="sub">Evidence-based review of the <b>Opendrap DevOps AI Platform</b> — a Cloudflare Workers + D1 backend, a React/Vite frontend, and a localhost Python shell agent. Every finding cites a real <code class="mono">file:line</code>; estimates are marked <i>(est)</i>.</p>
+    <div class="hero">
+      <div class="stat reveal"><div class="n" data-count="${c.all}">0</div><div class="l">Total findings</div></div>
+      <div class="stat reveal"><div class="n" style="color:var(--crit)" data-count="${c.critical}">0</div><div class="l">Critical</div></div>
+      <div class="stat reveal"><div class="n" style="color:var(--high)" data-count="${c.high}">0</div><div class="l">High</div></div>
+      <div class="stat reveal"><div class="n" data-count="26">0</div><div class="l">D1 tables</div></div>
+      <div class="stat reveal"><div class="n" data-count="6">0</div><div class="l">Subsystems</div></div>
+    </div>
+
+    <div class="callout reveal"><span class="tag">The headline</span><br>
+      The platform's biggest risks are <b>not</b> performance — they're <b>security</b>. A localhost agent runs <b>arbitrary shell commands with no authentication</b> (server.py), the admin panel is gated by a <b>hardcoded key shipped to the browser</b>, and bugs/tasks/chat/terminal endpoints let any logged-in user <b>act on resources they don't own</b>. The single biggest performance win is a one-line <code>Promise.all</code> on the dashboard.</p>
+    </div>
+
+    <h2>🩺 Health scorecard <span class="note" style="font-weight:400">(auditor's qualitative rating, not a measured metric)</span></h2>
+    <div class="gauges" id="gauges"></div>
+
+    <h2>📑 Reports</h2>
+    <div class="cards">
+      ${REPORTS.filter(r=>r.id!=="overview").map(r=>{
+        const cc=countBy(r.id);
+        return `<div class="rcard reveal" data-goto="${r.id}">
+          <div class="ico">${r.icon}</div><h3>${r.name}</h3><p>${r.blurb}</p>
+          <span class="pill">${cc.all} findings · ${cc.critical} crit · ${cc.high} high</span>
+        </div>`;
+      }).join("")}
+    </div>
+
+    <h2>🛠️ Top fixes — do these first</h2>
+    <div class="tl">
+      ${FIXES.map(f=>`<div class="tl-item reveal"><div class="t">${f.t}</div><div class="d">${f.d}</div><div class="loc">${f.loc}</div></div>`).join("")}
+    </div>
+  </div>`;
+}
+
+function panelGeneric(rep, extra=""){
+  const c=countBy(rep.id);
+  return `<div class="panel" id="p-${rep.id}">
+    <h1>${rep.icon} ${rep.name}</h1>
+    <p class="sub">${rep.blurb} — <b>${c.all}</b> findings (${c.critical} critical, ${c.high} high, ${c.medium} medium, ${c.low} low).</p>
+    ${extra}
+    ${tabFindings(rep.id)}
+  </div>`;
+}
+
+function dbExtra(){
+  return `<div class="callout"><span class="tag">In plain English</span><br>The schema is actually <b>well-indexed on the common paths</b> (project_id, status). The systematic gap is <b>foreign keys to users that have no index</b> — every one cascades on delete, so removing a user can trigger full table scans. There's <b>no SQL injection</b> anywhere (all queries use bound parameters).</div>
+  <h2>🗄️ Models / tables <span class="note" style="font-weight:400">(12 of 26 shown · 0001–0005)</span></h2>
+  <table class="tbl"><thead><tr><th>Table</th><th>Cols</th><th>Indexes</th><th>Status</th><th>Note</th></tr></thead><tbody>
+    ${TABLES.map(t=>`<tr><td class="mono">${t.n}</td><td>${t.c}</td><td class="mono">${t.idx}</td>
+      <td><span class="vp ${t.flag}">${t.flag==='ok'?'OK':t.flag==='warn'?'Watch':'Fix'}</span></td><td>${t.note}</td></tr>`).join("")}
+  </tbody></table>`;
+}
+
+function perfExtra(){
+  return `<div class="callout"><span class="tag">In plain English</span><br>D1 is a SQLite database where <b>each query is a network round trip (~50ms)</b>. The code mostly paginates well and uses SQL <code>COUNT</code> (no classic N+1 reads). The pain is <b>independent queries run one-after-another</b> instead of together — most visibly on the dashboard.</div>
+  <h2>⏱️ Dashboard request waterfall <span class="note" style="font-weight:400">(estimated ~50ms/query)</span></h2>
+  <p class="sub">Today: 8 queries fire <b>sequentially</b>. With <code>Promise.all</code> they fire at once.</p>
+  <div class="wf" id="wf"></div>
+  <div class="out" style="grid-template-columns:1fr 1fr;max-width:420px;margin-top:14px">
+    <div class="outc"><div class="v" style="color:var(--high)">~400ms</div><div class="k">Now (serial)</div></div>
+    <div class="outc"><div class="v" style="color:var(--ok)">~50ms</div><div class="k">With Promise.all</div></div>
+  </div>
+  <h2>🔧 The key fix — before / after</h2>
+  <div class="sim-grid">
+    <div><div class="lbl" style="color:var(--high);font-weight:800;font-size:12px;margin-bottom:6px">BEFORE — dashboard.ts</div><pre><code>${BEFORE_AFTER.before}</code></pre></div>
+    <div><div class="lbl" style="color:var(--ok);font-weight:800;font-size:12px;margin-bottom:6px">AFTER</div><pre><code>${BEFORE_AFTER.after}</code></pre></div>
+  </div>`;
+}
+
+function concExtra(){
+  return `<div class="callout"><span class="tag">In plain English</span><br>Cloudflare Workers scale across many machines, so raw CPU is rarely the limit. The real bottlenecks are <b>Durable Objects</b> (each object id is single-threaded — all its clients are serialized) and the <b>external LLM call</b> (seconds per request). The terminal is the worst case: <b>everyone shares one Durable Object</b> (<code>terminal-default</code>).</div>
+  <h2>🧪 Live concurrency simulator <span class="note" style="font-weight:400">(models the terminal DO — engineering estimate)</span></h2>
+  <div class="sim">
+    <div class="sim-grid">
+      <div>
+        <div class="ctrl"><label>Durable Object shards (lanes) <b id="s-cores">4</b></label><input type="range" id="cores" min="1" max="16" value="4"></div>
+        <div class="ctrl"><label>Concurrent people <b id="s-people">40</b></label><input type="range" id="people" min="1" max="100" value="40"></div>
+        <div class="toggle"><div class="switch" id="fix"><div class="knob"></div></div><span>Apply the fix — <b>shard the DO id</b> (off = single <code>terminal-default</code>)</span></div>
+        <p class="note">Assumes ~150ms of serialized work per op on a single DO thread (est). Fix OFF forces every request through 1 lane regardless of the shard slider; fix ON uses all shards in parallel.</p>
+      </div>
+      <div>
+        <div class="out">
+          <div class="outc"><div class="v" id="o-tp">0</div><div class="k">Throughput /s</div></div>
+          <div class="outc"><div class="v" id="o-drain">0</div><div class="k">Drain time</div></div>
+          <div class="outc"><div class="v" id="o-wait">0</div><div class="k">Last person wait</div></div>
+        </div>
+        <div class="dots" id="dots"></div>
+      </div>
+    </div>
+  </div>
+  <h2>📡 How to measure the real numbers</h2>
+  <div class="callout">Don't trust the estimates above — measure. Tail logs with <code>wrangler tail opendrap-api --format json</code> after adding timing around the LLM <code>fetch</code> (ai/index.ts:81) and the DO fan-out (terminal.ts:248). Load-test the AI endpoint:
+  <pre><code>oha -z 60s -c 50 -m POST \\
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \\
+  -d '{"log":"sample trace"}' \\
+  https://opendrap-api.tert.workers.dev/api/ai/analyze-log</code></pre>
+  Ramp <code>-c</code> 10 → 50 → 100 and watch where p95 latency knees and 5xx/429 rates rise — that knee is the real GLM concurrency ceiling.</div>`;
+}
+
+function frontExtra(){
+  return `<div class="callout"><span class="tag">In plain English</span><br>The React app is solid on data-fetching (no N+1 waterfalls, memoization present) but ships <b>everything in one bundle</b> with no code-splitting, has a <b>1,800-line god component</b>, and stores the <b>auth token where scripts can read it</b>.</div>
+  <h2>📏 Biggest files by size <span class="note" style="font-weight:400">(real line counts)</span></h2>
+  <div class="bars" id="bars"></div>`;
+}
+
+function render(){
+  const m=$("#main");
+  m.innerHTML = panelOverview()
+    + panelGeneric(REPORTS[1])                 // security
+    + panelGeneric(REPORTS[2])                 // agent
+    + panelGeneric(REPORTS[3], concExtra())    // concurrency
+    + panelGeneric(REPORTS[4], perfExtra())    // perf
+    + panelGeneric(REPORTS[5], dbExtra())      // db
+    + panelGeneric(REPORTS[6], frontExtra());  // frontend
+  // nav tabs
+  $("#tabs").innerHTML = REPORTS.map(r=>`<button class="tab ${r.id==='overview'?'active':''}" data-tab="${r.id}">${r.name}</button>`).join("");
+  wire();
+  switchTab("overview");
+}
+
+function switchTab(id){
+  activeTab=id; sevFilter="all";
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===id));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id==="p-"+id));
+  // reset chips in this panel
+  const panel=$("#p-"+id);
+  panel?.querySelectorAll(".chip").forEach(ch=>ch.classList.toggle("active",ch.dataset.sev==="all"));
+  applyFilter();
+  window.scrollTo({top:0,behavior:"smooth"});
+  setTimeout(()=>runAnims(id),120);
+}
+
+function applyFilter(){
+  const panel=$("#p-"+activeTab); if(!panel) return;
+  let shown=0;
+  panel.querySelectorAll(".finding").forEach(f=>{
+    const okSev = sevFilter==="all"||f.dataset.sev===sevFilter;
+    const okTxt = !searchQ || f.dataset.txt.includes(searchQ);
+    const vis = okSev && okTxt;
+    f.style.display = vis?"":"none";
+    if(vis){shown++; if(searchQ) f.classList.add("open"); else f.classList.remove("open");}
+  });
+  let empty=panel.querySelector(".empty");
+  const wrap=panel.querySelector("[data-findings]");
+  if(wrap){
+    if(shown===0){ if(!empty){empty=document.createElement("div");empty.className="empty";empty.textContent="No findings match.";wrap.after(empty);} }
+    else if(empty){empty.remove();}
+  }
+}
+
+function searchAll(q){
+  searchQ=q.trim().toLowerCase();
+  if(!searchQ){applyFilter();return;}
+  // jump to the tab with the most matches
+  let best=activeTab,bestN=-1;
+  REPORTS.forEach(r=>{
+    if(r.id==="overview")return;
+    const n=FINDINGS.filter(f=>f.tab===r.id && (f.id+' '+f.title+' '+f.loc+' '+f.plain).toLowerCase().includes(searchQ)).length;
+    if(n>bestN){bestN=n;best=r.id;}
+  });
+  if(bestN>0 && activeTab!==best){switchTab(best);}
+  applyFilter();
+}
+
+/* animations triggered per tab */
+function runAnims(id){
+  if(id==="overview"){
+    document.querySelectorAll("#p-overview [data-count]").forEach(countUp);
+    drawGauges();
+  }
+  if(id==="perf"){ drawWaterfall(); }
+  if(id==="concurrency"){ simUpdate(); }
+  if(id==="frontend"){ drawBars(); }
+}
+
+function countUp(el){
+  const target=+el.dataset.count; let cur=0; const step=Math.max(1,Math.ceil(target/40));
+  clearInterval(el._t);
+  el._t=setInterval(()=>{cur+=step; if(cur>=target){cur=target;clearInterval(el._t);} el.textContent=cur;},22);
+}
+
+function drawGauges(){
+  const box=$("#gauges"); if(!box) return;
+  box.innerHTML=GAUGES.map(g=>{
+    const r=42,circ=2*Math.PI*r;
+    const col=g.v>=70?"#22c55e":g.v>=45?"#eab308":g.v>=30?"#f97316":"#ef4444";
+    return `<div class="gauge" data-goto="${g.id}" style="cursor:pointer">
+      <svg width="110" height="110" viewBox="0 0 110 110">
+        <circle cx="55" cy="55" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="9"/>
+        <circle class="gring" cx="55" cy="55" r="${r}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round"
+          stroke-dasharray="${circ}" stroke-dashoffset="${circ}" data-off="${circ*(1-g.v/100)}" data-circ="${circ}"/>
+      </svg>
+      <div class="gv" style="color:${col}">${g.v}</div><div class="gl">${g.l}</div></div>`;
+  }).join("");
+  requestAnimationFrame(()=>box.querySelectorAll(".gring").forEach(c=>{
+    c.style.transition="stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1)";
+    c.style.strokeDashoffset=c.dataset.off;
+  }));
+  box.querySelectorAll("[data-goto]").forEach(el=>el.onclick=()=>switchTab(el.dataset.goto));
+}
+
+function drawWaterfall(){
+  const box=$("#wf"); if(!box) return;
+  const total=WF.reduce((a,b)=>a+b.ms,0);
+  box.innerHTML=WF.map((s,i)=>`<div class="wf-row"><div class="wf-lab">${s.l}</div>
+    <div class="wf-track"><div class="wf-bar" data-w="${(s.ms/total*100).toFixed(1)}" style="left:${(i*s.ms/total*100).toFixed(1)}%">${s.ms}ms</div></div></div>`).join("")
+    + `<div class="wf-row"><div class="wf-lab" style="color:#86efac">ALL 8 in Promise.all</div>
+       <div class="wf-track"><div class="wf-bar par" data-w="${(50/total*100).toFixed(1)}">~50ms</div></div></div>`;
+  requestAnimationFrame(()=>box.querySelectorAll(".wf-bar").forEach((b,i)=>setTimeout(()=>b.style.width=b.dataset.w+"%",i*70)));
+}
+
+function drawBars(){
+  const box=$("#bars"); if(!box) return;
+  const max=Math.max(...FILES.map(f=>f.v));
+  box.innerHTML=FILES.map(f=>`<div class="bar-row"><div class="bar-lab">${f.n}</div>
+    <div class="bar-track"><div class="bar-fill" data-w="${(f.v/max*100).toFixed(1)}"></div></div>
+    <div class="bar-val">${f.v}</div></div>`).join("");
+  requestAnimationFrame(()=>box.querySelectorAll(".bar-fill").forEach((b,i)=>setTimeout(()=>b.style.width=b.dataset.w+"%",i*60)));
+}
+
+/* concurrency simulator */
+const SVC=0.15; // seconds per serialized op (est)
+function simUpdate(){
+  const cores=+($("#cores")?.value||4), people=+($("#people")?.value||40), fix=$("#fix")?.classList.contains("on");
+  if($("#s-cores")) $("#s-cores").textContent=cores;
+  if($("#s-people")) $("#s-people").textContent=people;
+  const lanes = fix?cores:1;
+  const tp = (lanes/SVC);
+  const drain = Math.ceil(people/lanes)*SVC;
+  const wait = drain;
+  const fmt=s=> s>=1? s.toFixed(1)+"s" : Math.round(s*1000)+"ms";
+  const tpEl=$("#o-tp"),drEl=$("#o-drain"),wtEl=$("#o-wait");
+  if(!tpEl) return;
+  tpEl.textContent=tp.toFixed(1);
+  drEl.textContent=fmt(drain);
+  wtEl.textContent=fmt(wait);
+  const colr=(el,good,warn)=>{const v=parseFloat(el.parentElement===null?0:0);};
+  // recolor by drain time
+  [drEl,wtEl].forEach(el=>{el.style.color = drain<1?"#22c55e":drain<5?"#eab308":"#ef4444";});
+  tpEl.style.color = tp>=20?"#22c55e":tp>=6?"#eab308":"#ef4444";
+  // dots
+  const dots=$("#dots");
+  dots.innerHTML=Array.from({length:people},()=>`<div class="dot"></div>`).join("");
+  const nodes=[...dots.children];
+  let i=0; clearInterval(dots._t);
+  dots._t=setInterval(()=>{
+    for(let k=0;k<lanes && i<nodes.length;k++,i++) nodes[i].classList.add("done");
+    if(i>=nodes.length) clearInterval(dots._t);
+  }, Math.max(60,SVC*1000));
+}
+
+/* reveal on scroll */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}}),{threshold:.12});
+
+function wire(){
+  $("#tabs").querySelectorAll(".tab").forEach(t=>t.onclick=()=>switchTab(t.dataset.tab));
+  document.querySelectorAll("[data-goto]").forEach(el=>el.onclick=()=>switchTab(el.dataset.goto));
+  // finding expand
+  document.querySelectorAll(".finding .fhead").forEach(h=>h.onclick=()=>h.parentElement.classList.toggle("open"));
+  // chips
+  document.querySelectorAll("[data-chipset]").forEach(set=>{
+    set.querySelectorAll(".chip").forEach(ch=>ch.onclick=()=>{
+      set.querySelectorAll(".chip").forEach(c=>c.classList.remove("active"));
+      ch.classList.add("active"); sevFilter=ch.dataset.sev; applyFilter();
+    });
+  });
+  // sim controls
+  ["cores","people"].forEach(id=>{const el=$("#"+id); if(el) el.oninput=simUpdate;});
+  const fx=$("#fix"); if(fx) fx.onclick=()=>{fx.classList.toggle("on");simUpdate();};
+  // reveal
+  document.querySelectorAll(".reveal").forEach(el=>io.observe(el));
+}
+
+$("#search").addEventListener("input",e=>searchAll(e.target.value));
+window.addEventListener("scroll",()=>$("#top").classList.toggle("show",scrollY>500));
+$("#top").onclick=()=>window.scrollTo({top:0,behavior:"smooth"});
+
+render();
+</script>
+</body>
+</html>

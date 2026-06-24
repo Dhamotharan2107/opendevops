@@ -103,6 +103,17 @@ export async function updateUserAdmin(c: Context<{ Bindings: Env }>) {
 
   if (fields.length === 0) return c.json({ success: false, error: 'Nothing to update' }, 400);
 
+  // Prevent demoting/disabling the last admin.
+  if ((body.role && body.role !== 'admin') || body.is_disabled === true) {
+    const target = await db.prepare('SELECT role FROM users WHERE id=?').bind(id).first<{ role: string }>();
+    if (target?.role === 'admin') {
+      const admins = await db.prepare("SELECT COUNT(*) as n FROM users WHERE role='admin' AND is_disabled=0").first<{ n: number }>();
+      if ((admins?.n ?? 0) <= 1) {
+        return c.json({ success: false, error: 'Cannot demote or disable the last active admin' }, 400);
+      }
+    }
+  }
+
   fields.push('updated_at = ?');
   values.push(new Date().toISOString(), id);
 
@@ -117,6 +128,21 @@ export async function updateUserAdmin(c: Context<{ Bindings: Env }>) {
 
 export async function deleteUserAdmin(c: Context<{ Bindings: Env }>) {
   const id = c.req.param('id');
+  const caller = c.get('user');
+
+  if (caller?.id === id) {
+    return c.json({ success: false, error: 'You cannot delete your own account' }, 400);
+  }
+
+  // Never allow removing the last remaining admin.
+  const target = await c.env.DB.prepare('SELECT role FROM users WHERE id=?').bind(id).first<{ role: string }>();
+  if (target?.role === 'admin') {
+    const admins = await c.env.DB.prepare("SELECT COUNT(*) as n FROM users WHERE role='admin'").first<{ n: number }>();
+    if ((admins?.n ?? 0) <= 1) {
+      return c.json({ success: false, error: 'Cannot delete the last admin account' }, 400);
+    }
+  }
+
   await c.env.DB.prepare('DELETE FROM users WHERE id=?').bind(id).run();
   return c.json(successResponse({ message: 'User deleted' }));
 }

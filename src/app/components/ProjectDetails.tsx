@@ -8,14 +8,15 @@ import {
   RefreshCw, Filter, Search, ChevronRight, Server,
   Globe, Users, Bug, TrendingUp, Download, Plus,
   User, X, Send, Trash2, Square, Link, Loader2,
-  CloudLightning, WifiOff, ChevronDown, Check
+  CloudLightning, WifiOff, ChevronDown, Check,
+  FileEdit, FolderOpen, File as FileIcon, Save, ArrowLeft
 } from 'lucide-react';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { useApp } from '../../lib/store';
-import { BASE_URL, githubFetchBranches, getGitHubPat, apiGetProjects } from '../../lib/api';
+import { BASE_URL, githubFetchBranches, getGitHubPat, apiGetProjects, apiGetLogs, apiGetErrors } from '../../lib/api';
 import { cn, getStatusColor, getPriorityColor, getInitials } from '../../lib/utils';
 import type { Project, Deployment, LogEntry, ErrorRecord, AITestResult, APIRequest } from '../../lib/types';
 
@@ -159,10 +160,29 @@ function ProjectDetailsInner() {
       .finally(() => { setProjectLoading(false); setProjectFetched(true); });
   }, [project, projectFetched, projectLoading, state.isAuthenticated]);
 
+  // Restore a previously-started tunnel URL after a page refresh. The tunnel is
+  // still running in Cloud Shell (nohup), so its public URL remains valid until
+  // the user clicks Stop. Drop entries older than 12h to avoid showing dead URLs.
+  useEffect(() => {
+    if (!id) return;
+    try {
+      const saved = localStorage.getItem('opendrap_tunnel_' + id);
+      if (!saved) return;
+      const { url, ts } = JSON.parse(saved);
+      if (url && (!ts || Date.now() - ts < 12 * 60 * 60 * 1000)) {
+        setTunnelUrl(url);
+        setTunnelRunning(true);
+      } else {
+        localStorage.removeItem('opendrap_tunnel_' + id);
+      }
+    } catch {}
+  }, [id]);
+
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Activity },
     { id: 'deployments', label: 'Deployments', icon: GitBranch },
     { id: 'terminal', label: 'Terminal', icon: Terminal },
+    { id: 'editor', label: 'Editor', icon: FileEdit },
     { id: 'logs', label: 'Logs', icon: ScrollText },
     { id: 'errors', label: 'Errors', icon: AlertCircle },
     { id: 'ai-testing', label: 'AI Testing', icon: Brain },
@@ -286,7 +306,7 @@ function ProjectDetailsInner() {
     }
   }
 
-  // Deploy = cloudflared tunnel only.
+  // Deploy = LocalTunnel only (no login).
   // User starts the server themselves in the Terminal tab, then clicks Deploy.
   const handleDeploy = async (project: Project) => {
     if (!state.agentConnected) {
@@ -299,6 +319,7 @@ function ProjectDetailsInner() {
     setDeployPhase('Starting tunnel...');
 
     const port = parseInt(tunnelPort, 10) || 8000;
+    const subdomain = (project.name || 'app').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '') || 'app';
     const deploymentId = crypto.randomUUID();
     dispatch({ type: 'ADD_DEPLOYMENT', payload: {
       id: deploymentId, projectId: project.id,
@@ -310,8 +331,23 @@ function ProjectDetailsInner() {
     const token = localStorage.getItem('token');
     if (!token) { setDeploying(false); return; }
 
-    const TUNNEL_REGEX = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/;
-    const tunnelCmd = `mkdir -p ~/bin && (which cloudflared >/dev/null 2>&1 || (echo "=== Installing cloudflared..." && curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o ~/bin/cloudflared && chmod +x ~/bin/cloudflared && echo "=== cloudflared installed")) && PATH="$HOME/bin:$PATH" cloudflared tunnel --url http://localhost:${port} --no-autoupdate 2>&1`;
+    // LocalTunnel (no login required). Matches "your url is: https://xxx.loca.lt".
+    const TUNNEL_REGEX = /https:\/\/[a-z0-9-]+\.loca\.lt/;
+    // Uses globally installed `lt` so the subdomain flag is available.
+    // If subdomain is taken, LocalTunnel auto-appends a number.
+    const tunnelCmd = [
+      `cd "$HOME" 2>/dev/null || cd /`,
+      `echo "=== Checking port ${port}..."`,
+      `if curl -s -o /dev/null --max-time 3 http://localhost:${port}; then echo "=== Port ${port} is serving."; else echo "=== WARNING: nothing is responding on port ${port} yet. Start your server in the Terminal tab first (the URL will still open but 502 until then)."; fi`,
+      `echo "=== If the loca.lt page asks for a password, enter this IP:"`,
+      `curl -s --max-time 5 https://loca.lt/mytunnelpassword || curl -s --max-time 5 ifconfig.me || echo "(could not fetch IP)"`,
+      `echo ""`,
+      `echo "=== Starting LocalTunnel on port ${port} as ${subdomain}.loca.lt..."`,
+      `lt --port ${port} --subdomain ${subdomain} 2>&1`,
+    ].join('; ');
+
+    let urlFound = false;
+    let waitTimer: ReturnType<typeof setTimeout> | null = null;
 
     try {
       const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=tunnel-${deploymentId}&projectId=default&token=${encodeURIComponent(token)}`);
@@ -319,6 +355,15 @@ function ProjectDetailsInner() {
 
       ws.onopen = () => {
         ws.send(JSON.stringify({ type: 'terminal_input', input: tunnelCmd }));
+        // If no URL after 40s, tell the user what to check instead of hanging silently.
+        waitTimer = setTimeout(() => {
+          if (!urlFound) {
+            setDeployLogs((prev) => [...prev,
+              '=== Still waiting for a tunnel URL after 40s.',
+              `=== Check: (1) is your server running on port ${port}? (2) try the Terminal tab and run: lt --port ${port} --subdomain ${subdomain}`,
+            ]);
+          }
+        }, 40000);
       };
 
       ws.onmessage = (event) => {
@@ -328,18 +373,30 @@ function ProjectDetailsInner() {
           if (!text) return;
           setDeployLogs((prev) => [...prev, text]);
           const match = text.match(TUNNEL_REGEX);
-          if (match) {
+          if (match && !urlFound) {
+            urlFound = true;
+            if (waitTimer) { clearTimeout(waitTimer); waitTimer = null; }
             const url = match[0];
             setTunnelUrl(url);
             setTunnelRunning(true);
             setDeployPhase('Live');
             setDeploying(false);
+            // Persist so the live URL survives a page refresh (the tunnel keeps
+            // running in Cloud Shell via nohup, so the URL stays valid).
+            try { localStorage.setItem('opendrap_tunnel_' + project.id, JSON.stringify({ url, ts: Date.now() })); } catch {}
             dispatch({ type: 'UPDATE_PROJECT', payload: { ...project, url, status: 'deployed' } });
           }
         } catch {}
       };
 
-      ws.onclose = () => { if (deploying) setDeploying(false); };
+      ws.onclose = () => {
+        if (waitTimer) { clearTimeout(waitTimer); waitTimer = null; }
+        if (!urlFound) {
+          setDeployLogs((prev) => [...prev, '=== Connection closed before the tunnel came up. Click Publish to retry.']);
+          setDeployPhase('');
+          setDeploying(false);
+        }
+      };
       ws.onerror = () => {
         setDeployLogs((prev) => [...prev, 'Connection error. Is agent running?']);
         setDeploying(false);
@@ -357,7 +414,7 @@ function ProjectDetailsInner() {
       try {
         const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=stop-${Date.now()}&projectId=default&token=${encodeURIComponent(token)}`);
         ws.onopen = () => {
-          ws.send(JSON.stringify({ type: 'terminal_input', input: 'pkill -f cloudflared; pkill -f "node.*start"; pkill -f "node.*dev"; echo "Stopped."' }));
+          ws.send(JSON.stringify({ type: 'terminal_input', input: 'pkill -f "bin/lt"; pkill -f cloudflared; echo "Stopped."' }));
           setTimeout(() => ws.close(), 5000);
         };
       } catch {}
@@ -372,6 +429,7 @@ function ProjectDetailsInner() {
     setDeployLogs([]);
     setStopping(false);
     if (project) {
+      try { localStorage.removeItem('opendrap_tunnel_' + project.id); } catch {}
       dispatch({ type: 'UPDATE_PROJECT', payload: { ...project, status: 'stopped' } });
     }
   };
@@ -507,7 +565,7 @@ function ProjectDetailsInner() {
                   <button
                     onClick={() => handleDeploy(project)}
                     disabled={deploying || !state.agentConnected}
-                    title={!state.agentConnected ? 'Agent must be connected' : 'Start Cloudflare tunnel to make your server public'}
+                    title={!state.agentConnected ? 'Agent must be connected' : 'Start a public tunnel (LocalTunnel) to your server'}
                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
                     {deploying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudLightning className="w-4 h-4" />}
@@ -549,6 +607,7 @@ function ProjectDetailsInner() {
           >
             {activeTab === 'overview' && <OverviewTab project={project} tunnelUrl={tunnelUrl} deployLogs={deployLogs} deployPhase={deployPhase} tunnelRunning={tunnelRunning} onStop={handleStop} stopping={stopping} deploying={deploying} />}
             {activeTab === 'terminal' && <TerminalTab projectId={project.id} projectName={project.name} />}
+            {activeTab === 'editor' && <EditorTab projectId={project.id} projectName={project.name} />}
             {activeTab === 'logs' && <LogsTab projectId={project.id} />}
             {activeTab === 'errors' && <ErrorsTab projectId={project.id} />}
             {activeTab === 'ai-testing' && <AITestingTab projectId={project.id} />}
@@ -618,7 +677,7 @@ function OverviewTab({ project, tunnelUrl, deployLogs, deployPhase, tunnelRunnin
               <Globe className="w-5 h-5 text-emerald-400" />
             </motion.div>
             <div>
-              <p className="text-xs text-emerald-400/70 mb-0.5">Live via Cloudflare Tunnel</p>
+              <p className="text-xs text-emerald-400/70 mb-0.5">Live via LocalTunnel</p>
               <a href={tunnelUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-300 font-mono text-sm hover:underline flex items-center gap-1">
                 {tunnelUrl}
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -653,7 +712,7 @@ function OverviewTab({ project, tunnelUrl, deployLogs, deployPhase, tunnelRunnin
           <CloudLightning className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" />
           <div className="text-white/50 leading-relaxed">
             <span className="text-violet-300 font-medium">How to publish: </span>
-            Open the <strong className="text-white/70">Terminal</strong> tab → start your server (e.g. <code className="bg-white/5 px-1.5 py-0.5 rounded text-xs font-mono text-white/60">python manage.py runserver 0.0.0.0:8000</code>) → come back here and click <strong className="text-white/70">Publish</strong> to create a public Cloudflare tunnel.
+            Open the <strong className="text-white/70">Terminal</strong> tab → start your server (e.g. <code className="bg-white/5 px-1.5 py-0.5 rounded text-xs font-mono text-white/60">python manage.py runserver 0.0.0.0:8000</code>) → come back here and click <strong className="text-white/70">Publish</strong> to create a public LocalTunnel URL. If the <code className="bg-white/5 px-1 rounded text-xs font-mono text-white/60">loca.lt</code> page asks for a password, enter the IP shown in the publish logs.
           </div>
         </motion.div>
       )}
@@ -676,7 +735,7 @@ function OverviewTab({ project, tunnelUrl, deployLogs, deployPhase, tunnelRunnin
               <div key={i} className={
                 line.includes('===') ? 'text-violet-400 font-semibold' :
                 line.toLowerCase().includes('error') ? 'text-red-400' :
-                line.includes('trycloudflare') ? 'text-emerald-400 font-bold' :
+                line.includes('loca.lt') ? 'text-emerald-400 font-bold' :
                 'text-gray-400'
               }>{line}</div>
             ))}
@@ -1146,22 +1205,246 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
   );
 }
 
+interface DirEntry { name: string; dir: boolean; }
+
+function EditorTab({ projectId, projectName }: { projectId: string; projectName: string }) {
+  const [wsConnected, setWsConnected] = useState(false);
+  const [agentConnected, setAgentConnected] = useState(false);
+  const [absPath, setAbsPath] = useState('~');          // current dir (abs path from agent)
+  const [pathInput, setPathInput] = useState('~');       // editable path box
+  const [entries, setEntries] = useState<DirEntry[]>([]);
+  const [loadingDir, setLoadingDir] = useState(false);
+  const [openFileAbs, setOpenFileAbs] = useState<string | null>(null);
+  const [openFileName, setOpenFileName] = useState('');
+  const [content, setContent] = useState('');
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState('');
+  const wsRef = useRef<WebSocket | null>(null);
+
+  const sendMsg = (obj: any) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(obj));
+      return true;
+    }
+    setStatus('Not connected to agent.');
+    return false;
+  };
+
+  const listDir = (p: string) => {
+    setLoadingDir(true);
+    setStatus('');
+    sendMsg({ type: 'list_dir', path: p, request_id: crypto.randomUUID() });
+  };
+
+  const openFile = (p: string, name: string) => {
+    setStatus(`Opening ${name}...`);
+    sendMsg({ type: 'read_file', path: p, request_id: crypto.randomUUID() });
+    setOpenFileName(name);
+  };
+
+  const save = () => {
+    if (!openFileAbs) return;
+    setSaving(true);
+    setStatus('Saving...');
+    sendMsg({ type: 'write_file', path: openFileAbs, content, request_id: crypto.randomUUID() });
+  };
+
+  const goUp = () => {
+    if (!absPath || absPath === '/' || absPath === '~') return;
+    const parent = absPath.replace(/\/[^/]+\/?$/, '') || '/';
+    listDir(parent);
+  };
+
+  useEffect(() => {
+    const wsBase = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
+    const token = localStorage.getItem('token');
+    if (!token) { setStatus('No auth token.'); return; }
+
+    let destroyed = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function connect() {
+      if (destroyed) return;
+      const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=editor-${projectId}&projectId=default&token=${token}`);
+      wsRef.current = ws;
+
+      ws.onopen = () => setWsConnected(true);
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'agent_connected' || (msg.type === 'session_ready' && msg.agentConnected)) {
+            setAgentConnected(true);
+            // Open the project folder by default; fall back to home on error.
+            listDir(`~/opendev/projects/${projectName}`);
+          } else if (msg.type === 'session_ready' && !msg.agentConnected) {
+            setStatus('Agent offline — start it in Cloud Shell first.');
+          } else if (msg.type === 'agent_disconnected') {
+            setAgentConnected(false);
+            setStatus('Agent disconnected.');
+          } else if (msg.type === 'dir_list') {
+            setLoadingDir(false);
+            if (msg.error) {
+              // Project folder probably doesn't exist — fall back to home once.
+              if (msg.abs_path && msg.abs_path.includes('/opendev/projects/')) { listDir('~'); return; }
+              setStatus(`Cannot open folder: ${msg.error}`);
+              return;
+            }
+            setAbsPath(msg.abs_path || msg.path || '~');
+            setPathInput(msg.path || msg.abs_path || '~');
+            setEntries(Array.isArray(msg.entries) ? msg.entries : []);
+          } else if (msg.type === 'file_content') {
+            if (msg.error) { setStatus(`Cannot open file: ${msg.error}`); return; }
+            setContent(typeof msg.content === 'string' ? msg.content : '');
+            setOpenFileAbs(msg.abs_path || msg.path || null);
+            setDirty(false);
+            setStatus(`Opened ${msg.abs_path || ''}`);
+          } else if (msg.type === 'file_saved') {
+            setSaving(false);
+            if (msg.error) { setStatus(`Save failed: ${msg.error}`); return; }
+            setDirty(false);
+            setStatus(`Saved ${msg.abs_path || ''} ✓`);
+          }
+        } catch {}
+      };
+
+      ws.onclose = () => {
+        setWsConnected(false);
+        setAgentConnected(false);
+        if (!destroyed) retryTimer = setTimeout(connect, 3000);
+      };
+    }
+
+    connect();
+    return () => {
+      destroyed = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
+    };
+  }, [projectId, projectName]);
+
+  return (
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-7xl mx-auto">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4">
+        {/* File browser */}
+        <div className="border border-white/10 rounded-xl overflow-hidden bg-[#0F0F14] flex flex-col">
+          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10">
+            <FolderOpen className="w-4 h-4 text-violet-400 flex-shrink-0" />
+            <span className="text-xs font-medium text-white/70">Files</span>
+            <div className={`ml-auto flex items-center gap-1.5 text-xs ${agentConnected ? 'text-emerald-400' : 'text-amber-400'}`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${agentConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+              {agentConnected ? 'Agent' : wsConnected ? 'No agent' : 'Offline'}
+            </div>
+          </div>
+          {/* Path box */}
+          <div className="flex items-center gap-1 p-2 border-b border-white/10">
+            <button onClick={goUp} title="Parent folder" className="p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-white">
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </button>
+            <input
+              value={pathInput}
+              onChange={(e) => setPathInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') listDir(pathInput); }}
+              spellCheck={false}
+              className="flex-1 min-w-0 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-violet-500/50"
+            />
+            <button onClick={() => listDir(pathInput)} className="px-2 py-1.5 rounded-lg bg-violet-600/30 border border-violet-500/30 text-xs text-violet-300 hover:bg-violet-600/40">Go</button>
+          </div>
+          <div className="flex-1 overflow-y-auto max-h-[460px] py-1">
+            {loadingDir ? (
+              <div className="flex items-center justify-center py-8 text-white/30 text-xs"><Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading...</div>
+            ) : entries.length === 0 ? (
+              <p className="text-xs text-white/30 text-center py-8">Empty folder</p>
+            ) : entries.map((e) => (
+              <button
+                key={e.name}
+                onClick={() => e.dir ? listDir(`${absPath}/${e.name}`) : openFile(`${absPath}/${e.name}`, e.name)}
+                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 text-left"
+              >
+                {e.dir ? <FolderOpen className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" /> : <FileIcon className="w-3.5 h-3.5 text-white/40 flex-shrink-0" />}
+                <span className={`text-xs truncate ${e.dir ? 'text-blue-300' : 'text-white/70'} ${openFileName === e.name && !e.dir ? 'font-semibold text-violet-300' : ''}`}>{e.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Editor */}
+        <div className="border border-white/10 rounded-xl overflow-hidden bg-[#060608] flex flex-col">
+          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10 bg-[#0F0F14]">
+            <FileEdit className="w-4 h-4 text-violet-400 flex-shrink-0" />
+            <span className="text-xs font-mono text-white/70 truncate">{openFileAbs || 'No file open'}</span>
+            {dirty && <span className="text-[10px] text-amber-400 flex-shrink-0">● unsaved</span>}
+            <button
+              onClick={save}
+              disabled={!openFileAbs || saving || !agentConnected}
+              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs hover:opacity-90 disabled:opacity-40"
+            >
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              {saving ? 'Saving' : 'Save'}
+            </button>
+          </div>
+          <textarea
+            value={content}
+            onChange={(e) => { setContent(e.target.value); setDirty(true); }}
+            onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(); } }}
+            spellCheck={false}
+            placeholder={openFileAbs ? '' : 'Select a file from the left, or type a path and click Go.'}
+            className="flex-1 min-h-[460px] w-full p-4 bg-transparent text-sm text-gray-200 font-mono resize-none outline-none leading-relaxed"
+          />
+          <div className="px-3 py-1.5 border-t border-white/10 text-[11px] text-white/40 font-mono truncate">{status || 'Ctrl/Cmd+S to save'}</div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function LogsTab({ projectId }: { projectId: string }) {
   const { state } = useApp();
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState<'all' | 'info' | 'warn' | 'error'>('all');
+  const [fetched, setFetched] = useState<LogEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Pull real activity logs from the backend (the project's in-memory state.logs
+  // is only populated in demo flows, so the tab used to look empty).
+  const loadLogs = async () => {
+    setLoading(true);
+    try {
+      const res = await apiGetLogs(projectId, levelFilter === 'all' ? undefined : levelFilter, search.trim() || undefined, 1, 200);
+      const mapped: LogEntry[] = (res.logs || []).map((item: any) => ({
+        id: item.id || 'log-' + Math.random().toString(36).slice(2, 10),
+        projectId: item.project_id || projectId,
+        level: (item.action === 'error' ? 'error' : item.action === 'warn' ? 'warn' : 'info') as LogEntry['level'],
+        message: item.details || item.action || 'Log entry',
+        timestamp: item.created_at ? new Date(item.created_at).toLocaleString() : new Date().toLocaleString(),
+      }));
+      setFetched(mapped);
+    } catch {
+      // keep whatever we have
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadLogs();
+    const t = setInterval(loadLogs, 5000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [levelFilter, search]);
 
   const filteredLogs = useMemo(() => {
-    let logs = state.logs.filter((l) => l.projectId === projectId);
-    if (levelFilter !== 'all') {
-      logs = logs.filter((l) => l.level === levelFilter);
-    }
+    // Merge any in-state project logs with the fetched backend logs.
+    const local = state.logs.filter((l) => l.projectId === projectId);
+    let logs = [...local, ...fetched];
+    if (levelFilter !== 'all') logs = logs.filter((l) => l.level === levelFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
       logs = logs.filter((l) => l.message.toLowerCase().includes(q));
     }
     return logs;
-  }, [projectId, state.logs, search, levelFilter]);
+  }, [projectId, state.logs, fetched, search, levelFilter]);
 
   return (
     <motion.div
@@ -1197,8 +1480,8 @@ function LogsTab({ projectId }: { projectId: string }) {
             </button>
           ))}
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 border border-white/10 rounded-lg hover:bg-white/5 text-white/60 hover:text-white transition-colors">
-          <RefreshCw className="w-4 h-4" />
+        <button onClick={loadLogs} className="flex items-center gap-2 px-4 py-2 border border-white/10 rounded-lg hover:bg-white/5 text-white/60 hover:text-white transition-colors">
+          <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
           <span className="text-sm">Refresh</span>
         </button>
       </motion.div>
@@ -1246,10 +1529,43 @@ function LogsTab({ projectId }: { projectId: string }) {
 
 function ErrorsTab({ projectId }: { projectId: string }) {
   const { state } = useApp();
-  const errors = useMemo(
-    () => state.errors.filter((e) => e.projectId === projectId),
-    [projectId, state.errors]
-  );
+  const [fetched, setFetched] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadErrors = async () => {
+    setLoading(true);
+    try {
+      const res = await apiGetErrors(projectId);
+      setFetched(res.errors || []);
+    } catch {
+      // keep whatever we have
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadErrors();
+    const t = setInterval(loadErrors, 15000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
+  const errors = useMemo(() => {
+    const local = state.errors.filter((e) => e.projectId === projectId);
+    const backend = fetched.map((item: any) => ({
+      id: item.id,
+      projectId: item.project_id || projectId,
+      title: item.title,
+      message: item.message,
+      stackTrace: item.stack_trace || '',
+      count: item.count || 1,
+      severity: item.severity as ErrorRecord['severity'],
+      lastSeen: item.updated_at || item.created_at,
+      status: item.status as ErrorRecord['status'],
+    }));
+    return [...local, ...backend];
+  }, [projectId, state.errors, fetched]);
 
   const severityColors: Record<string, string> = {
     critical: 'bg-red-500/20 text-red-500',
@@ -1265,6 +1581,12 @@ function ErrorsTab({ projectId }: { projectId: string }) {
       animate="visible"
       className="max-w-7xl mx-auto space-y-4"
     >
+      <div className="flex items-center justify-end">
+        <button onClick={loadErrors} className="flex items-center gap-2 px-4 py-2 border border-white/10 rounded-lg hover:bg-white/5 text-white/60 hover:text-white transition-colors">
+          <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
+          <span className="text-sm">Refresh</span>
+        </button>
+      </div>
       {errors.length > 0 ? (
         errors.map((error, i) => (
           <motion.div
@@ -1292,7 +1614,7 @@ function ErrorsTab({ projectId }: { projectId: string }) {
                 <div className="flex items-center gap-4 text-sm text-white/40">
                   <span>{error.count} occurrences</span>
                   <span>•</span>
-                  <span>Last seen {error.lastSeen}</span>
+                  <span>Last seen {error.lastSeen ? new Date(error.lastSeen).toLocaleString() : 'N/A'}</span>
                 </div>
               </div>
               <ChevronRight className="w-5 h-5 text-white/40" />

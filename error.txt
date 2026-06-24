@@ -1,8 +1,5 @@
-Connecting to agent...
-Agent connected — cloudshell
-cloudshell:~$ pwd
-/home/contact_inotechsoftware
-cloudshell:$(pwd)$ cd b2
-cloudshell:~/b2$ pwd
-/home/contact_inotechsoftware
-cloudshell:$(pwd)$
+2. LocalTunnel (free, no login required)
+
+Install: npm install -g localtunnel
+Run: lt --port 8000 --subdomain {your-project-name}
+(If subdomain taken, add a number like test1)

@@ -28,7 +28,7 @@ export async function handleGoogleOAuth(
       code,
       client_id: env.GOOGLE_CLIENT_ID,
       client_secret: env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: `${env.FRONTEND_URL}/auth/google/callback`,
+      redirect_uri: `${env.FRONTEND_URL}/signin/callback/auth/`,
       grant_type: 'authorization_code',
     }),
   });

@@ -8,30 +8,40 @@ export async function getDashboard(c: Context) {
   const user = c.get('user') as User;
   const db = env.DB;
 
-  const projectCount = await db.prepare('SELECT COUNT(*) as count FROM projects WHERE created_by = ?')
-    .bind(user.id).first<{ count: number }>();
-  const deploymentCount = await db.prepare('SELECT COUNT(*) as count FROM deployments WHERE created_by = ?')
-    .bind(user.id).first<{ count: number }>();
-  const errorCount = await db.prepare('SELECT COUNT(*) as count FROM error_logs')
-    .first<{ count: number }>();
-  const bugCount = await db.prepare('SELECT COUNT(*) as count FROM bugs WHERE assigned_to = ?')
-    .bind(user.id).first<{ count: number }>();
-
-  const recentProjects = await db.prepare(
-    'SELECT * FROM projects WHERE created_by = ? ORDER BY created_at DESC LIMIT 5'
-  ).bind(user.id).all<any>();
-
-  const recentDeployments = await db.prepare(
-    'SELECT d.*, p.name as project_name FROM deployments d LEFT JOIN projects p ON d.project_id = p.id WHERE d.created_by = ? ORDER BY d.created_at DESC LIMIT 5'
-  ).bind(user.id).all<any>();
-
-  const recentActivity = await db.prepare(
-    'SELECT * FROM activity_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 10'
-  ).bind(user.id).all<any>();
-
-  const notifications = await db.prepare(
-    'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 5'
-  ).bind(user.id).all<any>();
+  // All eight queries are independent and keyed on the user — fire them in parallel
+  // (~8x latency saving) instead of one-after-another. The error count is now scoped
+  // to the user's own projects (previously counted the whole platform).
+  const [
+    projectCount,
+    deploymentCount,
+    errorCount,
+    bugCount,
+    recentProjects,
+    recentDeployments,
+    recentActivity,
+    notifications,
+  ] = await Promise.all([
+    db.prepare('SELECT COUNT(*) as count FROM projects WHERE created_by = ?')
+      .bind(user.id).first<{ count: number }>(),
+    db.prepare('SELECT COUNT(*) as count FROM deployments WHERE created_by = ?')
+      .bind(user.id).first<{ count: number }>(),
+    db.prepare(
+      `SELECT COUNT(*) as count FROM error_logs e
+       JOIN projects p ON p.id = e.project_id
+       WHERE p.created_by = ?`
+    ).bind(user.id).first<{ count: number }>(),
+    db.prepare('SELECT COUNT(*) as count FROM bugs WHERE assigned_to = ?')
+      .bind(user.id).first<{ count: number }>(),
+    db.prepare('SELECT * FROM projects WHERE created_by = ? ORDER BY created_at DESC LIMIT 5')
+      .bind(user.id).all<any>(),
+    db.prepare(
+      'SELECT d.*, p.name as project_name FROM deployments d LEFT JOIN projects p ON d.project_id = p.id WHERE d.created_by = ? ORDER BY d.created_at DESC LIMIT 5'
+    ).bind(user.id).all<any>(),
+    db.prepare('SELECT * FROM activity_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 10')
+      .bind(user.id).all<any>(),
+    db.prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 5')
+      .bind(user.id).all<any>(),
+  ]);
 
   return c.json(successResponse({
     user: {

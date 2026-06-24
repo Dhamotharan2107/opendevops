@@ -4,10 +4,11 @@ import os
 import sys
 import uuid
 import socket
+import secrets
 import subprocess
 import threading
 from datetime import datetime
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
 import websockets
@@ -16,6 +17,19 @@ import websockets
 HTTP_PORT = 8787
 WS_PORT = 8788
 WORKSPACE = os.path.expanduser('~/opendrap-agent')
+
+# ── Security configuration ──────────────────────────────────────────────────────
+# The WebSocket terminal executes shell commands, so it MUST be authenticated.
+# A connection is accepted only if it presents a valid token (a known user token,
+# or OPENDRAP_AGENT_SECRET). Local password login is disabled unless
+# OPENDRAP_LOCAL_PASSWORD is set — there is no hardcoded password anymore.
+AGENT_SECRET = os.environ.get('OPENDRAP_AGENT_SECRET', '')
+LOCAL_PASSWORD = os.environ.get('OPENDRAP_LOCAL_PASSWORD', '')
+ALLOWED_ORIGINS = {
+    'http://localhost:5173', 'http://127.0.0.1:5173',
+    'http://localhost:3000', 'http://127.0.0.1:3000',
+    'http://localhost:8787', 'http://127.0.0.1:8787',
+}
 
 # Initialize data stores
 sessions = {}

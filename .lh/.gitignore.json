@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 2,
+            "activePatchIndex": 4,
             "patches": [
                 {
                     "date": 1781515180279,
@@ -16,6 +16,14 @@
                 {
                     "date": 1781515245003,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -25,4 +25,12 @@\n staticfiles/\r\n \r\n # Migrations cache\r\n *.swp\r\n+\r\n+node_modules/\r\n+.env\r\n+dist/\r\n+build/\r\n+venv/\r\n+__pycache__/\r\n+*.pyc\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1782296955347,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -13,8 +13,9 @@\n media/\r\n \r\n # Environment Variables\r\n .env\r\n+workers/.dev.vars\r\n \r\n # VS Code\r\n .vscode/\r\n \r\n@@ -26,8 +27,9 @@\n \r\n # Migrations cache\r\n *.swp\r\n \r\n+client_secret.json\r\n node_modules/\r\n .env\r\n dist/\r\n build/\r\n"
+                },
+                {
+                    "date": 1782297310673,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -26,9 +26,9 @@\n staticfiles/\r\n \r\n # Migrations cache\r\n *.swp\r\n-\r\n+workers/.wrangler/\r\n client_secret.json\r\n node_modules/\r\n .env\r\n dist/\r\n"
                 }
             ],
             "date": 1781515180279,

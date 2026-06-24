@@ -50,6 +50,7 @@ export function LogsPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [connected, setConnected] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState<'all' | 'info' | 'warn' | 'error'>('all');
   const [paused, setPaused] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -58,9 +59,16 @@ export function LogsPage() {
 
   const demoMode = isDemoMode();
 
+  // Debounce the search box so server fetches (and the polling restart) only happen
+  // ~350ms after the user stops typing, not on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const fetchLogs = useCallback(async () => {
     try {
-      const result = await apiGetLogs('default', levelFilter === 'all' ? undefined : levelFilter, search || undefined);
+      const result = await apiGetLogs('default', levelFilter === 'all' ? undefined : levelFilter, debouncedSearch || undefined);
       if (result.logs) {
         const mapped = result.logs.map(mapBackendLog);
         setLogs(mapped);
@@ -69,7 +77,7 @@ export function LogsPage() {
     } catch {
       setConnected(false);
     }
-  }, [levelFilter, search]);
+  }, [levelFilter, debouncedSearch]);
 
   useEffect(() => {
     if (demoMode) {

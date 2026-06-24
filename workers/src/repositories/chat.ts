@@ -67,6 +67,27 @@ export class ChatRepository {
     return member;
   }
 
+  // Insert many members in a single round trip (D1 batch) instead of N sequential INSERTs.
+  async addMembers(chatId: string, userIds: string[]): Promise<void> {
+    const unique = Array.from(new Set(userIds));
+    if (unique.length === 0) return;
+    const ts = now();
+    const stmts = unique.map((uid) =>
+      this.db
+        .prepare('INSERT OR IGNORE INTO chat_members (chat_id, user_id, joined_at) VALUES (?, ?, ?)')
+        .bind(chatId, uid, ts),
+    );
+    await this.db.batch(stmts);
+  }
+
+  async isMember(chatId: string, userId: string): Promise<boolean> {
+    const row = await this.db
+      .prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ? LIMIT 1')
+      .bind(chatId, userId)
+      .first();
+    return !!row;
+  }
+
   async getMembers(chatId: string): Promise<ChatMember[]> {
     const result = await this.db.prepare(
       'SELECT * FROM chat_members WHERE chat_id = ?'

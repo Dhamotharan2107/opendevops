@@ -342,6 +342,30 @@ export class TerminalDurableObject implements DurableObject {
         break;
       }
 
+      // File editor: browser -> agent passthrough
+      case 'read_file':
+      case 'write_file':
+      case 'list_dir': {
+        if (this.agentSessionId) {
+          const agentWs = this.websockets.get(this.agentSessionId);
+          if (agentWs) {
+            try { agentWs.send(JSON.stringify(data)); }
+            catch { this.handleAgentOffline(this.agentSessionId); }
+          }
+        } else {
+          ws.send(JSON.stringify({ type: 'file_content', request_id: data.request_id, error: 'No agent connected' }));
+        }
+        break;
+      }
+
+      // File editor: agent -> browsers passthrough
+      case 'file_content':
+      case 'file_saved':
+      case 'dir_list': {
+        this.broadcastToBrowsers(JSON.stringify(data), sessionId);
+        break;
+      }
+
       default:
         ws.send(JSON.stringify({ type: 'error', message: `Unknown message type: ${type}` }));
     }
@@ -363,8 +387,13 @@ export class TerminalDurableObject implements DurableObject {
   private startHeartbeatTimer(): void {
     this.clearHeartbeatTimer();
     this.heartbeatTimer = setInterval(() => {
+      if (!this.agentSessionId) {
+        this.clearHeartbeatTimer();
+        return;
+      }
+
       const elapsed = Date.now() - this.lastHeartbeat;
-      if (elapsed > HEARTBEAT_TIMEOUT_MS && this.agentSessionId) {
+      if (elapsed > HEARTBEAT_TIMEOUT_MS) {
         const sessionId = this.agentSessionId;
         this.agentSessionId = null;
         this.clearHeartbeatTimer();
@@ -376,6 +405,19 @@ export class TerminalDurableObject implements DurableObject {
           type: 'agent_disconnected',
           message: 'Agent heartbeat timed out',
         }), sessionId);
+        return;
+      }
+
+      // Actively ping the agent. agent.py replies to `heartbeat_ping` with a
+      // `heartbeat`, which refreshes lastHeartbeat above. Without this ping the
+      // agent never reports in and we'd wrongly mark a live agent offline.
+      const agentWs = this.websockets.get(this.agentSessionId);
+      if (agentWs) {
+        try {
+          agentWs.send(JSON.stringify({ type: 'heartbeat_ping' }));
+        } catch {
+          this.handleAgentOffline(this.agentSessionId);
+        }
       }
     }, 30000);
   }

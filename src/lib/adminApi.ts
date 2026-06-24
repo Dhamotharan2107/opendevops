@@ -1,12 +1,14 @@
 const BASE = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8787/api');
-const ADMIN_KEY = 'opendrapdev@2026';
 
+// Admin endpoints authenticate with the logged-in user's JWT; the server enforces
+// the admin role. No static admin key is shipped in the client bundle anymore.
 async function req<T = any>(path: string, opts?: RequestInit): Promise<T> {
+  const token = localStorage.getItem('token');
   const res = await fetch(`${BASE}/admin${path}`, {
     ...opts,
     headers: {
       'Content-Type': 'application/json',
-      'X-Admin-Key': ADMIN_KEY,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(opts?.headers ?? {}),
     },
   });

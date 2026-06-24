@@ -101,10 +101,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return data.data;
 }
 
-export async function apiLogin(email: string, password: string) {
+export async function apiLogin(email: string, password: string, recaptchaToken?: string) {
   const data = await request<{ token: string; user: any }>('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, recaptchaToken }),
   });
   localStorage.setItem('token', data.token);
   return data;
@@ -115,10 +115,10 @@ export async function apiDemoLogin() {
   return { token: DEMO_TOKEN, user: DEMO_USER };
 }
 
-export async function apiRegister(username: string, name: string, email: string, password: string) {
+export async function apiRegister(username: string, name: string, email: string, password: string, recaptchaToken?: string) {
   const data = await request<{ token: string; user: any }>('/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ username, name, email, password }),
+    body: JSON.stringify({ username, name, email, password, recaptchaToken }),
   });
   localStorage.setItem('token', data.token);
   return data;
@@ -127,6 +127,16 @@ export async function apiRegister(username: string, name: string, email: string,
 export async function apiMe() {
   if (isDemoMode()) return { user: DEMO_USER };
   return request<{ user: any }>('/auth/me');
+}
+
+export async function apiExchangeGoogleCode(code: string) {
+  if (isDemoMode()) return { token: DEMO_TOKEN, user: DEMO_USER };
+  const data = await request<{ token: string; user: any }>('/auth/google/exchange', {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+  localStorage.setItem('token', data.token);
+  return data;
 }
 
 export async function apiLogout() {
@@ -347,6 +357,19 @@ export async function apiGetLogs(projectId = 'default', level?: string, search?:
   if (level) q.set('level', level);
   if (search) q.set('search', search);
   return request<{ logs: any[]; total: number }>(`/logs?${q}`);
+}
+
+export async function apiGetErrors(projectId = 'default', severity?: string, status?: string, page = 1, limit = 50) {
+  if (isDemoMode()) return { errors: [], total: 0 };
+  const q = new URLSearchParams({ projectId, page: String(page), limit: String(limit) });
+  if (severity) q.set('severity', severity);
+  if (status) q.set('status', status);
+  return request<{ errors: any[]; total: number }>(`/errors?${q}`);
+}
+
+export async function apiUpdateError(id: string, data: { status?: string; severity?: string; title?: string; message?: string }) {
+  if (isDemoMode()) return { error: { id, ...data } };
+  return request<any>(`/errors/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 }
 
 export function hasToken() {

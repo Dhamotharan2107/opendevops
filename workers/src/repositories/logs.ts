@@ -73,7 +73,15 @@ export class LogRepository {
       .bind(id, data.user_id, data.project_id || null, data.action, data.details || null, now)
       .run();
 
-    return (await this.db.prepare('SELECT * FROM activity_logs WHERE id = ?').bind(id).first<ActivityLog>())!;
+    // Build the row in memory instead of a second SELECT round trip.
+    return {
+      id,
+      user_id: data.user_id,
+      project_id: data.project_id,
+      action: data.action,
+      details: data.details,
+      created_at: now,
+    };
   }
 
   async getErrors(

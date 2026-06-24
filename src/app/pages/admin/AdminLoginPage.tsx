@@ -2,9 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { motion } from 'motion/react';
 import { Cloud, User, Lock, Eye, EyeOff, Loader2, ShieldAlert } from 'lucide-react';
-
-const ADMIN_USER = 'opendevops@admin';
-const ADMIN_PASS = 'opendrapdev@2026';
+import { apiLogin } from '../../../lib/api';
 
 export function AdminLoginPage() {
   const navigate = useNavigate();
@@ -14,19 +12,24 @@ export function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      if (username === ADMIN_USER && password === ADMIN_PASS) {
-        localStorage.setItem('opendrap_admin_session', 'true');
-        navigate('/admin-prd/dashboard');
-      } else {
-        setError('Invalid admin credentials');
-        setLoading(false);
+    try {
+      // Authenticate as a normal user, then require the admin role (enforced
+      // server-side on every admin request). No client-side secret.
+      const { user } = await apiLogin(username.trim(), password);
+      if (user?.role !== 'admin') {
+        localStorage.removeItem('token');
+        throw new Error('This account does not have admin access');
       }
-    }, 600);
+      localStorage.setItem('opendrap_admin_session', 'true');
+      navigate('/admin-prd/dashboard');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid admin credentials');
+      setLoading(false);
+    }
   };
 
   return (
@@ -73,14 +76,14 @@ export function AdminLoginPage() {
             )}
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Username</label>
+              <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Email</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                 <input
-                  type="text"
+                  type="email"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="opendevops@admin"
+                  placeholder="admin@opendrap.dev"
                   className="w-full pl-9 pr-4 h-11 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-red-500/40 transition-colors"
                   required
                   autoComplete="username"

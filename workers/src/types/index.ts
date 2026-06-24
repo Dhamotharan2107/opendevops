@@ -15,6 +15,7 @@ export interface Env {
   GITHUB_CLIENT_SECRET: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
+  RECAPTCHA_SECRET_KEY: string;
   FRONTEND_URL: string;
 }
 

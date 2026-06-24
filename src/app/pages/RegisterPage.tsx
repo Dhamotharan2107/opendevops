@@ -8,6 +8,16 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 
+declare const grecaptcha: { ready: (cb: () => void) => void; execute: (key: string, opts: { action: string }) => Promise<string>; };
+const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '';
+if (siteKey && typeof window !== 'undefined' && !(window as any).recaptchaLoaded) {
+  (window as any).recaptchaLoaded = true;
+  const s = document.createElement('script');
+  s.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
+  s.async = true; s.defer = true;
+  document.head.appendChild(s);
+}
+
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -40,6 +50,15 @@ export function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const executeRecaptcha = async (): Promise<string> => {
+    if (!siteKey || typeof grecaptcha === 'undefined') return '';
+    try {
+      return await grecaptcha.execute(siteKey, { action: 'register' });
+    } catch {
+      return '';
+    }
+  };
+
   const updateField = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
@@ -49,7 +68,8 @@ export function RegisterPage() {
     setIsLoading(true);
     setError('');
     try {
-      const { user } = await apiRegister(form.username, form.name, form.email, form.password);
+      const token = await executeRecaptcha();
+      const { user } = await apiRegister(form.username, form.name, form.email, form.password, token || undefined);
       dispatch({ type: 'SET_USER', payload: user });
       navigate('/dashboard');
     } catch (err: any) {

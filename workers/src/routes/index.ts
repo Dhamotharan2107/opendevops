@@ -50,7 +50,17 @@ except ImportError:
 WS_URL = '${wsUrl}?sessionId=agent&projectId=default&token=${token}'
 MAX_RECONNECT_DELAY = 30
 
-async def run_command(command):
+# Track running processes + their streaming tasks so we never get GC'd and can
+# stop them on ctrl_c / stop_process.
+RUNNING = {}
+TASKS = set()
+
+async def run_command(ws, command, command_id):
+    # Stream output line-by-line as it arrives. Long-running commands such as a
+    # cloudflared tunnel never exit, so buffering until completion would print
+    # nothing at all. Streaming surfaces progress (and the tunnel URL) live.
+    proc = None
+    code = 0
     try:
         proc = await asyncio.create_subprocess_shell(
             command,
@@ -58,13 +68,58 @@ async def run_command(command):
             stderr=asyncio.subprocess.STDOUT,
             shell=True
         )
-        output = b''
+        RUNNING[command_id] = proc
         async for line in proc.stdout:
-            output += line
+            text = line.decode('utf-8', errors='replace')
+            try:
+                await ws.send(json.dumps({
+                    'type': 'command_output',
+                    'command_id': command_id,
+                    'output': text
+                }))
+            except Exception:
+                break
         await proc.wait()
-        return output.decode('utf-8', errors='replace'), proc.returncode
+        code = proc.returncode if proc.returncode is not None else 0
     except Exception as e:
-        return str(e), 1
+        try:
+            await ws.send(json.dumps({
+                'type': 'command_output',
+                'command_id': command_id,
+                'output': str(e) + '\\n'
+            }))
+        except Exception:
+            pass
+        code = 1
+    finally:
+        RUNNING.pop(command_id, None)
+    try:
+        await ws.send(json.dumps({
+            'type': 'command_completed',
+            'command_id': command_id,
+            'output': '',
+            'status': 'success' if code == 0 else 'error'
+        }))
+    except Exception:
+        pass
+
+def stop_all():
+    for cid, proc in list(RUNNING.items()):
+        try:
+            proc.terminate()
+        except Exception:
+            pass
+        RUNNING.pop(cid, None)
+
+async def heartbeat_loop(ws):
+    # Proactively report in every 25s so the server never times us out,
+    # even if it doesn't send heartbeat_ping. The server's timeout is 90s.
+    while True:
+        await asyncio.sleep(25)
+        try:
+            await ws.send(json.dumps({'type': 'heartbeat'}))
+        except Exception:
+            return
 
 async def connect():
     attempt = 0
@@ -77,24 +132,28 @@ async def connect():
                 print('Connected!', flush=True)
                 delay = 1
                 await ws.send(json.dumps({'type': 'agent_connected', 'project_id': 'default'}))
-                async for message in ws:
-                    try:
-                        data = json.loads(message)
-                        msg_type = data.get('type', '')
-                        if msg_type == 'execute_command':
-                            command = data.get('command', '')
-                            command_id = data.get('command_id', '')
-                            output, code = await run_command(command)
-                            await ws.send(json.dumps({
-                                'type': 'command_completed',
-                                'command_id': command_id,
-                                'output': output,
-                                'status': 'success' if code == 0 else 'error'
-                            }))
-                        elif msg_type == 'heartbeat_ping':
-                            await ws.send(json.dumps({'type': 'heartbeat'}))
-                    except Exception as e:
-                        print(f'Message error: {e}', flush=True)
+                hb_task = asyncio.create_task(heartbeat_loop(ws))
+                try:
+                    async for message in ws:
+                        try:
+                            data = json.loads(message)
+                            msg_type = data.get('type', '')
+                            if msg_type == 'execute_command':
+                                command = data.get('command', '')
+                                command_id = data.get('command_id', '')
+                                # Run as a background task so long-running commands
+                                # (tunnels, dev servers) never block the message loop.
+                                t = asyncio.create_task(run_command(ws, command, command_id))
+                                TASKS.add(t)
+                                t.add_done_callback(TASKS.discard)
+                            elif msg_type in ('ctrl_c', 'stop_process'):
+                                stop_all()
+                            elif msg_type == 'heartbeat_ping':
+                                await ws.send(json.dumps({'type': 'heartbeat'}))
+                        except Exception as e:
+                            print(f'Message error: {e}', flush=True)
+                finally:
+                    hb_task.cancel()
         except Exception as e:
             print(f'Disconnected: {e}. Reconnecting in {delay}s...', flush=True)
             await asyncio.sleep(delay)

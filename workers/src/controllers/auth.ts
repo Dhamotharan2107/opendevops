@@ -1,11 +1,12 @@
 import type { Context } from 'hono';
-import { createToken, hashPassword, comparePassword } from '../auth';
+import { createToken, hashPassword, comparePassword, needsRehash } from '../auth';
 import { handleGoogleOAuth, handleGitHubOAuth } from '../auth/oauth';
 import { UserRepository } from '../repositories/user';
 import type { Env } from '../types';
 import { registerSchema, loginSchema } from '../validators';
 import { ValidationError, UnauthorizedError } from '../utils/errors';
 import { generateId, now, successResponse, errorResponse } from '../utils/helpers';
+import { verifyRecaptcha } from '../utils/recaptcha';
 
 export async function register(c: Context<{ Bindings: Env }>) {
   const body = await c.req.json();
@@ -14,7 +15,11 @@ export async function register(c: Context<{ Bindings: Env }>) {
     throw new ValidationError(parsed.error.errors.map((e) => e.message).join(', '));
   }
 
-  const { username, name, email, password } = parsed.data;
+  const { username, name, email, password, recaptchaToken } = parsed.data;
+  if (recaptchaToken) {
+    const valid = await verifyRecaptcha(recaptchaToken, c.env.RECAPTCHA_SECRET_KEY);
+    if (!valid) throw new ValidationError('reCAPTCHA verification failed');
+  }
   const repo = new UserRepository(c.env.DB);
 
   const existingEmail = await repo.findByEmail(email);
@@ -53,7 +58,11 @@ export async function login(c: Context<{ Bindings: Env }>) {
     throw new ValidationError(parsed.error.errors.map((e) => e.message).join(', '));
   }
 
-  const { email, password } = parsed.data;
+  const { email, password, recaptchaToken } = parsed.data;
+  if (recaptchaToken) {
+    const valid = await verifyRecaptcha(recaptchaToken, c.env.RECAPTCHA_SECRET_KEY);
+    if (!valid) throw new ValidationError('reCAPTCHA verification failed');
+  }
   const repo = new UserRepository(c.env.DB);
 
   const user = await repo.findByEmail(email);
@@ -64,6 +73,15 @@ export async function login(c: Context<{ Bindings: Env }>) {
   const valid = await comparePassword(password, user.password_hash);
   if (!valid) {
     throw new UnauthorizedError('Invalid email or password');
+  }
+
+  // Transparently upgrade legacy (unsalted SHA-256) hashes to PBKDF2 on login.
+  if (needsRehash(user.password_hash)) {
+    try {
+      await repo.update(user.id, { password_hash: await hashPassword(password) });
+    } catch {
+      // non-fatal — login still succeeds
+    }
   }
 
   const token = await createToken(user.id, c.env.JWT_SECRET);
@@ -92,7 +110,7 @@ export async function me(c: Context<{ Bindings: Env }>) {
 export async function googleAuth(c: Context<{ Bindings: Env }>) {
   const params = new URLSearchParams({
     client_id: c.env.GOOGLE_CLIENT_ID,
-    redirect_uri: `${c.env.FRONTEND_URL}/auth/google/callback`,
+    redirect_uri: `${c.env.FRONTEND_URL}/signin/callback/auth/`,
     response_type: 'code',
     scope: 'openid email profile',
   });
@@ -117,6 +135,22 @@ export async function googleCallback(c: Context<{ Bindings: Env }>) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Google OAuth failed';
     return c.redirect(`${c.env.FRONTEND_URL}/auth/callback?error=${encodeURIComponent(message)}`);
+  }
+}
+
+export async function exchangeGoogleCode(c: Context<{ Bindings: Env }>) {
+  const body = await c.req.json();
+  const { code } = body;
+  if (!code) {
+    return c.json(errorResponse('Missing authorization code'), 400);
+  }
+  try {
+    const user = await handleGoogleOAuth(code, c.env);
+    const token = await createToken(user.id, c.env.JWT_SECRET);
+    return c.json(successResponse({ token, user }));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Google OAuth failed';
+    return c.json(errorResponse(message), 400);
   }
 }
 

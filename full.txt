@@ -1,38 +1,64 @@
-I have already built a TypeScript agent that receives commands from a WebSocket server and executes them using `child_process.spawn()`. Simple commands like `pwd`, `ls`, and `echo` work correctly.
 
-However, long-running commands such as:
+cloudshell:~/opendev/projects/TRANSFER-Application/bankin/Banking_sector$
+Live
+Connecting to agent...
+Connected. Waiting for agent...
+Agent connected — cloudshell
+cloudshell:~$ ls
+agent.log
+b2
+b2mount
+bin
+cloudflared-linux-amd64
+cloudflared.log
+main.py
+manager
+opendev
+opendrap-agent
+opentrack
+OpenWA
+r2
+README-cloudshell.txt
+requirements.txt
+startup.sh
+tunnel.log
+whatfy.tar
+cloudshell:~$ cd opendev
+cloudshell:~/opendev$ ls
+projects
+cloudshell:~/opendev$ cd project
+/bin/bash: line 1: cd: project: No such file or directory
+cloudshell:~/opendev$ cd projects
+cloudshell:~/opendev/projects$ ls
+TRANSFER-Application
+tre
+^C
+^C
+cloudshell:~/opendev/projects$ cd TRANSFER-Application
+cloudshell:~/opendev/projects/TRANSFER-Application$ ls
+bankin
+cloudshell:~/opendev/projects/TRANSFER-Application$ cd bankin
+cloudshell:~/opendev/projects/TRANSFER-Application/bankin$ ls
+Banking_sector
+cloudshell:~/opendev/projects/TRANSFER-Application/bankin$ cd Banking_sector
+cloudshell:~/opendev/projects/TRANSFER-Application/bankin/Banking_sector$ ls
+Banking_app
+Banking_sector
+db.sqlite3
+front_end
+manage.py
+cloudshell:~/opendev/projects/TRANSFER-Application/bankin/Banking_sector$ python3 manage.py runserver
+Watching for file changes with StatReloader
+Performing system checks...
 
-* `python manage.py runserver`
-* `cloudflared tunnel --url http://127.0.0.1:8000`
-* `npm run dev`
-* `node server.js`
+System check identified no issues (0 silenced).
+June 24, 2026 - 06:44:28
+Django version 6.0.6, using settings 'Banking_sector.settings'
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CONTROL-C.
 
-either do not start correctly, exit immediately, or block the agent.
+WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+For more information on production servers see: https://docs.djangoproject.com/en/6.0/howto/deployment/
 
-I want you to refactor my TypeScript agent to properly support long-running background processes.
 
-### Requirements
-
-1. Use `child_process.spawn()` instead of `exec()`.
-2. Support both one-time commands and persistent processes.
-3. Each spawned process should have a unique process ID stored in a `Map`.
-4. Stream `stdout` and `stderr` back to the WebSocket in real time.
-5. Send process status updates (`started`, `running`, `exited`, `error`) to the server.
-6. Allow specifying a custom working directory (`cwd`) for commands like `python manage.py runserver`.
-7. Preserve environment variables (`env: process.env`).
-8. Do not block the WebSocket while a process is running.
-9. Support running multiple processes simultaneously (for example, Django and Cloudflare Tunnel at the same time).
-10. Add commands to:
-
-    * start a process
-    * stop a process
-    * list running processes
-    * restart a process
-11. Handle Windows, Linux, and macOS correctly.
-12. Ensure `python manage.py runserver` keeps running until explicitly stopped.
-13. Ensure `cloudflared tunnel --url http://127.0.0.1:8000` also runs continuously and streams logs.
-14. If the command requires an interactive shell, use the correct `shell` option.
-15. Properly clean up child processes when the agent disconnects or exits.
-16. Include complete TypeScript code with best practices and error handling.
-
-Also explain why my current implementation fails for long-running commands and how your implementation fixes those issues.
+an dport i given 8000 i get this https://tri-blessed-hose-finite.trycloudflare.com now but this page is not working why ??

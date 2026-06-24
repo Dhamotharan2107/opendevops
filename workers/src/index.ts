@@ -28,30 +28,37 @@ import { dashboardRouter } from './routes/dashboard';
 
 const app = new Hono<{ Bindings: Env }>();
 
+// CORS: reflect only an explicit allowlist of origins (no wildcard-with-credentials).
+const STATIC_ALLOWED_ORIGINS = [
+  'http://localhost:5173', 'http://127.0.0.1:5173',
+  'http://localhost:3000', 'http://127.0.0.1:3000',
+];
 app.use('*', cors({
-  origin: '*',
+  origin: (origin, c) => {
+    const allowed = [(c.env as Env).FRONTEND_URL, ...STATIC_ALLOWED_ORIGINS].filter(Boolean);
+    if (!origin) return allowed[0] ?? null;        // non-browser clients (curl, agent)
+    return allowed.includes(origin) ? origin : null; // disallow everything else
+  },
   credentials: true,
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Admin-Key'],
+  allowHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Middleware: log API requests to activity_logs
+// Middleware: log API requests to activity_logs (fire-and-forget; never blocks the response).
 app.use('/api/*', async (c, next) => {
   await next();
   const path = c.req.path;
-  if (c.res.status < 400 && !path.includes('/logs') && !path.includes('/install.sh') && !path.includes('/health')) {
-    try {
-      const repo = new LogRepository(c.env.DB);
-      const user = c.get('user') as any;
-      const method = c.req.method;
-      const action = method === 'DELETE' ? 'warn' : method === 'PUT' || method === 'PATCH' ? 'info' : 'info';
-      const details = `${method} ${path} — ${c.res.status}`;
-      await repo.create({
-        user_id: user?.id || 'system',
-        project_id: 'default',
-        action,
-        details,
-      });
-    } catch {}
+  const method = c.req.method;
+  // Only log authenticated, state-changing requests — avoid a DB write on every GET.
+  const isWrite = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
+  const user = c.get('user') as any;
+  if (c.res.status < 400 && isWrite && user?.id &&
+      !path.includes('/logs') && !path.includes('/install.sh') && !path.includes('/health')) {
+    const repo = new LogRepository(c.env.DB);
+    const action = method === 'DELETE' ? 'warn' : 'info';
+    const details = `${method} ${path} — ${c.res.status}`;
+    const write = repo.create({ user_id: user.id, project_id: 'default', action, details }).catch(() => {});
+    // Run after the response is sent so it adds no latency.
+    try { c.executionCtx.waitUntil(write); } catch { await write; }
   }
 });
 
@@ -80,7 +87,7 @@ app.get('/api/install.sh', (c) => {
   const queryToken = c.req.query('token') || '';
 
   const tokenLine = queryToken
-    ? 'OPENDRAP_AGENT_TOKEN="' + queryToken.replace(/[\\"$]/g, '\\$&') + '"'
+    ? 'export OPENDRAP_AGENT_TOKEN="' + queryToken.replace(/[\\"$]/g, '\\$&') + '"'
     : '';
 
   const promptBlock = queryToken ? '' : `
@@ -143,7 +150,15 @@ if [ ! -d node_modules/ws ]; then
   echo "  Installing ws..."
   npm install ws --save-quiet 2>/dev/null || npm install ws 2>&1 | tail -3
 fi
-echo "  ws: OK"
+# Verify ws can actually be required, otherwise the agent crashes on startup.
+if node -e "require('ws')" 2>/dev/null; then
+  echo "  ws: OK"
+else
+  echo "  ws not loadable — retrying install..."
+  rm -rf node_modules package-lock.json
+  npm install ws 2>&1 | tail -5
+  node -e "require('ws')" 2>/dev/null && echo "  ws: OK" || echo "  ws: STILL FAILING — check 'npm install ws' manually"
+fi
 
 cat > "$AGENT_FILE" << 'JSEOF'
 'use strict';
@@ -182,7 +197,12 @@ function send(obj) {
 // Spawn a child process for every command — non-blocking, supports long-running processes.
 // stdout + stderr are streamed in real time via 100ms flush intervals.
 function runProc(cmdId, command, cmdCwd) {
-  const wdir = cmdCwd || cwd;
+  let wdir = cmdCwd || cwd;
+  // Cloud Shell can recycle directories out from under us; if the tracked cwd no
+  // longer exists, spawning there yields 'getcwd: cannot access parent
+  // directories'. Fall back to home so commands always run from a valid dir.
+  try { if (!fs.statSync(wdir).isDirectory()) { wdir = os.homedir(); cwd = wdir; } }
+  catch (_) { wdir = os.homedir(); cwd = wdir; }
   let proc;
   try {
     proc = spawn(SH, [SF, command], {
@@ -191,7 +211,7 @@ function runProc(cmdId, command, cmdCwd) {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
   } catch(e) {
-    send({ type: 'command_output', command_id: cmdId, output: 'spawn error: ' + e.message + '\n' });
+    send({ type: 'command_output', command_id: cmdId, output: 'spawn error: ' + e.message + '\\n' });
     send({ type: 'command_completed', command_id: cmdId, output: '', status: 'error' });
     return;
   }
@@ -205,13 +225,13 @@ function runProc(cmdId, command, cmdCwd) {
     const text = chunk.toString();
     buf += text;
     // Update agent cwd when shell emits __CWD__: marker (from 'cd ... && echo __CWD__:$(pwd)')
-    const cwdM = text.match(/__CWD__:([^\r\n]+)/);
+    const cwdM = text.match(/__CWD__:([^\\r\\n]+)/);
     if (cwdM) {
       const raw = cwdM[1].trim().replace(/^~/, os.homedir());
       try { if (fs.statSync(raw).isDirectory()) cwd = raw; } catch(_) {}
     }
-    // Flush immediately so the browser gets the cloudflared URL without waiting 100ms
-    if (text.indexOf('trycloudflare.com') >= 0) {
+    // Flush immediately so the browser gets the tunnel URL without waiting 100ms
+    if (text.indexOf('trycloudflare.com') >= 0 || text.indexOf('loca.lt') >= 0) {
       clearInterval(timer);
       send({ type: 'command_output', command_id: cmdId, output: buf }); buf = '';
       timer = setInterval(() => {
@@ -234,9 +254,20 @@ function runProc(cmdId, command, cmdCwd) {
   proc.on('error', (e) => {
     clearInterval(timer);
     procs.delete(cmdId);
-    send({ type: 'command_output', command_id: cmdId, output: 'Error: ' + e.message + '\n' });
+    send({ type: 'command_output', command_id: cmdId, output: 'Error: ' + e.message + '\\n' });
     send({ type: 'command_completed', command_id: cmdId, output: '', status: 'error' });
   });
+}
+
+// Resolve a user-supplied path: expand a leading ~, and make relative paths
+// resolve against the agent's current dir. No regex (kept template-literal safe).
+function resolvePath(p) {
+  p = (p || '').trim();
+  if (p === '~') return os.homedir();
+  if (p.indexOf('~/') === 0) p = path.join(os.homedir(), p.slice(2));
+  if (!p) p = cwd;
+  if (!path.isAbsolute(p)) p = path.resolve(cwd, p);
+  return p;
 }
 
 function handleMsg(msg) {
@@ -245,8 +276,8 @@ function handleMsg(msg) {
     const cmd = (msg.command || '').trim();
     // Handle standalone 'cd' in Node.js to keep the agent's cwd in sync.
     // Compound commands like 'cd x && echo __CWD__:$(pwd)' go to runProc (shell handles them).
-    if (/^cd(\s+.*)?$/.test(cmd) && cmd.indexOf('&&') < 0 && cmd.indexOf(';') < 0 && cmd.indexOf('|') < 0) {
-      const parts = cmd.split(/\s+/);
+    if (/^cd(\\s+.*)?$/.test(cmd) && cmd.indexOf('&&') < 0 && cmd.indexOf(';') < 0 && cmd.indexOf('|') < 0) {
+      const parts = cmd.split(/\\s+/);
       const target = parts.length > 1 ? parts.slice(1).join(' ').replace(/^~/, os.homedir()) : os.homedir();
       const newdir = path.resolve(cwd, target);
       try {
@@ -258,7 +289,7 @@ function handleMsg(msg) {
           return;
         }
       } catch(_) {}
-      send({ type: 'command_output', command_id: msg.command_id, output: 'cd: ' + target + ': No such file or directory\n' });
+      send({ type: 'command_output', command_id: msg.command_id, output: 'cd: ' + target + ': No such file or directory\\n' });
       send({ type: 'command_completed', command_id: msg.command_id, output: '', status: 'error', cwd: cwd.replace(os.homedir(), '~') });
       return;
     }
@@ -281,6 +312,23 @@ function handleMsg(msg) {
     } else {
       procs.forEach((e) => { try { e.proc.kill('SIGINT'); } catch(_) {} });
     }
+  } else if (t === 'read_file') {
+    const fp = resolvePath(msg.path);
+    fs.readFile(fp, 'utf8', (err, data) => {
+      send({ type: 'file_content', request_id: msg.request_id, path: msg.path, abs_path: fp, content: err ? '' : data, error: err ? err.message : null });
+    });
+  } else if (t === 'write_file') {
+    const fp = resolvePath(msg.path);
+    fs.writeFile(fp, msg.content != null ? String(msg.content) : '', 'utf8', (err) => {
+      send({ type: 'file_saved', request_id: msg.request_id, path: msg.path, abs_path: fp, error: err ? err.message : null });
+    });
+  } else if (t === 'list_dir') {
+    const dp = resolvePath(msg.path || cwd);
+    fs.readdir(dp, { withFileTypes: true }, (err, ents) => {
+      const entries = err ? [] : ents.map((e) => ({ name: e.name, dir: e.isDirectory() }))
+        .sort((a, b) => (Number(b.dir) - Number(a.dir)) || a.name.localeCompare(b.name));
+      send({ type: 'dir_list', request_id: msg.request_id, path: dp.replace(os.homedir(), '~'), abs_path: dp, entries: entries, error: err ? err.message : null });
+    });
   } else if (t === 'heartbeat_ping') {
     send({ type: 'heartbeat', agent_id: AGENT_ID });
   }
@@ -374,7 +422,11 @@ sleep 2
 if kill -0 $(cat "$PID_FILE") 2>/dev/null; then
   echo "  Agent running! (PID: $(cat "$PID_FILE"))"
 else
-  echo "  Start failed. Check: tail -20 $LOG_FILE"
+  echo "  Start failed — crash log below:"
+  echo "  ----------------------------------------"
+  tail -25 "$LOG_FILE" 2>/dev/null | sed 's/^/  | /'
+  echo "  ----------------------------------------"
+  echo "  Fix the error above, then run: bash ~/opendrap-agent/restart.sh"
 fi
 
 echo ""

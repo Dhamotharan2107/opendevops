@@ -1,37 +1,52 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { AppProvider, useApp } from '../lib/store';
-import { NewLandingPage } from './components/NewLandingPage';
-import { DashboardLayout } from './components/DashboardLayout';
-import { NewDashboardHome } from './components/NewDashboardHome';
-import { ProjectDetails } from './components/ProjectDetails';
-import { ChatPage } from './pages/ChatPage';
-import { CompaniesPage } from './pages/CompaniesPage';
-import { ConnectionsPage } from './pages/ConnectionsPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { TasksPage } from './pages/TasksPage';
-import { BugsPage } from './pages/BugsPage';
-import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { DocsPage } from './pages/DocsPage';
-import { AuthCallbackPage } from './pages/AuthCallbackPage';
-import { ProjectsPage } from './pages/ProjectsPage';
-import { DeploymentsPage } from './pages/DeploymentsPage';
-import { MonitoringPage } from './pages/MonitoringPage';
-import { LogsPage } from './pages/LogsPage';
-import { ErrorsPage } from './pages/ErrorsPage';
-import { AITestingPage } from './pages/AITestingPage';
-import { APILabPage } from './pages/APILabPage';
-import { TerminalPage } from './pages/TerminalPage';
-import { TeamPage } from './pages/TeamPage';
-import { SettingsPage } from './pages/SettingsPage';
 import { apiMe, apiGetProjects, hasToken, isDemoMode, DEMO_PROJECTS, DEMO_DEPLOYMENTS, DEMO_ERRORS } from '../lib/api';
 import { PlanGate } from './components/PlanGate';
-import { AdminLoginPage } from './pages/admin/AdminLoginPage';
-import { AdminLayout } from './pages/admin/AdminLayout';
-import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
-import { AdminUsersPage } from './pages/admin/AdminUsersPage';
-import { AdminEnvPage } from './pages/admin/AdminEnvPage';
+
+// Lazy-load every route so each screen ships in its own chunk instead of one giant
+// bundle. Components are named exports, so map them onto `default`.
+const named = (loader: () => Promise<any>, name: string) =>
+  lazy(async () => ({ default: (await loader())[name] }));
+
+const NewLandingPage = named(() => import('./components/NewLandingPage'), 'NewLandingPage');
+const DashboardLayout = named(() => import('./components/DashboardLayout'), 'DashboardLayout');
+const NewDashboardHome = named(() => import('./components/NewDashboardHome'), 'NewDashboardHome');
+const ProjectDetails = named(() => import('./components/ProjectDetails'), 'ProjectDetails');
+const ChatPage = named(() => import('./pages/ChatPage'), 'ChatPage');
+const CompaniesPage = named(() => import('./pages/CompaniesPage'), 'CompaniesPage');
+const ConnectionsPage = named(() => import('./pages/ConnectionsPage'), 'ConnectionsPage');
+const ProfilePage = named(() => import('./pages/ProfilePage'), 'ProfilePage');
+const TasksPage = named(() => import('./pages/TasksPage'), 'TasksPage');
+const BugsPage = named(() => import('./pages/BugsPage'), 'BugsPage');
+const LoginPage = named(() => import('./pages/LoginPage'), 'LoginPage');
+const RegisterPage = named(() => import('./pages/RegisterPage'), 'RegisterPage');
+const DocsPage = named(() => import('./pages/DocsPage'), 'DocsPage');
+const AuthCallbackPage = named(() => import('./pages/AuthCallbackPage'), 'AuthCallbackPage');
+const SigninCallbackPage = named(() => import('./pages/SigninCallbackPage'), 'SigninCallbackPage');
+const ProjectsPage = named(() => import('./pages/ProjectsPage'), 'ProjectsPage');
+const DeploymentsPage = named(() => import('./pages/DeploymentsPage'), 'DeploymentsPage');
+const MonitoringPage = named(() => import('./pages/MonitoringPage'), 'MonitoringPage');
+const LogsPage = named(() => import('./pages/LogsPage'), 'LogsPage');
+const ErrorsPage = named(() => import('./pages/ErrorsPage'), 'ErrorsPage');
+const AITestingPage = named(() => import('./pages/AITestingPage'), 'AITestingPage');
+const APILabPage = named(() => import('./pages/APILabPage'), 'APILabPage');
+const TerminalPage = named(() => import('./pages/TerminalPage'), 'TerminalPage');
+const TeamPage = named(() => import('./pages/TeamPage'), 'TeamPage');
+const SettingsPage = named(() => import('./pages/SettingsPage'), 'SettingsPage');
+const AdminLoginPage = named(() => import('./pages/admin/AdminLoginPage'), 'AdminLoginPage');
+const AdminLayout = named(() => import('./pages/admin/AdminLayout'), 'AdminLayout');
+const AdminDashboardPage = named(() => import('./pages/admin/AdminDashboardPage'), 'AdminDashboardPage');
+const AdminUsersPage = named(() => import('./pages/admin/AdminUsersPage'), 'AdminUsersPage');
+const AdminEnvPage = named(() => import('./pages/admin/AdminEnvPage'), 'AdminEnvPage');
+
+function RouteFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-[#0A0A0F]">
+      <div className="w-8 h-8 rounded-full border-2 border-white/15 border-t-fuchsia-500 animate-spin" />
+    </div>
+  );
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { state } = useApp();
@@ -83,11 +98,13 @@ function AppRoutes() {
   return (
     <>
       <SessionRestorer />
+      <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={<NewLandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/signin/callback/auth" element={<SigninCallbackPage />} />
         <Route path="/docs" element={<DocsPage />} />
         <Route
           path="/dashboard"
@@ -133,6 +150,7 @@ function AppRoutes() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </>
   );
 }

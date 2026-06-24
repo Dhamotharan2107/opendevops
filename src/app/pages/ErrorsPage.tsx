@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   AlertCircle, CheckCircle2, Search, Filter, RefreshCw,
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/lib/store';
 import { cn, getStatusColor } from '@/lib/utils';
+import { apiGetErrors, apiUpdateError, isDemoMode } from '@/lib/api';
 import type { ErrorRecord } from '@/lib/types';
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -31,25 +32,60 @@ export function ErrorsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [selected, setSelected] = useState<ErrorRecord | null>(null);
+  const [fetched, setFetched] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const filtered = errors.filter((e) => {
+  useEffect(() => {
+    if (isDemoMode()) return;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await apiGetErrors('default', severityFilter === 'all' ? undefined : severityFilter, statusFilter === 'all' ? undefined : statusFilter);
+        setFetched(res.errors || []);
+      } catch {
+        // silent
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [severityFilter, statusFilter]);
+
+  const allErrors: ErrorRecord[] = useMemo(() => {
+    const local = state.errors.length > 0 ? state.errors : [];
+    const backend = fetched.map((item: any) => ({
+      id: item.id,
+      projectId: item.project_id || 'default',
+      title: item.title,
+      message: item.message,
+      stackTrace: item.stack_trace || '',
+      count: item.count || 1,
+      severity: item.severity as ErrorRecord['severity'],
+      lastSeen: item.updated_at || item.created_at,
+      status: item.status as ErrorRecord['status'],
+    }));
+    return [...local, ...backend];
+  }, [state.errors, fetched]);
+
+  const filtered = allErrors.filter((e) => {
     const matchSearch = e.title.toLowerCase().includes(search.toLowerCase()) || e.message.toLowerCase().includes(search.toLowerCase());
     const matchSev = severityFilter === 'all' || e.severity === severityFilter;
     const matchStat = statusFilter === 'all' || e.status === statusFilter;
     return matchSearch && matchSev && matchStat;
   });
 
-  const resolve = (id: string) => {
+  const resolve = async (id: string) => {
     setErrors((prev) => prev.map((e) => e.id === id ? { ...e, status: 'resolved' as const } : e));
     dispatch({ type: 'UPDATE_ERROR', payload: { ...errors.find((e) => e.id === id)!, status: 'resolved' } });
     if (selected?.id === id) setSelected((prev) => prev ? { ...prev, status: 'resolved' } : null);
+    await apiUpdateError(id, { status: 'resolved' });
   };
 
   const stats = {
-    total: errors.length,
-    open: errors.filter((e) => e.status === 'open').length,
-    critical: errors.filter((e) => e.severity === 'critical').length,
-    resolved: errors.filter((e) => e.status === 'resolved').length,
+    total: allErrors.length,
+    open: allErrors.filter((e) => e.status === 'open').length,
+    critical: allErrors.filter((e) => e.severity === 'critical').length,
+    resolved: allErrors.filter((e) => e.status === 'resolved').length,
   };
 
   return (

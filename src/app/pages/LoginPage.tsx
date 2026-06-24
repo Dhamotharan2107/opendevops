@@ -1,12 +1,22 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { motion } from 'motion/react';
-import { Cloud, Mail, Lock, Eye, EyeOff, Github, Loader2 } from 'lucide-react';
+import { Cloud, Mail, Lock, Eye, EyeOff, Github, Loader2, Sparkles } from 'lucide-react';
 import { useApp } from '@/lib/store';
 import { apiLogin, apiDemoLogin, getOAuthUrl, DEMO_PROJECTS, DEMO_DEPLOYMENTS, DEMO_ERRORS } from '@/lib/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+
+declare const grecaptcha: { ready: (cb: () => void) => void; execute: (key: string, opts: { action: string }) => Promise<string>; };
+const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '';
+if (siteKey && typeof window !== 'undefined' && !(window as any).recaptchaLoaded) {
+  (window as any).recaptchaLoaded = true;
+  const s = document.createElement('script');
+  s.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
+  s.async = true; s.defer = true;
+  document.head.appendChild(s);
+}
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -35,6 +45,15 @@ export function LoginPage() {
   const [error, setError] = useState('');
   const [demoLoading, setDemoLoading] = useState(false);
 
+  const executeRecaptcha = async (): Promise<string> => {
+    if (!siteKey || typeof grecaptcha === 'undefined') return '';
+    try {
+      return await grecaptcha.execute(siteKey, { action: 'login' });
+    } catch {
+      return '';
+    }
+  };
+
   const handleDemo = async () => {
     setDemoLoading(true);
     const { user } = await apiDemoLogin();
@@ -50,7 +69,8 @@ export function LoginPage() {
     setIsLoading(true);
     setError('');
     try {
-      const { user } = await apiLogin(email, password);
+      const token = await executeRecaptcha();
+      const { user } = await apiLogin(email, password, token || undefined);
       dispatch({ type: 'SET_USER', payload: user });
       navigate('/dashboard');
     } catch (err: any) {
@@ -173,7 +193,7 @@ export function LoginPage() {
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  <span>✨</span>
+                  <Sparkles className="w-4 h-4" />
                   Try Demo — No account needed
                 </>
               )}

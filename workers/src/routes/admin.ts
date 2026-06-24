@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { authenticate } from '../middleware/auth';
 import { adminAuth } from '../middleware/admin';
 import {
   getStats, listAllUsers, getUserDetail, updateUserAdmin, deleteUserAdmin,
@@ -8,6 +9,8 @@ import type { Env } from '../types';
 
 const router = new Hono<{ Bindings: Env }>();
 
+// Require a valid user JWT first, then enforce the admin role.
+router.use('*', authenticate);
 router.use('*', adminAuth);
 
 router.get('/stats', getStats);

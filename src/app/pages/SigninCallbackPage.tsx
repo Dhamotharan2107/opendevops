@@ -3,18 +3,19 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { motion } from 'motion/react';
 import { Cloud, Loader2, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import { useApp } from '@/lib/store';
-import { apiMe } from '@/lib/api';
+import { apiExchangeGoogleCode, apiMe } from '@/lib/api';
 
 type Status = 'loading' | 'success' | 'error';
 
-export function AuthCallbackPage() {
+export function SigninCallbackPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { dispatch } = useApp();
   const [status, setStatus] = useState<Status>('loading');
-  const [message, setMessage] = useState('Verifying your session...');
+  const [message, setMessage] = useState('Completing sign in...');
 
   useEffect(() => {
+    const code = params.get('code');
     const token = params.get('token');
     const error = params.get('error');
 
@@ -25,35 +26,49 @@ export function AuthCallbackPage() {
       return;
     }
 
-    if (!token) {
-      setStatus('error');
-      setMessage('No authentication token received');
-      setTimeout(() => navigate('/login'), 2000);
+    if (token) {
+      localStorage.setItem('token', token);
+      apiMe()
+        .then(({ user }) => {
+          dispatch({ type: 'SET_USER', payload: user });
+          setStatus('success');
+          setMessage(`Welcome back, ${user.name || user.username}!`);
+          setTimeout(() => navigate('/dashboard'), 1200);
+        })
+        .catch(() => {
+          localStorage.removeItem('token');
+          setStatus('error');
+          setMessage('Session expired. Redirecting...');
+          setTimeout(() => navigate('/login'), 2000);
+        });
       return;
     }
 
-    localStorage.setItem('token', token);
-    apiMe()
-      .then(({ user }) => {
-        dispatch({ type: 'SET_USER', payload: user });
-        setStatus('success');
-        setMessage(`Welcome back, ${user.name || user.username}!`);
-        setTimeout(() => navigate('/dashboard'), 1200);
-      })
-      .catch(() => {
-        localStorage.removeItem('token');
-        setStatus('error');
-        setMessage('Session expired. Please sign in again.');
-        setTimeout(() => navigate('/login'), 2000);
-      });
+    if (code) {
+      apiExchangeGoogleCode(code)
+        .then(({ user }) => {
+          dispatch({ type: 'SET_USER', payload: user });
+          setStatus('success');
+          setMessage(`Welcome, ${user.name || user.username}!`);
+          setTimeout(() => navigate('/dashboard'), 1200);
+        })
+        .catch((err) => {
+          setStatus('error');
+          setMessage(err.message || 'Authentication failed');
+          setTimeout(() => navigate('/login?error=' + encodeURIComponent(err.message || 'OAuth failed')), 2500);
+        });
+      return;
+    }
+
+    navigate('/login');
   }, []);
 
   return (
     <div className="relative min-h-screen bg-[#0A0A0F] flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-violet-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] bg-fuchsia-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-fuchsia-500/5 via-transparent to-transparent" />
+        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-violet-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-fuchsia-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-violet-500/5 via-transparent to-transparent" />
       </div>
 
       <motion.div
