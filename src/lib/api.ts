@@ -368,20 +368,32 @@ export async function apiGetDashboard() {
   return request<any>('/dashboard');
 }
 
-export async function apiGetLogs(projectId = 'default', level?: string, search?: string, page = 1, limit = 50) {
+export async function apiGetLogs(projectId?: string, level?: string, search?: string, page = 1, limit = 50) {
   if (isDemoMode()) return { logs: [], total: 0 };
-  const q = new URLSearchParams({ projectId, page: String(page), limit: String(limit) });
+  const q = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (projectId) q.set('projectId', projectId);
   if (level) q.set('level', level);
   if (search) q.set('search', search);
   return request<{ logs: any[]; total: number }>(`/logs?${q}`);
 }
 
-export async function apiGetErrors(projectId = 'default', severity?: string, status?: string, page = 1, limit = 50) {
+export async function apiReportLog(projectId: string, action: 'info' | 'warn' | 'error', details: string) {
+  if (isDemoMode()) return {};
+  return request<any>('/logs', { method: 'POST', body: JSON.stringify({ project_id: projectId, action, details }) }).catch(() => ({}));
+}
+
+export async function apiGetErrors(projectId?: string, severity?: string, status?: string, page = 1, limit = 50) {
   if (isDemoMode()) return { errors: [], total: 0 };
-  const q = new URLSearchParams({ projectId, page: String(page), limit: String(limit) });
+  const q = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (projectId) q.set('projectId', projectId);
   if (severity) q.set('severity', severity);
   if (status) q.set('status', status);
   return request<{ errors: any[]; total: number }>(`/errors?${q}`);
+}
+
+export async function apiReportError(projectId: string, title: string, message: string, severity: 'critical' | 'high' | 'medium' | 'low' = 'medium', stackTrace?: string) {
+  if (isDemoMode()) return {};
+  return request<any>('/errors', { method: 'POST', body: JSON.stringify({ project_id: projectId, title, message, severity, stack_trace: stackTrace }) }).catch(() => ({}));
 }
 
 export async function apiUpdateError(id: string, data: { status?: string; severity?: string; title?: string; message?: string }) {

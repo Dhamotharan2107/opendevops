@@ -53,11 +53,22 @@ app.use('/api/*', async (c, next) => {
   const isWrite = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
   const user = c.get('user') as any;
   if (c.res.status < 400 && isWrite && user?.id &&
-      !path.includes('/logs') && !path.includes('/install.sh') && !path.includes('/health')) {
+      !path.includes('/logs') && !path.includes('/errors') && !path.includes('/install.sh') && !path.includes('/health')) {
     const repo = new LogRepository(c.env.DB);
     const action = method === 'DELETE' ? 'warn' : 'info';
     const details = `${method} ${path} — ${c.res.status}`;
-    const write = repo.create({ user_id: user.id, project_id: 'default', action, details }).catch(() => {});
+    // Attribute the log to the real project when it can be determined from
+    // the URL (query ?projectId= / ?project_id= or /api/projects/:id).
+    // (The request body is already consumed by the handler, so it can't be
+    // re-read here — controllers log creation events with the new id themselves.)
+    const projectPathMatch = /\/api\/projects\/([^/?]+)/.exec(path);
+    const isProjectSubRoute = projectPathMatch && /\/api\/projects\/[^/?]+\//.test(path);
+    const projectId =
+      c.req.query('projectId') ||
+      c.req.query('project_id') ||
+      (projectPathMatch && !isProjectSubRoute ? projectPathMatch[1] : undefined) ||
+      'default';
+    const write = repo.create({ user_id: user.id, project_id: projectId, action, details }).catch(() => {});
     // Run after the response is sent so it adds no latency.
     try { c.executionCtx.waitUntil(write); } catch { await write; }
   }

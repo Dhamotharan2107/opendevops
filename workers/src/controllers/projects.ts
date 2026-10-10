@@ -1,5 +1,6 @@
 import type { Context } from 'hono';
 import { ProjectRepository } from '../repositories/project';
+import { LogRepository } from '../repositories/logs';
 import { successResponse } from '../utils/helpers';
 import { ValidationError, NotFoundError, UnauthorizedError } from '../utils/errors';
 import { createProjectSchema, updateProjectSchema } from '../validators';
@@ -30,6 +31,16 @@ export async function createProject(c: Context<{ Bindings: Env }>) {
   });
 
   await repo.addMember(project.id, userId, { role: 'owner', permissions: 'all' });
+
+  // Record creation under the real project id so the project's Logs tab
+  // shows activity (the global middleware can't know the new id).
+  try {
+    const logRepo = new LogRepository(c.env.DB);
+    const write = logRepo
+      .create({ user_id: userId, project_id: project.id, action: 'info', details: `Project created — ${project.name}` })
+      .catch(() => {});
+    try { c.executionCtx.waitUntil(write); } catch { /* fire-and-forget */ }
+  } catch { /* logging must never break project creation */ }
 
   return c.json(successResponse(project, 'Project created'), 201);
 }

@@ -3,6 +3,12 @@ import type { Env } from '../types';
 import { success, fail, paginated } from '../utils/helpers';
 import { NotFoundError } from '../utils/errors';
 import { DeploymentRepository } from '../repositories/deployment';
+import { LogRepository } from '../repositories/logs';
+
+function logInBackground(c: Context<{ Bindings: Env }>, run: Promise<unknown>) {
+  const done = run.catch(() => {});
+  try { c.executionCtx.waitUntil(done); } catch { /* fire-and-forget */ }
+}
 
 export async function createDeployment(c: Context<{ Bindings: Env }>) {
   try {
@@ -36,6 +42,13 @@ export async function createDeployment(c: Context<{ Bindings: Env }>) {
       logs: undefined,
       created_by: userId,
     });
+
+    logInBackground(c, new LogRepository(c.env.DB).create({
+      user_id: userId,
+      project_id,
+      action: 'info',
+      details: `Deployment ${nextVersion} created on ${branch}`,
+    }));
 
     return success(c, deployment, 201);
   } catch (err) {
@@ -96,6 +109,39 @@ export async function updateDeployment(c: Context<{ Bindings: Env }>) {
     await repo.update(id, { status, logs });
 
     const updated = await repo.findById(id);
+    if (updated) {
+      const logRepo = new LogRepository(c.env.DB);
+      if (status === 'failed') {
+        // A failed deploy must be visible in the Errors tab, not just the
+        // deployments list. Dedupe by version so retries bump the count.
+        logInBackground(c, (async () => {
+          const existing = await logRepo.findOpenByTitle(updated.project_id, `Deployment ${updated.version} failed`).catch(() => null);
+          if (existing) {
+            await logRepo.incrementErrorCount(existing.id).catch(() => {});
+          } else {
+            await logRepo.createError({
+              project_id: updated.project_id,
+              title: `Deployment ${updated.version} failed`,
+              message: (logs || `Deployment ${updated.version} on ${updated.branch} failed.`).slice(0, 10000),
+              severity: 'high',
+            }).catch(() => {});
+          }
+          await logRepo.create({
+            user_id: updated.created_by || 'system',
+            project_id: updated.project_id,
+            action: 'error',
+            details: `Deployment ${updated.version} failed on ${updated.branch}`,
+          }).catch(() => {});
+        })());
+      } else if (status) {
+        logInBackground(c, logRepo.create({
+          user_id: updated.created_by || 'system',
+          project_id: updated.project_id,
+          action: 'info',
+          details: `Deployment ${updated.version} → ${status}`,
+        }));
+      }
+    }
     return success(c, updated);
   } catch (err) {
     return fail(c, err);

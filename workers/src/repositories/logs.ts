@@ -27,31 +27,37 @@ export class LogRepository {
   constructor(private db: D1Database) {}
 
   async findByProject(
-    projectId: string,
+    projectId?: string,
     level?: string,
     search?: string,
     page = 1,
     limit = 20,
   ): Promise<{ logs: ActivityLog[]; total: number }> {
     const offset = (page - 1) * limit;
-    let countQuery = 'SELECT COUNT(*) as total FROM activity_logs WHERE project_id = ?';
-    let query = 'SELECT * FROM activity_logs WHERE project_id = ?';
-    const params: string[] = [projectId];
+    // projectId is optional: the global Logs page passes none to see recent
+    // activity across all projects. Per-project tabs pass their project id.
+    const clauses: string[] = [];
+    const params: string[] = [];
+
+    if (projectId) {
+      clauses.push('project_id = ?');
+      params.push(projectId);
+    }
 
     if (level) {
-      countQuery += ' AND action = ?';
-      query += ' AND action = ?';
+      clauses.push('action = ?');
       params.push(level);
     }
 
     if (search) {
-      countQuery += ' AND (details LIKE ? OR action LIKE ?)';
-      query += ' AND (details LIKE ? OR action LIKE ?)';
+      clauses.push('(details LIKE ? OR action LIKE ?)');
       const pattern = `%${search}%`;
       params.push(pattern, pattern);
     }
 
-    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+    const where = clauses.length ? ' WHERE ' + clauses.join(' AND ') : '';
+    const countQuery = 'SELECT COUNT(*) as total FROM activity_logs' + where;
+    const query = 'SELECT * FROM activity_logs' + where + ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
 
     const total = await this.db.prepare(countQuery).bind(...params).first<{ total: number }>();
     const logs = await this.db
@@ -85,30 +91,34 @@ export class LogRepository {
   }
 
   async getErrors(
-    projectId: string,
+    projectId?: string,
     severity?: string,
     status?: string,
     page = 1,
     limit = 20,
   ): Promise<{ errors: ErrorLog[]; total: number }> {
     const offset = (page - 1) * limit;
-    let countQuery = 'SELECT COUNT(*) as total FROM error_logs WHERE project_id = ?';
-    let query = 'SELECT * FROM error_logs WHERE project_id = ?';
-    const params: string[] = [projectId];
+    const clauses: string[] = [];
+    const params: string[] = [];
+
+    if (projectId) {
+      clauses.push('project_id = ?');
+      params.push(projectId);
+    }
 
     if (severity) {
-      countQuery += ' AND severity = ?';
-      query += ' AND severity = ?';
+      clauses.push('severity = ?');
       params.push(severity);
     }
 
     if (status) {
-      countQuery += ' AND status = ?';
-      query += ' AND status = ?';
+      clauses.push('status = ?');
       params.push(status);
     }
 
-    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+    const where = clauses.length ? ' WHERE ' + clauses.join(' AND ') : '';
+    const countQuery = 'SELECT COUNT(*) as total FROM error_logs' + where;
+    const query = 'SELECT * FROM error_logs' + where + ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
 
     const total = await this.db.prepare(countQuery).bind(...params).first<{ total: number }>();
     const errors = await this.db
@@ -167,5 +177,14 @@ export class LogRepository {
       .prepare('UPDATE error_logs SET count = count + 1, updated_at = ? WHERE id = ?')
       .bind(new Date().toISOString(), id)
       .run();
+  }
+
+  async findOpenByTitle(projectId: string, title: string): Promise<ErrorLog | null> {
+    return this.db
+      .prepare(
+        "SELECT * FROM error_logs WHERE project_id = ? AND title = ? AND status IN ('open', 'investigating') ORDER BY updated_at DESC LIMIT 1",
+      )
+      .bind(projectId, title)
+      .first<ErrorLog>();
   }
 }

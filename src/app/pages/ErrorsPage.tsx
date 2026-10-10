@@ -26,21 +26,23 @@ const MOCK_ERRORS: ErrorRecord[] = [
 
 export function ErrorsPage() {
   const { state, dispatch } = useApp();
-  const [errors, setErrors] = useState<ErrorRecord[]>(state.errors.length > 0 ? state.errors : MOCK_ERRORS);
+  const [errors, setErrors] = useState<ErrorRecord[]>([]);
   const [search, setSearch] = useState('');
   const [severityFilter, setSeverityFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [projectFilter, setProjectFilter] = useState('all');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [selected, setSelected] = useState<ErrorRecord | null>(null);
   const [fetched, setFetched] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const demoMode = isDemoMode();
 
   useEffect(() => {
-    if (isDemoMode()) return;
+    if (demoMode) return;
     const load = async () => {
       setLoading(true);
       try {
-        const res = await apiGetErrors('default', severityFilter === 'all' ? undefined : severityFilter, statusFilter === 'all' ? undefined : statusFilter);
+        const res = await apiGetErrors(projectFilter === 'all' ? undefined : projectFilter, severityFilter === 'all' ? undefined : severityFilter, statusFilter === 'all' ? undefined : statusFilter);
         setFetched(res.errors || []);
       } catch {
         // silent
@@ -49,9 +51,14 @@ export function ErrorsPage() {
       }
     };
     load();
-  }, [severityFilter, statusFilter]);
+  }, [severityFilter, statusFilter, projectFilter, demoMode]);
 
   const allErrors: ErrorRecord[] = useMemo(() => {
+    // Demo mode has no backend — show simulated errors so the page is useful.
+    // Real mode merges locally-tracked errors with the backend error_logs.
+    // (Previously MOCK_ERRORS seeded an unused state var, so real mode always
+    // rendered "No errors found" even when the backend had rows.)
+    if (demoMode) return MOCK_ERRORS;
     const local = state.errors.length > 0 ? state.errors : [];
     const backend = fetched.map((item: any) => ({
       id: item.id,
@@ -65,7 +72,7 @@ export function ErrorsPage() {
       status: item.status as ErrorRecord['status'],
     }));
     return [...local, ...backend];
-  }, [state.errors, fetched]);
+  }, [state.errors, fetched, demoMode]);
 
   const filtered = allErrors.filter((e) => {
     const matchSearch = e.title.toLowerCase().includes(search.toLowerCase()) || e.message.toLowerCase().includes(search.toLowerCase());
@@ -137,6 +144,14 @@ export function ErrorsPage() {
             <option value="investigating">Investigating</option>
             <option value="resolved">Resolved</option>
           </select>
+          {!demoMode && state.projects.length > 0 && (
+            <select value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)} className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 focus:outline-none">
+              <option value="all">All Projects</option>
+              {state.projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Error List */}

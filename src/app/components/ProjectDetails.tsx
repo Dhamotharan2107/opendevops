@@ -16,7 +16,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { useApp } from '../../lib/store';
-import { BASE_URL, githubFetchBranches, getGitHubPat, apiGetProjects, apiGetLogs, apiGetErrors } from '../../lib/api';
+import { BASE_URL, githubFetchBranches, getGitHubPat, apiGetProjects, apiGetLogs, apiGetErrors, apiReportLog, apiReportError } from '../../lib/api';
 import { cn, getStatusColor, getPriorityColor, getInitials } from '../../lib/utils';
 import type { Project, Deployment, LogEntry, ErrorRecord, AITestResult, APIRequest } from '../../lib/types';
 
@@ -418,6 +418,9 @@ function ProjectDetailsInner() {
       return;
     }
     try { localStorage.setItem('opendevops_port_' + project.id, String(port)); } catch {}
+    // Record the publish in the project's Logs tab (execution happens on the
+    // agent via WebSocket, so the backend API never sees it otherwise).
+    apiReportLog(project.id, 'info', `Publish started on port ${port} (subdomain ${subdomain})`);
     const deploymentId = crypto.randomUUID();
     dispatch({ type: 'ADD_DEPLOYMENT', payload: {
       id: deploymentId, projectId: project.id,
@@ -482,7 +485,14 @@ function ProjectDetailsInner() {
     const tunnelCmd = `echo ${b64} | base64 -d | bash`;
 
     let urlFound = false;
+    let errorReported = false;
     let waitTimer: ReturnType<typeof setTimeout> | null = null;
+    const reportPublishError = (title: string, message: string) => {
+      if (errorReported) return;
+      errorReported = true;
+      apiReportError(project.id, title, message, 'high');
+      apiReportLog(project.id, 'error', `${title} — ${message}`);
+    };
 
     try {
       const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=tunnel-${deploymentId}&projectId=default&token=${encodeURIComponent(token)}`);
@@ -515,6 +525,10 @@ function ProjectDetailsInner() {
             setDeployLogs((prev) => [...prev,
               `=== Port ${port} or subdomain "${subdomain}" is busy. Change the port above and Publish again.`,
             ]);
+            reportPublishError('Publish failed: port or subdomain busy', `Port ${port} / subdomain "${subdomain}" is already in use for ${project.name}.`);
+          }
+          if (/Server did not start/i.test(text)) {
+            reportPublishError('Server failed to start', `The app server for ${project.name} did not come up on port ${port}. Check the deploy log for the last error lines.`);
           }
           const match = text.match(TUNNEL_REGEX);
           if (match && !urlFound && match[0].includes(subdomain)) {
@@ -530,6 +544,7 @@ function ProjectDetailsInner() {
             // Port is stored per-project so a second project picks its own port.
             try { localStorage.setItem('opendevops_tunnel_' + project.id, JSON.stringify({ url, ts: Date.now(), port: String(port) })); } catch {}
             try { localStorage.setItem('opendevops_port_' + project.id, String(port)); } catch {}
+            apiReportLog(project.id, 'info', `Published — live at ${url} (port ${port})`);
             dispatch({ type: 'UPDATE_PROJECT', payload: { ...project, url, status: 'deployed' } });
           }
         } catch {}
@@ -541,6 +556,7 @@ function ProjectDetailsInner() {
           setDeployLogs((prev) => [...prev, '=== Connection closed before the tunnel came up. Click Publish to retry.']);
           setDeployPhase('');
           setDeploying(false);
+          reportPublishError('Publish failed: tunnel never came up', `No localtunnel URL appeared for ${project.name} on port ${port}. Check the agent connection and that the server started.`);
         }
       };
       ws.onerror = () => {
@@ -587,6 +603,7 @@ function ProjectDetailsInner() {
     setStopping(false);
     if (project) {
       try { localStorage.removeItem('opendevops_tunnel_' + project.id); } catch {}
+      apiReportLog(project.id, 'warn', `Publish stopped (port ${tunnelPort})`);
       dispatch({ type: 'UPDATE_PROJECT', payload: { ...project, status: 'stopped' } });
     }
   };

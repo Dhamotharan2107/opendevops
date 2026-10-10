@@ -52,6 +52,7 @@ export function LogsPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState<'all' | 'info' | 'warn' | 'error'>('all');
+  const [projectFilter, setProjectFilter] = useState<string>('all');
   const [paused, setPaused] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -68,16 +69,18 @@ export function LogsPage() {
 
   const fetchLogs = useCallback(async () => {
     try {
-      const result = await apiGetLogs('default', levelFilter === 'all' ? undefined : levelFilter, debouncedSearch || undefined);
+      const result = await apiGetLogs(projectFilter === 'all' ? undefined : projectFilter, levelFilter === 'all' ? undefined : levelFilter, debouncedSearch || undefined);
       if (result.logs) {
         const mapped = result.logs.map(mapBackendLog);
         setLogs(mapped);
-        setConnected(mapped.length > 0);
+        // A successful fetch means the stream is live — even when the table
+        // is legitimately empty (previously this showed "Offline" for empty).
+        setConnected(true);
       }
     } catch {
       setConnected(false);
     }
-  }, [levelFilter, debouncedSearch]);
+  }, [levelFilter, debouncedSearch, projectFilter]);
 
   useEffect(() => {
     if (demoMode) {
@@ -202,6 +205,18 @@ export function LogsPage() {
             </button>
           ))}
           <div className="hidden sm:block flex-1" />
+          {!demoMode && state.projects.length > 0 && (
+            <select
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+              className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-white/40"
+            >
+              <option value="all">All Projects</option>
+              {state.projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          )}
           <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input
