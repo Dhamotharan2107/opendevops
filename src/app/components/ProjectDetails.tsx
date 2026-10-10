@@ -9,7 +9,7 @@ import {
   Globe, Users, Bug, TrendingUp, Download, Plus,
   User, X, Send, Trash2, Square, Link, Loader2,
   CloudLightning, WifiOff, ChevronDown, Check,
-  FileEdit, FolderOpen, File as FileIcon, Save, ArrowLeft
+  FileEdit, FolderOpen, File as FileIcon, Save, ArrowLeft, Upload, Pencil
 } from 'lucide-react';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -1398,6 +1398,19 @@ function EditorTab({ projectId, projectName }: { projectId: string; projectName:
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState('');
   const wsRef = useRef<WebSocket | null>(null);
+  // Upload / rename / delete state
+  const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingUploadsRef = useRef(0);
+  const uploadDestRef = useRef('');
+  // Shell-op round trips (rename/delete run as mv/rm so they work on every
+  // agent version): token -> resolver, matched via __EDITORDONE__ markers.
+  const pendingOpsRef = useRef(new Map<string, { done: (ok: boolean) => void; timer: ReturnType<typeof setTimeout> }>());
+  const markerBufRef = useRef('');
 
   const sendMsg = (obj: any) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -1433,6 +1446,105 @@ function EditorTab({ projectId, projectName }: { projectId: string; projectName:
     listDir(parent);
   };
 
+  // Single-quote a shell arg so rename/delete paths can't break the command.
+  const shq = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
+
+  // Run a quick shell op on the agent and resolve when its __EDITORDONE__
+  // marker comes back (20s timeout). Works on every agent version.
+  const runShellOp = (shell: string, desc: string): Promise<boolean> => {
+    const token = Math.random().toString(36).slice(2, 10);
+    setStatus(`${desc}...`);
+    return new Promise((resolve) => {
+      const finish = (ok: boolean) => {
+        const p = pendingOpsRef.current.get(token);
+        if (!p) return;
+        clearTimeout(p.timer);
+        pendingOpsRef.current.delete(token);
+        resolve(ok);
+      };
+      const timer = setTimeout(() => {
+        pendingOpsRef.current.delete(token);
+        setStatus(`${desc} timed out — refreshing.`);
+        listDir(absPath);
+        resolve(false);
+      }, 20000);
+      pendingOpsRef.current.set(token, { done: finish, timer });
+      const sent = sendMsg({ type: 'terminal_input', input: `${shell} 2>&1; echo __EDITORDONE__:${token}:$?` });
+      if (!sent) finish(false);
+    });
+  };
+
+  const commitRename = async (oldName: string) => {
+    const nn = renameValue.trim();
+    if (!nn || nn === oldName) { setRenaming(null); return; }
+    if (nn.includes('/')) { setStatus('Name cannot contain "/".'); return; }
+    setRenaming(null);
+    const ok = await runShellOp(`mv -- ${shq(`${absPath}/${oldName}`)} ${shq(`${absPath}/${nn}`)}`, `Renaming ${oldName} → ${nn}`);
+    if (ok) {
+      setStatus(`Renamed ${oldName} → ${nn} ✓`);
+      if (openFileAbs === `${absPath}/${oldName}`) {
+        setOpenFileAbs(`${absPath}/${nn}`);
+        setOpenFileName(nn);
+      }
+    } else {
+      setStatus('Rename failed — check the name and try again.');
+    }
+    listDir(absPath);
+  };
+
+  const confirmDelete = async (entry: DirEntry) => {
+    setDeleting(null);
+    const target = `${absPath}/${entry.name}`;
+    const ok = await runShellOp(entry.dir ? `rm -rf -- ${shq(target)}` : `rm -f -- ${shq(target)}`, `Deleting ${entry.name}`);
+    setStatus(ok ? `Deleted ${entry.name} ✓` : 'Delete failed.');
+    if (ok && !entry.dir && openFileAbs === target) {
+      setOpenFileAbs(null);
+      setOpenFileName('');
+      setContent('');
+      setDirty(false);
+    }
+    listDir(absPath);
+  };
+
+  // Upload local files into the current agent folder (text files ≤ 512KB).
+  const uploadFiles = async (files: FileList | File[]) => {
+    const list = Array.from(files);
+    if (!list.length || !agentConnected) {
+      if (!agentConnected) setStatus('Agent offline — cannot upload.');
+      return;
+    }
+    const dest = absPath;
+    uploadDestRef.current = dest;
+    setUploading(true);
+    let ok = 0;
+    let skipped = 0;
+    setStatus(`Uploading ${list.length} file(s) to ${dest}...`);
+    for (const f of list) {
+      if (f.size > 512 * 1024) { skipped++; continue; }
+      try {
+        const text = await f.text();
+        if (text.indexOf(String.fromCharCode(0)) !== -1) { skipped++; continue; }
+        pendingUploadsRef.current++;
+        sendMsg({ type: 'write_file', path: `${dest}/${f.name}`, content: text, request_id: crypto.randomUUID() });
+        ok++;
+      } catch { skipped++; }
+    }
+    if (ok === 0) {
+      setUploading(false);
+      setStatus(skipped ? `Skipped ${skipped} file(s) (binary or over 512KB).` : 'Nothing uploaded.');
+      return;
+    }
+    // Refresh when all acks arrive; safety timeout in case the agent stays quiet.
+    setTimeout(() => {
+      if (pendingUploadsRef.current > 0) {
+        pendingUploadsRef.current = 0;
+        setUploading(false);
+        setStatus(`Uploaded ${ok} file(s)${skipped ? `, skipped ${skipped}` : ''} ✓`);
+        listDir(uploadDestRef.current || dest);
+      }
+    }, 15000);
+  };
+
   useEffect(() => {
     const wsBase = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
     const token = localStorage.getItem('token');
@@ -1460,6 +1572,20 @@ function EditorTab({ projectId, projectName }: { projectId: string; projectName:
           } else if (msg.type === 'agent_disconnected') {
             setAgentConnected(false);
             setStatus('Agent disconnected.');
+          } else if (msg.type === 'terminal_output' || msg.type === 'command_output') {
+            // Shell chatter from rename/delete ops: resolve the matching op
+            // via its __EDITORDONE__:<token>:<exit> marker, ignore the rest.
+            const text: string = msg.data || msg.output || '';
+            if (text.includes('__EDITORDONE__:')) {
+              markerBufRef.current = (markerBufRef.current + text).slice(-2000);
+              const re = /__EDITORDONE__:([A-Za-z0-9]+):(\d+)/g;
+              let m: RegExpExecArray | null;
+              while ((m = re.exec(markerBufRef.current)) !== null) {
+                const op = pendingOpsRef.current.get(m[1]);
+                if (op) op.done(m[2] === '0');
+              }
+            }
+            return;
           } else if (msg.type === 'dir_list') {
             setLoadingDir(false);
             if (msg.error) {
@@ -1479,6 +1605,15 @@ function EditorTab({ projectId, projectName }: { projectId: string; projectName:
             setStatus(`Opened ${msg.abs_path || ''}`);
           } else if (msg.type === 'file_saved') {
             setSaving(false);
+            if (pendingUploadsRef.current > 0) {
+              pendingUploadsRef.current--;
+              if (pendingUploadsRef.current === 0) {
+                setUploading(false);
+                setStatus('Upload complete ✓');
+                if (uploadDestRef.current) listDir(uploadDestRef.current);
+              }
+              return;
+            }
             if (msg.error) { setStatus(`Save failed: ${msg.error}`); return; }
             setDirty(false);
             setStatus(`Saved ${msg.abs_path || ''} ✓`);
@@ -1497,6 +1632,8 @@ function EditorTab({ projectId, projectName }: { projectId: string; projectName:
     return () => {
       destroyed = true;
       if (retryTimer) clearTimeout(retryTimer);
+      pendingOpsRef.current.forEach((p) => clearTimeout(p.timer));
+      pendingOpsRef.current.clear();
       if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
     };
   }, [projectId, projectName]);
@@ -1505,10 +1642,35 @@ function EditorTab({ projectId, projectName }: { projectId: string; projectName:
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-7xl mx-auto">
       <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4">
         {/* File browser */}
-        <div className="border border-white/10 rounded-xl overflow-hidden bg-[#080808] flex flex-col">
+        <div
+          className={`border rounded-xl overflow-hidden bg-[#080808] flex flex-col transition-colors ${dragOver ? 'border-emerald-500/60 ring-1 ring-emerald-500/40' : 'border-white/10'}`}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            if (e.dataTransfer.files?.length) uploadFiles(e.dataTransfer.files);
+          }}
+        >
           <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10">
             <FolderOpen className="w-4 h-4 text-white flex-shrink-0" />
             <span className="text-xs font-medium text-white/70">Files</span>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!agentConnected || uploading}
+              title="Upload files from this device"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-[11px] text-white/60 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-40"
+            >
+              {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+              {uploading ? 'Uploading' : 'Upload'}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => { if (e.target.files?.length) uploadFiles(e.target.files); e.target.value = ''; }}
+            />
             <div className={`ml-auto flex items-center gap-1.5 text-xs ${agentConnected ? 'text-emerald-400' : 'text-amber-400'}`}>
               <div className={`w-1.5 h-1.5 rounded-full ${agentConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
               {agentConnected ? 'Agent' : wsConnected ? 'No agent' : 'Offline'}
@@ -1529,19 +1691,78 @@ function EditorTab({ projectId, projectName }: { projectId: string; projectName:
             <button onClick={() => listDir(pathInput)} className="px-2 py-1.5 rounded-lg bg-white/15 border border-white/25 text-xs text-white hover:bg-white/25">Go</button>
           </div>
           <div className="flex-1 overflow-y-auto max-h-[460px] py-1">
+            {dragOver && (
+              <div className="mx-2 mb-1 px-3 py-4 rounded-lg border border-dashed border-emerald-500/50 bg-emerald-500/5 text-center text-xs text-emerald-300">
+                Drop files to upload here
+              </div>
+            )}
             {loadingDir ? (
               <div className="flex items-center justify-center py-8 text-white/30 text-xs"><Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading...</div>
             ) : entries.length === 0 ? (
-              <p className="text-xs text-white/30 text-center py-8">Empty folder</p>
+              <p className="text-xs text-white/30 text-center py-8">Empty folder — drag files here to upload</p>
             ) : entries.map((e) => (
-              <button
-                key={e.name}
-                onClick={() => e.dir ? listDir(`${absPath}/${e.name}`) : openFile(`${absPath}/${e.name}`, e.name)}
-                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 text-left"
-              >
-                {e.dir ? <FolderOpen className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" /> : <FileIcon className="w-3.5 h-3.5 text-white/40 flex-shrink-0" />}
-                <span className={`text-xs truncate ${e.dir ? 'text-blue-300' : 'text-white/70'} ${openFileName === e.name && !e.dir ? 'font-semibold text-white' : ''}`}>{e.name}</span>
-              </button>
+              <div key={e.name} className="group flex items-center gap-1 px-2 hover:bg-white/5">
+                {renaming === e.name ? (
+                  <div className="flex flex-1 items-center gap-1 py-1">
+                    <input
+                      autoFocus
+                      value={renameValue}
+                      onChange={(ev) => setRenameValue(ev.target.value)}
+                      onKeyDown={(ev) => {
+                        if (ev.key === 'Enter') commitRename(e.name);
+                        else if (ev.key === 'Escape') setRenaming(null);
+                      }}
+                      spellCheck={false}
+                      className="flex-1 min-w-0 px-2 py-1 bg-white/10 border border-white/20 rounded-lg text-xs text-white focus:outline-none focus:border-white/50"
+                    />
+                    <button onClick={() => commitRename(e.name)} title="Confirm rename" className="p-1.5 rounded-lg hover:bg-white/10 text-emerald-400">
+                      <Check className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => setRenaming(null)} title="Cancel" className="p-1.5 rounded-lg hover:bg-white/10 text-white/50">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : deleting === e.name ? (
+                  <div className="flex flex-1 items-center gap-2 py-1.5 pl-1">
+                    <span className="flex-1 min-w-0 text-xs text-red-300 truncate">Delete {e.name}?</span>
+                    <button
+                      onClick={() => confirmDelete(e)}
+                      className="px-2 py-1 rounded-lg bg-red-500/15 border border-red-500/30 text-[11px] text-red-300 hover:bg-red-500/25"
+                    >
+                      Delete
+                    </button>
+                    <button onClick={() => setDeleting(null)} title="Cancel" className="p-1.5 rounded-lg hover:bg-white/10 text-white/50">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => e.dir ? listDir(`${absPath}/${e.name}`) : openFile(`${absPath}/${e.name}`, e.name)}
+                      className="flex flex-1 min-w-0 items-center gap-2 px-1 py-1.5 text-left"
+                    >
+                      {e.dir ? <FolderOpen className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" /> : <FileIcon className="w-3.5 h-3.5 text-white/40 flex-shrink-0" />}
+                      <span className={`text-xs truncate ${e.dir ? 'text-blue-300' : 'text-white/70'} ${openFileName === e.name && !e.dir ? 'font-semibold text-white' : ''}`}>{e.name}</span>
+                    </button>
+                    <div className="flex items-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => { setDeleting(null); setRenaming(e.name); setRenameValue(e.name); }}
+                        title={`Rename ${e.name}`}
+                        className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => { setRenaming(null); setDeleting(e.name); }}
+                        title={`Delete ${e.name}`}
+                        className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-red-400"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             ))}
           </div>
         </div>
