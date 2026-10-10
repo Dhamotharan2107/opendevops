@@ -24,7 +24,7 @@ export function AdminLoginPage() {
         localStorage.removeItem('token');
         throw new Error('This account does not have admin access');
       }
-      localStorage.setItem('opendrap_admin_session', 'true');
+      localStorage.setItem('opendevops_admin_session', 'true');
       navigate('/admin-prd/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid admin credentials');
@@ -33,7 +33,7 @@ export function AdminLoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#0A0A0F] flex items-center justify-center overflow-hidden p-4">
+    <div className="relative min-h-screen bg-black flex items-center justify-center overflow-hidden p-4">
       {/* Background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-red-600 rounded-full blur-3xl opacity-10 animate-pulse" style={{ animationDuration: '8s' }} />
@@ -46,11 +46,11 @@ export function AdminLoginPage() {
         transition={{ duration: 0.4 }}
         className="relative w-full max-w-[400px]"
       >
-        <div className="rounded-2xl border border-white/[0.08] bg-[#0A0A0F]/70 backdrop-blur-2xl shadow-2xl p-8">
+        <div className="rounded-2xl border border-white/[0.08] bg-black/70 backdrop-blur-2xl shadow-2xl p-8">
           {/* Logo + badge */}
           <div className="flex flex-col items-center text-center mb-8">
             <Link to="/" className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-white via-white to-white/80 flex items-center justify-center shadow-lg">
                 <Cloud className="w-5 h-5 text-white" strokeWidth={2.5} />
               </div>
               <div className="flex flex-col text-left">
@@ -83,7 +83,7 @@ export function AdminLoginPage() {
                   type="email"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="admin@opendrap.dev"
+                  placeholder="admin@opendevops.dev"
                   className="w-full pl-9 pr-4 h-11 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-red-500/40 transition-colors"
                   required
                   autoComplete="username"

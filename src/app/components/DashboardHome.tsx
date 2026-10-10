@@ -99,8 +99,8 @@ export function DashboardHome() {
               value: '47',
               change: '+12 today',
               trend: 'up',
-              gradient: 'from-purple-500 to-pink-500',
-              border: 'border-purple-500/30'
+              gradient: 'from-white to-white/90',
+              border: 'border-white/25'
             }
           ].map((stat, i) => (
             <div

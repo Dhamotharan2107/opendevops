@@ -132,7 +132,7 @@ function AssigneeCircle({ name }: { name?: string }) {
     );
   }
   return (
-    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-violet-500/20">
+    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-white to-white/90 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-white/20">
       {getInitials(name)}
     </div>
   );
@@ -261,17 +261,17 @@ export function BugsPage() {
   ];
 
   return (
-    <div className="relative min-h-screen bg-[#0A0A0F] p-6">
+    <div className="relative min-h-screen bg-black p-6">
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-violet-600 rounded-full mix-blend-multiply filter blur-3xl opacity-[0.03] animate-pulse" style={{ animationDuration: '12s' }} />
-        <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-fuchsia-600 rounded-full mix-blend-multiply filter blur-3xl opacity-[0.03] animate-pulse" style={{ animationDuration: '10s', animationDelay: '3s' }} />
+        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-white/[0.05] rounded-full blur-[120px] opacity-[0.03] animate-pulse" style={{ animationDuration: '12s' }} />
+        <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-white/[0.04] rounded-full blur-[120px] opacity-[0.03] animate-pulse" style={{ animationDuration: '10s', animationDelay: '3s' }} />
       </div>
 
       <div className="relative max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-violet-200 to-fuchsia-200 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-white to-white/70 bg-clip-text text-transparent">
               Bug Tracker
             </h1>
             <p className="text-sm text-gray-500 mt-1">Track, manage, and resolve bugs across your projects</p>
@@ -282,7 +282,7 @@ export function BugsPage() {
               setNewBug({ title: '', description: '', projectId: '', priority: 'medium', assignedTo: '' });
               setShowReportModal(true);
             }}
-            className="h-10 bg-white text-black hover:bg-gray-100 rounded-xl font-semibold shadow-lg shadow-white/10"
+            className="h-10 bg-white text-black hover:bg-white/90 rounded-xl font-semibold shadow-lg shadow-white/10"
           >
             <Plus className="w-4 h-4" />
             Report Bug
@@ -327,7 +327,7 @@ export function BugsPage() {
           <select
             value={filterProject}
             onChange={(e) => setFilterProject(e.target.value)}
-            className="h-9 px-3 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-300 focus:outline-none focus:border-violet-500/50 appearance-none cursor-pointer"
+            className="h-9 px-3 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-300 focus:outline-none focus:border-white/40 appearance-none cursor-pointer"
           >
             <option value="all">All Projects</option>
             {projects.map((p) => (
@@ -338,7 +338,7 @@ export function BugsPage() {
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
-            className="h-9 px-3 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-300 focus:outline-none focus:border-violet-500/50 appearance-none cursor-pointer"
+            className="h-9 px-3 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-300 focus:outline-none focus:border-white/40 appearance-none cursor-pointer"
           >
             <option value="all">All Priorities</option>
             {priorityOptions.map((p) => (
@@ -349,7 +349,7 @@ export function BugsPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="h-9 px-3 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-300 focus:outline-none focus:border-violet-500/50 appearance-none cursor-pointer"
+            className="h-9 px-3 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-300 focus:outline-none focus:border-white/40 appearance-none cursor-pointer"
           >
             <option value="all">All Statuses</option>
             {statusFlow.map((s) => (
@@ -362,7 +362,7 @@ export function BugsPage() {
               onClick={() => setViewMode('grid')}
               className={cn(
                 'p-2 rounded-lg transition-all',
-                viewMode === 'grid' ? 'bg-violet-500/20 text-violet-400' : 'text-gray-500 hover:text-gray-300',
+                viewMode === 'grid' ? 'bg-white/15 text-white' : 'text-gray-500 hover:text-gray-300',
               )}
             >
               <Grid3X3 className="w-4 h-4" />
@@ -371,7 +371,7 @@ export function BugsPage() {
               onClick={() => setViewMode('list')}
               className={cn(
                 'p-2 rounded-lg transition-all',
-                viewMode === 'list' ? 'bg-violet-500/20 text-violet-400' : 'text-gray-500 hover:text-gray-300',
+                viewMode === 'list' ? 'bg-white/15 text-white' : 'text-gray-500 hover:text-gray-300',
               )}
             >
               <List className="w-4 h-4" />
@@ -440,14 +440,14 @@ export function BugsPage() {
                         className={cn(
                           'border-b border-white/[0.04] last:border-0 cursor-pointer transition-all duration-200',
                           selectedBug?.id === bug.id
-                            ? 'bg-violet-500/10'
+                            ? 'bg-white/10'
                             : 'hover:bg-white/[0.03]',
                         )}
                       >
                         <td className="py-4 px-5">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-white/10 flex items-center justify-center">
-                              <Bug className="w-4 h-4 text-violet-400" />
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white/10 to-white/10 border border-white/10 flex items-center justify-center">
+                              <Bug className="w-4 h-4 text-white" />
                             </div>
                             <div>
                               <div className="font-medium text-sm text-white">{bug.title}</div>
@@ -522,7 +522,7 @@ export function BugsPage() {
               animate="visible"
               exit="exit"
               variants={modalVariants}
-              className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0A0A0F] shadow-2xl shadow-violet-500/5 overflow-hidden"
+              className="w-full max-w-lg rounded-2xl border border-white/10 bg-black shadow-2xl shadow-white/5 overflow-hidden"
             >
               <div className="flex items-center justify-between p-6 border-b border-white/10">
                 <h2 className="text-lg font-semibold text-white">
@@ -566,7 +566,7 @@ export function BugsPage() {
                       id="bug-project"
                       value={newBug.projectId}
                       onChange={(e) => setNewBug((prev) => ({ ...prev, projectId: e.target.value }))}
-                      className="w-full h-10 px-3 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-300 focus:outline-none focus:border-violet-500/50 appearance-none cursor-pointer"
+                      className="w-full h-10 px-3 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-300 focus:outline-none focus:border-white/40 appearance-none cursor-pointer"
                     >
                       <option value="">Select project</option>
                       {projects.map((p) => (
@@ -581,7 +581,7 @@ export function BugsPage() {
                       id="bug-priority"
                       value={newBug.priority}
                       onChange={(e) => setNewBug((prev) => ({ ...prev, priority: e.target.value as BugType['priority'] }))}
-                      className="w-full h-10 px-3 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-300 focus:outline-none focus:border-violet-500/50 appearance-none cursor-pointer"
+                      className="w-full h-10 px-3 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-300 focus:outline-none focus:border-white/40 appearance-none cursor-pointer"
                     >
                       {priorityOptions.map((p) => (
                         <option key={p.value} value={p.value}>{p.label}</option>
@@ -592,16 +592,16 @@ export function BugsPage() {
 
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-300">Screenshot (optional)</Label>
-                  <div className="relative rounded-xl border-2 border-dashed border-white/10 bg-white/[0.02] p-6 text-center hover:border-violet-500/30 transition-colors cursor-pointer group">
-                    <Camera className="w-8 h-8 mx-auto mb-2 text-gray-600 group-hover:text-violet-400 transition-colors" />
+                  <div className="relative rounded-xl border-2 border-dashed border-white/10 bg-white/[0.02] p-6 text-center hover:border-white/25 transition-colors cursor-pointer group">
+                    <Camera className="w-8 h-8 mx-auto mb-2 text-gray-600 group-hover:text-white transition-colors" />
                     <p className="text-xs text-gray-600 group-hover:text-gray-500 transition-colors">Drop a screenshot or click to browse</p>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-300">Video Recording (optional)</Label>
-                  <div className="relative rounded-xl border-2 border-dashed border-white/10 bg-white/[0.02] p-6 text-center hover:border-violet-500/30 transition-colors cursor-pointer group">
-                    <Video className="w-8 h-8 mx-auto mb-2 text-gray-600 group-hover:text-violet-400 transition-colors" />
+                  <div className="relative rounded-xl border-2 border-dashed border-white/10 bg-white/[0.02] p-6 text-center hover:border-white/25 transition-colors cursor-pointer group">
+                    <Video className="w-8 h-8 mx-auto mb-2 text-gray-600 group-hover:text-white transition-colors" />
                     <p className="text-xs text-gray-600 group-hover:text-gray-500 transition-colors">Drop a video recording or click to browse</p>
                   </div>
                 </div>
@@ -612,7 +612,7 @@ export function BugsPage() {
                     id="bug-assign"
                     value={newBug.assignedTo}
                     onChange={(e) => setNewBug((prev) => ({ ...prev, assignedTo: e.target.value }))}
-                    className="w-full h-10 px-3 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-300 focus:outline-none focus:border-violet-500/50 appearance-none cursor-pointer"
+                    className="w-full h-10 px-3 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-300 focus:outline-none focus:border-white/40 appearance-none cursor-pointer"
                   >
                     <option value="">Unassigned</option>
                     {user && <option value={user.id}>{user.name} (me)</option>}
@@ -631,7 +631,7 @@ export function BugsPage() {
                 <Button
                   onClick={handleSaveBug}
                   disabled={!newBug.title.trim() || !newBug.projectId}
-                  className="bg-white text-black hover:bg-gray-100 rounded-xl font-semibold shadow-lg shadow-white/10"
+                  className="bg-white text-black hover:bg-white/90 rounded-xl font-semibold shadow-lg shadow-white/10"
                 >
                   {editingBug ? 'Save Changes' : 'Report Bug'}
                 </Button>
@@ -667,14 +667,14 @@ function BugCard({
       className={cn(
         'relative rounded-2xl border p-5 cursor-pointer transition-all duration-200 group',
         isSelected
-          ? 'border-violet-500/50 bg-violet-500/10 shadow-lg shadow-violet-500/10'
+          ? 'border-white/60/50 bg-white/10 shadow-lg shadow-white/10'
           : 'border-white/10 bg-white/5 hover:bg-white/[0.07] hover:border-white/20',
       )}
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-white/10 flex items-center justify-center">
-            <Bug className="w-4 h-4 text-violet-400" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-white/10 to-white/10 border border-white/10 flex items-center justify-center">
+            <Bug className="w-4 h-4 text-white" />
           </div>
           <div>
             <h3 className="font-semibold text-sm text-white leading-tight">{bug.title}</h3>
@@ -683,7 +683,7 @@ function BugCard({
         </div>
         <ChevronRight className={cn(
           'w-4 h-4 text-gray-600 transition-all duration-200',
-          isSelected ? 'text-violet-400 rotate-90' : 'opacity-0 group-hover:opacity-100',
+          isSelected ? 'text-white rotate-90' : 'opacity-0 group-hover:opacity-100',
         )} />
       </div>
 
@@ -760,7 +760,7 @@ function BugDetailPanel({
       animate="visible"
       exit="exit"
       variants={panelVariants}
-      className="w-[360px] shrink-0 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl shadow-violet-500/5 overflow-hidden flex flex-col max-h-[calc(100vh-180px)]"
+      className="w-[360px] shrink-0 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl shadow-white/5 overflow-hidden flex flex-col max-h-[calc(100vh-180px)]"
     >
       {/* Panel Header */}
       <div className="flex items-center justify-between p-4 border-b border-white/10">
@@ -795,7 +795,7 @@ function BugDetailPanel({
                       disabled={isActive}
                       className={cn(
                         'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border',
-                        isActive && 'bg-violet-500/20 text-violet-400 border-violet-500/30 shadow-sm shadow-violet-500/10',
+                        isActive && 'bg-white/15 text-white border-white/25 shadow-sm shadow-white/10',
                         isPast && 'bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20',
                         isFuture && 'bg-white/5 text-gray-500 border-white/10 hover:bg-white/10 hover:text-gray-300',
                       )}
@@ -868,7 +868,7 @@ function BugDetailPanel({
               variant="ghost"
               size="sm"
               onClick={() => onEdit(bug)}
-              className="text-gray-400 hover:text-violet-400 hover:bg-violet-500/10 rounded-xl"
+              className="text-gray-400 hover:text-white hover:bg-white/10 rounded-xl"
             >
               <Edit3 className="w-3.5 h-3.5" />
               Edit
@@ -897,7 +897,7 @@ function BugDetailPanel({
               {comments.map((comment) => (
                 <div key={comment.id} className="p-3 rounded-xl bg-white/[0.03] border border-white/5">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-[9px] font-bold text-white">
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-white to-white/90 flex items-center justify-center text-[9px] font-bold text-white">
                       {getInitials(comment.author)}
                     </div>
                     <span className="text-xs font-medium text-gray-400">{comment.author}</span>
@@ -925,7 +925,7 @@ function BugDetailPanel({
                 size="sm"
                 disabled={!commentText.trim()}
                 onClick={() => onAddComment(bug.id)}
-                className="h-9 bg-white text-black hover:bg-gray-100 rounded-xl font-semibold"
+                className="h-9 bg-white text-black hover:bg-white/90 rounded-xl font-semibold"
               >
                 <MessageSquare className="w-3.5 h-3.5" />
               </Button>

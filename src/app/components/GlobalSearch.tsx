@@ -20,7 +20,7 @@ function highlightText(text: string, query: string) {
   const parts = text.split(regex);
   return parts.map((part, i) =>
     regex.test(part)
-      ? <span key={i} className="text-violet-400 bg-violet-500/10 rounded px-0.5">{part}</span>
+      ? <span key={i} className="text-white bg-white/15 rounded px-0.5">{part}</span>
       : part
   );
 }
@@ -167,7 +167,7 @@ export function GlobalSearch() {
           onFocus={() => { if (results.length > 0) setOpen(true); }}
           onKeyDown={handleKeyDown}
           placeholder="Search projects, connections..."
-          className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+          className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent"
         />
       </div>
 
@@ -178,7 +178,7 @@ export function GlobalSearch() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -8 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute left-0 right-0 top-full mt-2 bg-[#0F0F14] border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50"
+            className="absolute left-0 right-0 top-full mt-2 bg-[#080808] border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50"
           >
             {results.length === 0 ? (
               <div className="px-4 py-10 text-center text-sm text-gray-500">

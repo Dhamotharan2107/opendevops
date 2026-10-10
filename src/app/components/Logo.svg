@@ -1,0 +1,138 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <linearGradient id="monoLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A1A1AA;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="monoMid" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E4E4E7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#71717A;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.35" />
+      <stop offset="55%" style="stop-color:#A1A1AA;stop-opacity:0.08" />
+      <stop offset="100%" style="stop-color:#000000;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="256" height="256" fill="none"/>
+
+  <circle cx="128" cy="128" r="110" fill="url(#centerGlow)"/>
+
+  <g style="transform-origin:128px 128px;animation:logoSpin 40s linear infinite">
+    <circle cx="128" cy="128" r="116" fill="none" stroke="url(#monoMid)" stroke-width="1" opacity="0.3" stroke-dasharray="4 8"/>
+  </g>
+
+  <g style="transform-origin:128px 128px;animation:logoSpinReverse 30s linear infinite">
+    <circle cx="128" cy="128" r="126" fill="none" stroke="url(#monoLight)" stroke-width="0.75" opacity="0.18" stroke-dasharray="2 10"/>
+  </g>
+
+  <g transform="translate(128, 128)">
+    <path d="M0,-78 L67.5,-39 L67.5,39 L0,78 L-67.5,39 L-67.5,-39 Z"
+          fill="url(#monoLight)"
+          filter="url(#glow)"
+          opacity="0.14"/>
+    <path d="M0,-78 L67.5,-39 L67.5,39 L0,78 L-67.5,39 L-67.5,-39 Z"
+          fill="none"
+          stroke="url(#monoLight)"
+          stroke-width="2.5"
+          filter="url(#softGlow)"
+          stroke-linejoin="round"/>
+    <path d="M0,-60 L52,-30 L52,30 L0,60 L-52,30 L-52,-30 Z"
+          fill="none"
+          stroke="url(#monoMid)"
+          stroke-width="1"
+          opacity="0.35"
+          stroke-linejoin="round"/>
+  </g>
+
+  <g transform="translate(128, 128)" filter="url(#softGlow)">
+    <circle cx="0" cy="-30" r="7" fill="url(#monoLight)">
+      <animate attributeName="r" values="7;9;7" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0.6;1" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <line x1="0" y1="-23" x2="0" y2="3" stroke="url(#monoLight)" stroke-width="2" opacity="0.5"/>
+  </g>
+
+  <g transform="translate(128, 128)">
+    <circle cx="-22" cy="22" r="5" fill="url(#monoLight)">
+      <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="22" cy="22" r="5" fill="url(#monoLight)">
+      <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" begin="1.25s" repeatCount="indefinite"/>
+    </circle>
+    <line x1="-22" y1="22" x2="0" y2="3" stroke="url(#monoMid)" stroke-width="1.5" opacity="0.4"/>
+    <line x1="22" y1="22" x2="0" y2="3" stroke="url(#monoMid)" stroke-width="1.5" opacity="0.4"/>
+  </g>
+
+  <g transform="translate(128, 128)" filter="url(#softGlow)">
+    <path d="M-16,8 L-28,8 L-28,-8 L-16,-8"
+          fill="none"
+          stroke="white"
+          stroke-width="3.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+    <path d="M16,8 L28,8 L28,-8 L16,-8"
+          fill="none"
+          stroke="white"
+          stroke-width="3.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+    <line x1="-8" y1="14" x2="8" y2="-14"
+          stroke="white"
+          stroke-width="3.5"
+          stroke-linecap="round"/>
+    <circle cx="0" cy="0" r="2.5" fill="white">
+      <animate attributeName="opacity" values="1;0.3;1" dur="1.8s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <g transform="translate(128, 128)">
+    <circle cx="0" cy="-78" r="4" fill="url(#monoLight)" filter="url(#softGlow)">
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="67.5" cy="-39" r="4" fill="url(#monoLight)" filter="url(#softGlow)">
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" begin="0.4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="67.5" cy="39" r="4" fill="url(#monoLight)" filter="url(#softGlow)">
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" begin="0.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="0" cy="78" r="4" fill="url(#monoLight)" filter="url(#softGlow)">
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" begin="1.2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="-67.5" cy="39" r="4" fill="url(#monoLight)" filter="url(#softGlow)">
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" begin="1.6s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="-67.5" cy="-39" r="4" fill="url(#monoLight)" filter="url(#softGlow)">
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" begin="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <style>
+    @keyframes logoSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes logoSpinReverse {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; }
+    }
+  </style>
+</svg>

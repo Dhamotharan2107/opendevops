@@ -25,6 +25,7 @@ import { notificationsRouter } from './routes/notifications';
 import adminRouter from './routes/admin';
 import agentRouter from './routes/agent';
 import { dashboardRouter } from './routes/dashboard';
+import { statsRouter } from './routes/stats';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -81,6 +82,7 @@ app.route('/api', notificationsRouter);
 app.route('/api/admin', adminRouter);
 app.route('/api/agent', agentRouter);
 app.route('/api', dashboardRouter);
+app.route('/api', statsRouter);
 
 // Public shell script endpoint for agent install
 app.get('/api/install.sh', (c) => {
@@ -115,8 +117,8 @@ fi`;
 
   const script = `#!/bin/bash
 # Opendrap DevOps Agent Installer (Node.js v2)
-API_BASE="https://opendrap-api.tert.workers.dev"
-AGENT_DIR="$HOME/opendrap-agent"
+API_BASE="https://opendevops-api.tert.workers.dev"
+AGENT_DIR="$HOME/opendevops-agent"
 AGENT_FILE="$AGENT_DIR/agent.js"
 LOG_FILE="$AGENT_DIR/agent.log"
 PID_FILE="$AGENT_DIR/agent.pid"
@@ -144,7 +146,7 @@ echo "  Node.js: $(node --version)"
 # Install ws WebSocket library
 cd "$AGENT_DIR"
 if [ ! -f package.json ]; then
-  echo '{"name":"opendrap-agent","version":"2.0.0","private":true}' > package.json
+  echo '{"name":"opendevops-agent","version":"2.0.0","private":true}' > package.json
 fi
 if [ ! -d node_modules/ws ]; then
   echo "  Installing ws..."
@@ -169,14 +171,14 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 
-const API_BASE = process.env.OPENDRAP_API || 'https://opendrap-api.tert.workers.dev';
-const AGENT_DIR = path.join(os.homedir(), 'opendrap-agent');
+const API_BASE = process.env.OPENDRAP_API || 'https://opendevops-api.tert.workers.dev';
+const AGENT_DIR = path.join(os.homedir(), 'opendevops-agent');
 const TOKEN = (() => {
   const e = (process.env.OPENDRAP_AGENT_TOKEN || '').trim();
   if (e) return e;
   try { return fs.readFileSync(path.join(AGENT_DIR, 'token'), 'utf8').trim(); } catch(_) { return ''; }
 })();
-if (!TOKEN) { console.error('ERROR: No token found — create ~/opendrap-agent/token'); process.exit(1); }
+if (!TOKEN) { console.error('ERROR: No token found — create ~/opendevops-agent/token'); process.exit(1); }
 
 const AGENT_ID = 'agent-' + crypto.randomBytes(4).toString('hex');
 const procs = new Map(); // cmdId -> { proc, cmd, cwd, timer }
@@ -376,7 +378,7 @@ chmod +x "$AGENT_FILE" 2>/dev/null || true
 # Restart helper
 cat > "$AGENT_DIR/restart.sh" << 'SHEOF'
 #!/bin/bash
-cd ~/opendrap-agent
+cd ~/opendevops-agent
 if [ -f agent.pid ]; then
   kill $(cat agent.pid) 2>/dev/null || true
   sleep 1
@@ -387,21 +389,21 @@ sleep 2
 if kill -0 $(cat agent.pid) 2>/dev/null; then
   echo "Agent restarted (PID: $(cat agent.pid))"
 else
-  echo "Failed. Check: tail -20 ~/opendrap-agent/agent.log"
+  echo "Failed. Check: tail -20 ~/opendevops-agent/agent.log"
 fi
 SHEOF
 chmod +x "$AGENT_DIR/restart.sh"
 
 # Auto-start on Cloud Shell login
 BASHRC="$HOME/.bashrc"
-if ! grep -q "opendrap-agent" "$BASHRC" 2>/dev/null; then
+if ! grep -q "opendevops-agent" "$BASHRC" 2>/dev/null; then
   cat >> "$BASHRC" << 'BASHEOF'
 
 # Opendrap Agent auto-start
-if [ -f ~/opendrap-agent/agent.js ] && [ -f ~/opendrap-agent/token ]; then
-  if [ ! -f ~/opendrap-agent/agent.pid ] || ! kill -0 $(cat ~/opendrap-agent/agent.pid 2>/dev/null) 2>/dev/null; then
-    cd ~/opendrap-agent && nohup node agent.js > agent.log 2>&1 &
-    echo $! > ~/opendrap-agent/agent.pid
+if [ -f ~/opendevops-agent/agent.js ] && [ -f ~/opendevops-agent/token ]; then
+  if [ ! -f ~/opendevops-agent/agent.pid ] || ! kill -0 $(cat ~/opendevops-agent/agent.pid 2>/dev/null) 2>/dev/null; then
+    cd ~/opendevops-agent && nohup node agent.js > agent.log 2>&1 &
+    echo $! > ~/opendevops-agent/agent.pid
   fi
 fi
 BASHEOF
@@ -409,7 +411,7 @@ BASHEOF
 fi
 
 # Kill old Python agent if running
-pkill -f "python.*opendrap" 2>/dev/null || true
+pkill -f "python.*opendevops" 2>/dev/null || true
 kill $(cat "$PID_FILE" 2>/dev/null) 2>/dev/null || true
 sleep 1
 
@@ -426,13 +428,13 @@ else
   echo "  ----------------------------------------"
   tail -25 "$LOG_FILE" 2>/dev/null | sed 's/^/  | /'
   echo "  ----------------------------------------"
-  echo "  Fix the error above, then run: bash ~/opendrap-agent/restart.sh"
+  echo "  Fix the error above, then run: bash ~/opendevops-agent/restart.sh"
 fi
 
 echo ""
 echo "  File: $AGENT_FILE"
 echo "  Logs: tail -f $LOG_FILE"
-echo "  Restart: bash ~/opendrap-agent/restart.sh"
+echo "  Restart: bash ~/opendevops-agent/restart.sh"
 echo "========================================"
 `;
   return c.newResponse(script, 200, {

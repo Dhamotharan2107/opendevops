@@ -21,7 +21,7 @@ const apiRoutes = new Hono<{ Bindings: Env }>();
 
 apiRoutes.get('/install.sh', (c) => {
   const token = c.req.query('token') ?? '';
-  const wsUrl = 'wss://opendrap-api.tert.workers.dev/api/terminal/ws';
+  const wsUrl = 'wss://opendevops-api.tert.workers.dev/api/terminal/ws';
   const script = `#!/bin/bash
 set -e
 echo "========================================"
@@ -31,9 +31,9 @@ echo "========================================"
 # Upgrade websockets to compatible version
 pip3 install --upgrade websockets --quiet 2>/dev/null || pip install --upgrade websockets --quiet 2>/dev/null || true
 
-mkdir -p ~/opendrap-agent
+mkdir -p ~/opendevops-agent
 
-cat > ~/opendrap-agent/agent.py << 'PYEOF'
+cat > ~/opendevops-agent/agent.py << 'PYEOF'
 import asyncio
 import json
 import os
@@ -163,32 +163,32 @@ if __name__ == '__main__':
     asyncio.run(connect())
 PYEOF
 
-cat > ~/opendrap-agent/restart.sh << 'EOF'
+cat > ~/opendevops-agent/restart.sh << 'EOF'
 #!/bin/bash
 pkill -f agent.py 2>/dev/null || true
 sleep 1
-nohup python3 ~/opendrap-agent/agent.py > ~/opendrap-agent/agent.log 2>&1 &
+nohup python3 ~/opendevops-agent/agent.py > ~/opendevops-agent/agent.log 2>&1 &
 echo "Agent restarted (PID: $!)"
 EOF
-chmod +x ~/opendrap-agent/restart.sh
+chmod +x ~/opendevops-agent/restart.sh
 
 # Remove old auto-start and add fresh one
-grep -v 'opendrap-agent' ~/.bashrc > ~/.bashrc.tmp && mv ~/.bashrc.tmp ~/.bashrc
-echo 'pgrep -f agent.py > /dev/null || (cd ~/opendrap-agent && nohup python3 agent.py > ~/opendrap-agent/agent.log 2>&1 &)' >> ~/.bashrc
+grep -v 'opendevops-agent' ~/.bashrc > ~/.bashrc.tmp && mv ~/.bashrc.tmp ~/.bashrc
+echo 'pgrep -f agent.py > /dev/null || (cd ~/opendevops-agent && nohup python3 agent.py > ~/opendevops-agent/agent.log 2>&1 &)' >> ~/.bashrc
 
 echo "  websockets OK"
 
 pkill -f agent.py 2>/dev/null || true
 sleep 1
-nohup python3 ~/opendrap-agent/agent.py > ~/opendrap-agent/agent.log 2>&1 &
+nohup python3 ~/opendevops-agent/agent.py > ~/opendevops-agent/agent.log 2>&1 &
 PID=$!
 echo "  Added auto-start to .bashrc"
 echo "  Starting agent..."
 echo "  Agent running! (PID: $PID)"
-echo "  File: ~/opendrap-agent/agent.py"
-echo "  Logs: ~/opendrap-agent/agent.log"
+echo "  File: ~/opendevops-agent/agent.py"
+echo "  Logs: ~/opendevops-agent/agent.log"
 echo "  Stop: kill $PID"
-echo "  Restart: bash ~/opendrap-agent/restart.sh"
+echo "  Restart: bash ~/opendevops-agent/restart.sh"
 echo "  Auto-restarts on disconnect & Cloud Shell login"
 echo "========================================"
 `;

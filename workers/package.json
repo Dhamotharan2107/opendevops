@@ -1,12 +1,12 @@
 {
-  "name": "opendrap-workers",
+  "name": "opendevops-workers",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "migrate": "wrangler d1 migrations apply opendrap-db",
+    "migrate": "wrangler d1 migrations apply opendevops-db",
     "types": "wrangler types"
   },
   "dependencies": {

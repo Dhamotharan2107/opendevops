@@ -110,8 +110,8 @@ function CodeBlock({ children }: { children: string }) {
 
 function Callout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-start gap-3 bg-violet-500/10 border border-violet-500/20 rounded-xl p-4">
-      <Info className="w-5 h-5 text-violet-400 shrink-0 mt-0.5" />
+    <div className="flex items-start gap-3 bg-white/10 border border-white/20 rounded-xl p-4">
+      <Info className="w-5 h-5 text-white shrink-0 mt-0.5" />
       <div className="text-sm text-gray-300 leading-relaxed">{children}</div>
     </div>
   );
@@ -121,9 +121,9 @@ function FeatureCard({ icon: Icon, title, description }: { icon: typeof Bot; tit
   return (
     <motion.div
       whileHover={{ y: -4, scale: 1.01 }}
-      className="group bg-white/5 border border-white/10 rounded-xl p-5 hover:bg-white/[0.07] hover:border-violet-500/30 transition-all duration-300"
+      className="group bg-white/5 border border-white/10 rounded-xl p-5 hover:bg-white/[0.07] hover:border-white/25 transition-all duration-300"
     >
-      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center mb-3 shadow-lg shadow-violet-500/20">
+      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-white to-white/90 flex items-center justify-center mb-3 shadow-lg shadow-white/20">
         <Icon className="w-5 h-5 text-white" />
       </div>
       <h4 className="text-white font-semibold mb-1">{title}</h4>
@@ -136,9 +136,9 @@ function StepCard({ number, title, children }: { number: string; title: string; 
   return (
     <motion.div
       whileHover={{ y: -2 }}
-      className="flex items-start gap-4 bg-white/5 border border-white/10 rounded-xl p-5 hover:bg-white/[0.07] hover:border-violet-500/20 transition-all duration-300"
+      className="flex items-start gap-4 bg-white/5 border border-white/10 rounded-xl p-5 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-300"
     >
-      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-md">
+      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white to-white/90 flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-md">
         {number}
       </div>
       <div className="flex-1 min-w-0">
@@ -156,7 +156,7 @@ function FolderTree({ items, depth = 0 }: { items: { name: string; children?: { 
         <div key={i}>
           <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 20}px` }}>
             {depth > 0 && <div className="w-4 h-px bg-white/10" />}
-            <FolderKanban className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+            <FolderKanban className="w-3.5 h-3.5 text-white shrink-0" />
             <span className="text-gray-300">{item.name}</span>
           </div>
           {item.children && item.children.map((child, j) => (
@@ -200,7 +200,7 @@ const sectionContent: Record<string, { title: string; description: string; conte
 
         <div>
           <h3 className="text-white font-semibold mb-3">Quick Install</h3>
-          <CodeBlock>{'$ # See https://opendrap-api.tert.workers.dev/api for API docs'}</CodeBlock>
+          <CodeBlock>{'$ # See https://opendevops-api.tert.workers.dev/api for API docs'}</CodeBlock>
         </div>
 
         <Callout>
@@ -220,7 +220,7 @@ const sectionContent: Record<string, { title: string; description: string; conte
         <div className="space-y-3">
           <StepCard number="1" title="Create an Account">
             <p>Sign up at{' '}
-              <a href="/register" className="text-violet-400 hover:text-violet-300 underline underline-offset-2">opendrap-api.tert.workers.dev</a>
+              <a href="/register" className="text-white hover:text-white underline underline-offset-2">opendevops-api.tert.workers.dev</a>
               {' '}with your email or GitHub account. No credit card required.</p>
           </StepCard>
           <StepCard number="2" title="Connect GitHub">
@@ -229,7 +229,7 @@ const sectionContent: Record<string, { title: string; description: string; conte
           <StepCard number="3" title="Install the Agent">
             <p>Run the install script to set up the Opendrap CLI agent on your machine:</p>
             <div className="mt-2">
-              <CodeBlock>{'$ # See https://opendrap-api.tert.workers.dev/api for API docs'}</CodeBlock>
+              <CodeBlock>{'$ # See https://opendevops-api.tert.workers.dev/api for API docs'}</CodeBlock>
             </div>
           </StepCard>
           <StepCard number="4" title="Create a Project">
@@ -267,7 +267,7 @@ const sectionContent: Record<string, { title: string; description: string; conte
               { icon: GitBranch, name: 'Git', version: '2.30+' },
             ].map((req) => (
               <div key={req.name} className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-white to-white/90 flex items-center justify-center">
                   <req.icon className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -283,7 +283,7 @@ const sectionContent: Record<string, { title: string; description: string; conte
           <h3 className="text-white font-semibold mb-3">Install via curl</h3>
           <CodeBlock>
             {`$ # Download and run the install script
-$ # See https://opendrap-api.tert.workers.dev/api for API docs
+$ # See https://opendevops-api.tert.workers.dev/api for API docs
 
 $ # Verify installation
 $ opendrap --version
@@ -295,7 +295,7 @@ $ opendrap --version
           <h3 className="text-white font-semibold mb-3">Install via npm</h3>
           <CodeBlock>
             {`$ # Install globally with npm
-$ npm install -g @opendrap/cli
+$ npm install -g @opendevops/cli
 
 $ # Verify installation
 $ opendrap --help`}
@@ -536,7 +536,7 @@ $ opendrap logs --since 24h --format json > logs.json`}
               { title: 'Reporting', desc: 'A detailed report with screenshots, logs, and bug reports is generated' },
             ].map((step) => (
               <div key={step.title} className="flex items-start gap-3 bg-white/5 border border-white/10 rounded-xl p-4">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-pink-600 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white to-white/90 flex items-center justify-center shrink-0">
                   <Bot className="w-4 h-4 text-white" />
                 </div>
                 <div>
@@ -588,7 +588,7 @@ $ opendrap logs --since 24h --format json > logs.json`}
               { step: 'Suggest', desc: 'Fix recommendations and affected areas are reported' },
             ].map((item) => (
               <div key={item.step} className="flex items-start gap-3 bg-white/5 border border-white/10 rounded-xl p-4">
-                <BarChart3 className="w-5 h-5 text-violet-400 shrink-0 mt-0.5" />
+                <BarChart3 className="w-5 h-5 text-white shrink-0 mt-0.5" />
                 <div>
                   <div className="text-white font-medium text-sm">{item.step}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{item.desc}</div>
@@ -630,7 +630,7 @@ $ opendrap logs --since 24h --format json > logs.json`}
         </div>
         <CodeBlock>
           {`$ # Test a local endpoint
-$ curl -X POST https://opendrap-api.tert.workers.dev/api/test \\
+$ curl -X POST https://opendevops-api.tert.workers.dev/api/test \\
   -H "Authorization: Bearer $TOKEN" \\
   -d '{"query": "test"}'`}
         </CodeBlock>
@@ -654,7 +654,7 @@ $ curl -X POST https://opendrap-api.tert.workers.dev/api/test \\
               { icon: FolderKanban, name: 'Project Chats', desc: 'Auto-linked to projects' },
             ].map((chat) => (
               <div key={chat.name} className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-                <chat.icon className="w-8 h-8 text-violet-400 mx-auto mb-2" />
+                <chat.icon className="w-8 h-8 text-white mx-auto mb-2" />
                 <div className="text-white font-medium text-sm">{chat.name}</div>
                 <div className="text-xs text-gray-500 mt-1">{chat.desc}</div>
               </div>
@@ -743,7 +743,7 @@ $ curl -X POST https://opendrap-api.tert.workers.dev/api/test \\
               { icon: Shield, name: 'Docker', desc: 'Custom container builds' },
             ].map((int) => (
               <div key={int.name} className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center gap-3">
-                <int.icon className="w-8 h-8 text-violet-400 shrink-0" />
+                <int.icon className="w-8 h-8 text-white shrink-0" />
                 <div>
                   <div className="text-white font-medium text-sm">{int.name}</div>
                   <div className="text-xs text-gray-500">{int.desc}</div>
@@ -829,7 +829,7 @@ $ curl -X POST https://opendrap-api.tert.workers.dev/api/test \\
               { icon: Terminal, name: 'CLI', desc: 'Agent configuration' },
             ].map((cat) => (
               <div key={cat.name} className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center gap-3">
-                <cat.icon className="w-8 h-8 text-violet-400 shrink-0" />
+                <cat.icon className="w-8 h-8 text-white shrink-0" />
                 <div>
                   <div className="text-white font-medium text-sm">{cat.name}</div>
                   <div className="text-xs text-gray-500">{cat.desc}</div>
@@ -947,7 +947,7 @@ export function DocsPage() {
   }, [currentSection]);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-white">
+    <div className="min-h-screen bg-black text-white">
       {/* Mobile menu button */}
       <div className="fixed top-4 left-4 z-50 lg:hidden">
         <button
@@ -967,13 +967,13 @@ export function DocsPage() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed top-0 left-0 z-40 w-[280px] h-screen border-r border-white/5 bg-[#0A0A0F] overflow-y-auto transition-transform duration-300 lg:translate-x-0 ${
+      <aside className={`fixed top-0 left-0 z-40 w-[280px] h-screen border-r border-white/5 bg-black overflow-y-auto transition-transform duration-300 lg:translate-x-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="p-5 space-y-4">
           {/* Logo */}
           <a href="/" className="flex items-center gap-3 group mb-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 flex items-center justify-center shadow-lg shadow-violet-500/20">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white via-white to-white/80 flex items-center justify-center shadow-lg shadow-white/20">
               <Book className="w-4 h-4 text-white" />
             </div>
             <div>
@@ -990,7 +990,7 @@ export function DocsPage() {
               placeholder="Search docs..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition-all"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-white/40 focus:bg-white/[0.07] transition-all"
             />
           </div>
 
@@ -1022,7 +1022,7 @@ export function DocsPage() {
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
             <a href="/" className="hover:text-white transition-colors">Home</a>
             <ChevronRight className="w-3.5 h-3.5" />
-            <span className="text-violet-400">Docs</span>
+            <span className="text-white">Docs</span>
             <ChevronRight className="w-3.5 h-3.5" />
             <span className="text-gray-300">{section?.title}</span>
           </div>
@@ -1050,9 +1050,9 @@ export function DocsPage() {
           <div className="mt-16 pt-8 border-t border-white/5 text-center">
             <p className="text-sm text-gray-600">
               Need help?{' '}
-              <a href="/dashboard/chat" className="text-violet-400 hover:text-violet-300 underline underline-offset-2">Contact support</a>
+              <a href="/dashboard/chat" className="text-white hover:text-white underline underline-offset-2">Contact support</a>
               {' '}or{' '}
-              <a href="https://github.com/opendrap/docs" target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:text-violet-300 underline underline-offset-2 inline-flex items-center gap-1">
+              <a href="https://github.com/opendevops/docs" target="_blank" rel="noopener noreferrer" className="text-white hover:text-white underline underline-offset-2 inline-flex items-center gap-1">
                 open an issue <ExternalLink className="w-3 h-3" />
               </a>
             </p>

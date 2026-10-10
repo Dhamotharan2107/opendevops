@@ -195,7 +195,7 @@ export function TasksPage() {
             <SelectTrigger className="w-[200px] bg-white/5 border-white/10 text-white">
               <SelectValue placeholder="All Projects" />
             </SelectTrigger>
-            <SelectContent className="bg-[#0F0F14] border-white/10 text-white">
+            <SelectContent className="bg-[#080808] border-white/10 text-white">
               <SelectItem value="all">All Projects</SelectItem>
               {state.projects.map(p => (
                 <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
@@ -205,7 +205,7 @@ export function TasksPage() {
 
           <Button
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-white text-black hover:bg-gray-100 rounded-lg font-semibold"
+            className="bg-white text-black hover:bg-white/90 rounded-lg font-semibold"
           >
             <Plus className="w-4 h-4" />
             Add Task
@@ -268,7 +268,7 @@ export function TasksPage() {
                       <div className="flex items-center gap-2">
                         {task.assignee && (
                           <div className="flex items-center gap-1.5">
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-[10px] text-white font-semibold">
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-white to-white/90 flex items-center justify-center text-[10px] text-white font-semibold">
                               {getInitialsFromId(userMap, task.assignee)}
                             </div>
                           </div>
@@ -319,7 +319,7 @@ export function TasksPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 380 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="fixed top-0 right-0 h-full w-[420px] bg-[#0F0F14] border-l border-white/10 z-50 flex flex-col shadow-2xl"
+              className="fixed top-0 right-0 h-full w-[420px] bg-[#080808] border-l border-white/10 z-50 flex flex-col shadow-2xl"
             >
               {/* Panel Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
@@ -355,7 +355,7 @@ export function TasksPage() {
                     <SelectTrigger className="bg-white/5 border-white/10 text-white">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#0F0F14] border-white/10 text-white">
+                    <SelectContent className="bg-[#080808] border-white/10 text-white">
                       {STATUSES.map(s => (
                         <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                       ))}
@@ -404,12 +404,12 @@ export function TasksPage() {
                     <SelectTrigger className="bg-white/5 border-white/10 text-white">
                       <SelectValue placeholder="Unassigned" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#0F0F14] border-white/10 text-white">
+                    <SelectContent className="bg-[#080808] border-white/10 text-white">
                       <SelectItem value="none">Unassigned</SelectItem>
                       {userOptions.map(u => (
                         <SelectItem key={u.id} value={u.id}>
                           <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-[8px] text-white font-semibold">
+                            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-white to-white/90 flex items-center justify-center text-[8px] text-white font-semibold">
                               {getInitials(u.name)}
                             </div>
                             <span>{u.name}</span>
@@ -462,7 +462,7 @@ export function TasksPage() {
 
       {/* Add Task Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="bg-[#0F0F14] border-white/10 text-white max-w-md">
+        <DialogContent className="bg-[#080808] border-white/10 text-white max-w-md">
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold text-white">Add Task</DialogTitle>
             <DialogDescription className="text-gray-400 text-sm">
@@ -500,7 +500,7 @@ export function TasksPage() {
                 <SelectTrigger className="bg-white/5 border-white/10 text-white">
                   <SelectValue placeholder="Select project" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#0F0F14] border-white/10 text-white">
+                <SelectContent className="bg-[#080808] border-white/10 text-white">
                   {state.projects.map(p => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
@@ -518,7 +518,7 @@ export function TasksPage() {
                   <SelectTrigger className="bg-white/5 border-white/10 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0F0F14] border-white/10 text-white">
+                  <SelectContent className="bg-[#080808] border-white/10 text-white">
                     {PRIORITIES.map(p => (
                       <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
                     ))}
@@ -535,12 +535,12 @@ export function TasksPage() {
                   <SelectTrigger className="bg-white/5 border-white/10 text-white">
                     <SelectValue placeholder="Unassigned" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0F0F14] border-white/10 text-white">
+                  <SelectContent className="bg-[#080808] border-white/10 text-white">
                     <SelectItem value="none">Unassigned</SelectItem>
                     {userOptions.map(u => (
                       <SelectItem key={u.id} value={u.id}>
                         <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-[8px] text-white font-semibold">
+                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-white to-white/90 flex items-center justify-center text-[8px] text-white font-semibold">
                             {getInitials(u.name)}
                           </div>
                           <span>{u.name}</span>
@@ -573,7 +573,7 @@ export function TasksPage() {
             <Button
               onClick={handleAddTask}
               disabled={!addForm.title.trim()}
-              className="bg-white text-black hover:bg-gray-100 font-semibold"
+              className="bg-white text-black hover:bg-white/90 font-semibold"
             >
               Create Task
             </Button>

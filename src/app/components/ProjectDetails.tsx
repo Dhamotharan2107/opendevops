@@ -97,14 +97,14 @@ class ProjectErrorBoundary extends Component<{ children: ReactNode }, { error: s
   render() {
     if (this.state.error) {
       return (
-        <div style={{ position: 'fixed', inset: 0, background: '#0A0A0F', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+        <div style={{ position: 'fixed', inset: 0, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div style={{ textAlign: 'center', padding: 32 }}>
             <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
-            <h2 style={{ color: '#fff', fontSize: 18, marginBottom: 8 }}>Failed to load project</h2>
+            <h2 style={{ color: '#000', fontSize: 18, marginBottom: 8 }}>Failed to load project</h2>
             <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginBottom: 24, maxWidth: 400 }}>{this.state.error}</p>
             <button
               onClick={() => window.location.href = '/dashboard/projects'}
-              style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', cursor: 'pointer', fontSize: 14 }}
+              style={{ background: '#fff', color: '#000', border: 'none', borderRadius: 8, padding: '10px 24px', cursor: 'pointer', fontSize: 14 }}
             >
               Back to Projects
             </button>
@@ -166,14 +166,14 @@ function ProjectDetailsInner() {
   useEffect(() => {
     if (!id) return;
     try {
-      const saved = localStorage.getItem('opendrap_tunnel_' + id);
+      const saved = localStorage.getItem('opendevops_tunnel_' + id);
       if (!saved) return;
       const { url, ts } = JSON.parse(saved);
       if (url && (!ts || Date.now() - ts < 12 * 60 * 60 * 1000)) {
         setTunnelUrl(url);
         setTunnelRunning(true);
       } else {
-        localStorage.removeItem('opendrap_tunnel_' + id);
+        localStorage.removeItem('opendevops_tunnel_' + id);
       }
     } catch {}
   }, [id]);
@@ -196,22 +196,55 @@ function ProjectDetailsInner() {
     if (project && !activeBranch) setActiveBranch(project.branch || 'main');
   }, [project?.branch]);
 
-  // Fetch branches from GitHub when project loads
+  // Fetch branches — try GitHub API first (needs PAT), fall back to git on server
   useEffect(() => {
     if (!project?.repo) return;
     const pat = getGitHubPat();
-    if (!pat) {
-      // No PAT — just show current branch
-      setBranches(project.branch ? [project.branch] : ['main']);
-      return;
-    }
     const match = project.repo.match(/github\.com[:/]([^/]+\/[^/.]+)/);
-    if (!match) return;
-    const fullName = match[1];
-    githubFetchBranches(pat, fullName)
-      .then((brs) => { if (brs.length) setBranches(brs); })
-      .catch(() => setBranches(project.branch ? [project.branch] : ['main']));
+
+    if (pat && match) {
+      githubFetchBranches(pat, match[1])
+        .then((brs) => { if (brs.length) setBranches(brs); })
+        .catch(() => fetchBranchesFromAgent());
+    } else {
+      fetchBranchesFromAgent();
+    }
   }, [project?.repo]);
+
+  function fetchBranchesFromAgent() {
+    const wsBase = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
+    const token = localStorage.getItem('token');
+    if (!token || !project) return;
+    try {
+      const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=branches-${Date.now()}&projectId=default&token=${encodeURIComponent(token)}`);
+      let output = '';
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          const text: string = msg.data || msg.output || '';
+          if ((msg.type === 'terminal_output' || msg.type === 'command_output') && text) {
+            output += text;
+          }
+          if (msg.type === 'command_completed') {
+            ws.close();
+            const parsed = output
+              .split('\n')
+              .map((l) => l.replace(/^\*?\s*/, '').replace(/^remotes\/origin\//, '').trim())
+              .filter((l) => l && !l.startsWith('HEAD') && !l.includes('->'))
+              .filter((v, i, a) => a.indexOf(v) === i);
+            if (parsed.length > 0) setBranches(parsed);
+          }
+        } catch {}
+      };
+      ws.onopen = () => {
+        ws.send(JSON.stringify({
+          type: 'terminal_input',
+          input: `cd ~/opendev/projects/${project.name} 2>/dev/null && git fetch --all -q 2>/dev/null; git branch -a 2>/dev/null || echo main`,
+        }));
+        setTimeout(() => ws.close(), 15000);
+      };
+    } catch {}
+  }
 
   // Close branch dropdown on outside click
   useEffect(() => {
@@ -258,7 +291,7 @@ function ProjectDetailsInner() {
   if (!project) {
     const isLoading = projectLoading || !projectFetched || !state.isAuthenticated;
     return (
-      <div style={{ position: 'fixed', inset: 0, background: '#0A0A0F', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 40 }}>
+      <div style={{ position: 'fixed', inset: 0, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 40 }}>
         <div style={{ textAlign: 'center', padding: '2rem' }}>
           {isLoading ? (
             <>
@@ -275,11 +308,11 @@ function ProjectDetailsInner() {
           ) : (
             <>
               <div style={{ fontSize: 48, marginBottom: 16 }}>📂</div>
-              <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Project not found</h2>
+              <h2 style={{ color: '#000', fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Project not found</h2>
               <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginBottom: 24 }}>No project with ID "{id}" exists in your account.</p>
               <button
                 onClick={() => navigate('/dashboard/projects')}
-                style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', cursor: 'pointer', fontSize: 14 }}
+                style={{ background: '#fff', color: '#000', border: 'none', borderRadius: 8, padding: '10px 24px', cursor: 'pointer', fontSize: 14 }}
               >
                 View all projects
               </button>
@@ -292,22 +325,35 @@ function ProjectDetailsInner() {
 
   const statusColor = getStatusColor(project.status);
 
-  function getStartCommand(framework: string): { cmd: string; port: number } {
+  function getStartCommand(framework: string, port: number): string {
     switch (framework) {
-      case 'nextjs':  return { cmd: 'npm run start', port: 3000 };
-      case 'react':   return { cmd: 'npx serve dist -p 3000 -s', port: 3000 };
-      case 'vue':     return { cmd: 'npm run preview -- --port 3000', port: 3000 };
-      case 'nuxt':    return { cmd: 'npm run preview', port: 3000 };
-      case 'svelte':  return { cmd: 'npm run preview -- --port 3000', port: 3000 };
-      case 'python':  return { cmd: 'python app.py', port: 5000 };
-      case 'fastapi': return { cmd: 'uvicorn main:app --host 0.0.0.0 --port 3000', port: 3000 };
-      case 'django':  return { cmd: 'python manage.py runserver 0.0.0.0:3000', port: 3000 };
-      default:        return { cmd: 'npm start', port: 3000 };
+      case 'nextjs':  return `npm run start -- -p ${port}`;
+      case 'react':   return `npx serve dist -p ${port} -s`;
+      case 'vue':     return `npm run preview -- --port ${port}`;
+      case 'nuxt':    return `npm run preview -- --port ${port}`;
+      case 'svelte':  return `npm run preview -- --port ${port}`;
+      case 'fastapi': return `uvicorn main:app --host 0.0.0.0 --port ${port}`;
+      case 'django':  return `python manage.py runserver 0.0.0.0:${port}`;
+      case 'python':  return `python manage.py runserver 0.0.0.0:${port}`;
+      default:        return `npm start`;
     }
   }
 
-  // Deploy = LocalTunnel only (no login).
-  // User starts the server themselves in the Terminal tab, then clicks Deploy.
+  function getBuildCommand(framework: string): string {
+    switch (framework) {
+      case 'nextjs':  return `npm install && npm run build`;
+      case 'react':   return `npm install && npm run build`;
+      case 'vue':     return `npm install && npm run build`;
+      case 'nuxt':    return `npm install && npm run build`;
+      case 'svelte':  return `npm install && npm run build`;
+      case 'django':  return `pip install -r requirements.txt 2>/dev/null || true && python manage.py migrate --run-syncdb 2>/dev/null || true`;
+      case 'python':  return `pip install -r requirements.txt 2>/dev/null || true && python manage.py migrate --run-syncdb 2>/dev/null || true`;
+      case 'fastapi': return `pip install -r requirements.txt 2>/dev/null || true`;
+      default:        return `npm install`;
+    }
+  }
+
+  // Deploy = start server + LocalTunnel together.
   const handleDeploy = async (project: Project) => {
     if (!state.agentConnected) {
       setDeployLogs(['Agent not connected. Start the agent first.']);
@@ -316,7 +362,7 @@ function ProjectDetailsInner() {
     setDeploying(true);
     setTunnelUrl(null);
     setDeployLogs([]);
-    setDeployPhase('Starting tunnel...');
+    setDeployPhase('Starting server & tunnel...');
 
     const port = parseInt(tunnelPort, 10) || 8000;
     const subdomain = (project.name || 'app').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '') || 'app';
@@ -331,20 +377,57 @@ function ProjectDetailsInner() {
     const token = localStorage.getItem('token');
     if (!token) { setDeploying(false); return; }
 
-    // LocalTunnel (no login required). Matches "your url is: https://xxx.loca.lt".
-    const TUNNEL_REGEX = /https:\/\/[a-z0-9-]+\.loca\.lt/;
-    // Uses globally installed `lt` so the subdomain flag is available.
-    // If subdomain is taken, LocalTunnel auto-appends a number.
-    const tunnelCmd = [
-      `cd "$HOME" 2>/dev/null || cd /`,
-      `echo "=== Checking port ${port}..."`,
-      `if curl -s -o /dev/null --max-time 3 http://localhost:${port}; then echo "=== Port ${port} is serving."; else echo "=== WARNING: nothing is responding on port ${port} yet. Start your server in the Terminal tab first (the URL will still open but 502 until then)."; fi`,
-      `echo "=== If the loca.lt page asks for a password, enter this IP:"`,
-      `curl -s --max-time 5 https://loca.lt/mytunnelpassword || curl -s --max-time 5 ifconfig.me || echo "(could not fetch IP)"`,
-      `echo ""`,
-      `echo "=== Starting LocalTunnel on port ${port} as ${subdomain}.loca.lt..."`,
-      `lt --port ${port} --subdomain ${subdomain} 2>&1`,
-    ].join('; ');
+    const serverCmd = getStartCommand(project.framework || '', port);
+    const buildCmd = getBuildCommand(project.framework || '');
+    const projectDir = `~/opendev/projects/${project.name}`;
+    const isPython = ['django', 'python', 'fastapi'].includes(project.framework || '');
+
+    // LocalTunnel with stable subdomain. Matches "https://myapp.loca.lt"
+    const TUNNEL_REGEX = /https:\/\/[a-zA-Z0-9-]+\.loca\.lt/;
+
+    const script = [
+      `cd ${projectDir} 2>/dev/null || { echo '=== ERROR: project folder not found: ${projectDir}'; exit 1; }`,
+      ...(isPython ? [
+        `if [ -f venv/bin/python ]; then PYTHON=$(pwd)/venv/bin/python`,
+        `elif [ -f .venv/bin/python ]; then PYTHON=$(pwd)/.venv/bin/python`,
+        `else PYTHON=$(which python3 2>/dev/null || which python 2>/dev/null); fi`,
+        `echo "=== Python: $PYTHON"`,
+        `if [ -f requirements.txt ]; then $PYTHON -m pip install -r requirements.txt -q`,
+        `elif [ -d requirements ]; then for f in requirements/*.txt; do $PYTHON -m pip install -r "$f" -q; done`,
+        `elif [ -f pyproject.toml ]; then $PYTHON -m pip install -e . -q 2>/dev/null || $PYTHON -m pip install . -q`,
+        `else echo '=== No requirements file found, skipping install'; fi`,
+        `$PYTHON manage.py migrate --run-syncdb -v 0 2>/dev/null || true`,
+      ] : [
+        buildCmd,
+      ]),
+      `fuser -k ${port}/tcp 2>/dev/null || true`,
+      `echo '=== Starting server...'`,
+      ...(isPython ? [
+        `PYTHON_ABS=$(readlink -f $PYTHON 2>/dev/null || echo $PYTHON)`,
+        `PROJECT_ABS=$(pwd)`,
+        `nohup $PYTHON_ABS $PROJECT_ABS/manage.py runserver 0.0.0.0:${port} > /tmp/opendev_server_${port}.log 2>&1 &`,
+      ] : [
+        `nohup ${serverCmd} > /tmp/opendev_server_${port}.log 2>&1 &`,
+      ]),
+      `echo "=== Server PID: $!"`,
+      `echo '=== Waiting for port ${port}...'`,
+      `SERVER_UP=0`,
+      `for i in $(seq 1 30); do`,
+      `  curl -s -o /dev/null --max-time 1 http://localhost:${port} && SERVER_UP=1 && echo '=== Server is up!' && break`,
+      `  echo "=== ($i/30) waiting..."`,
+      `  sleep 1`,
+      `done`,
+      `if [ $SERVER_UP -eq 0 ]; then`,
+      `  echo '=== Server did not start. Last 20 lines of log:'`,
+      `  tail -20 /tmp/opendev_server_${port}.log 2>/dev/null || echo '(no log)'`,
+      `  echo '=== Starting tunnel anyway...'`,
+      `fi`,
+      `echo '=== Starting tunnel via localtunnel (npx localtunnel --port ${port} --subdomain ${subdomain})...'`,
+      `npx -y localtunnel --port ${port} --subdomain ${subdomain}`,
+    ].join('\n');
+
+    const b64 = btoa(unescape(encodeURIComponent(script)));
+    const tunnelCmd = `echo ${b64} | base64 -d | bash`;
 
     let urlFound = false;
     let waitTimer: ReturnType<typeof setTimeout> | null = null;
@@ -360,7 +443,7 @@ function ProjectDetailsInner() {
           if (!urlFound) {
             setDeployLogs((prev) => [...prev,
               '=== Still waiting for a tunnel URL after 40s.',
-              `=== Check: (1) is your server running on port ${port}? (2) try the Terminal tab and run: lt --port ${port} --subdomain ${subdomain}`,
+              `=== Check: (1) is your server running on port ${port}? (2) try the Terminal tab and run: npx -y localtunnel --port ${port} --subdomain ${subdomain}`,
             ]);
           }
         }, 40000);
@@ -383,7 +466,7 @@ function ProjectDetailsInner() {
             setDeploying(false);
             // Persist so the live URL survives a page refresh (the tunnel keeps
             // running in Cloud Shell via nohup, so the URL stays valid).
-            try { localStorage.setItem('opendrap_tunnel_' + project.id, JSON.stringify({ url, ts: Date.now() })); } catch {}
+            try { localStorage.setItem('opendevops_tunnel_' + project.id, JSON.stringify({ url, ts: Date.now() })); } catch {}
             dispatch({ type: 'UPDATE_PROJECT', payload: { ...project, url, status: 'deployed' } });
           }
         } catch {}
@@ -414,7 +497,7 @@ function ProjectDetailsInner() {
       try {
         const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=stop-${Date.now()}&projectId=default&token=${encodeURIComponent(token)}`);
         ws.onopen = () => {
-          ws.send(JSON.stringify({ type: 'terminal_input', input: 'pkill -f "bin/lt"; pkill -f cloudflared; echo "Stopped."' }));
+          ws.send(JSON.stringify({ type: 'terminal_input', input: 'pkill -f "localtunnel" 2>/dev/null; pkill -f "proxy.tunnl.gg" 2>/dev/null; pkill -f "bin/lt" 2>/dev/null; echo "Stopped."' }));
           setTimeout(() => ws.close(), 5000);
         };
       } catch {}
@@ -429,13 +512,13 @@ function ProjectDetailsInner() {
     setDeployLogs([]);
     setStopping(false);
     if (project) {
-      try { localStorage.removeItem('opendrap_tunnel_' + project.id); } catch {}
+      try { localStorage.removeItem('opendevops_tunnel_' + project.id); } catch {}
       dispatch({ type: 'UPDATE_PROJECT', payload: { ...project, status: 'stopped' } });
     }
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#0A0A0F]">
+    <div className="h-full flex flex-col bg-black">
       <div className="border-b border-white/10 bg-white/[0.02] backdrop-blur-sm">
         <div className="p-6">
           <div className="flex items-start justify-between mb-6">
@@ -463,8 +546,8 @@ function ProjectDetailsInner() {
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors"
                   >
                     {changingBranch
-                      ? <Loader2 className="w-3.5 h-3.5 animate-spin text-violet-400" />
-                      : <GitBranch className="w-3.5 h-3.5 text-violet-400" />}
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                      : <GitBranch className="w-3.5 h-3.5 text-white" />}
                     <span className="text-sm font-medium">{activeBranch || project.branch}</span>
                     <ChevronDown className={`w-3.5 h-3.5 transition-transform ${branchDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
@@ -480,7 +563,7 @@ function ProjectDetailsInner() {
                             value={branchSearch}
                             onChange={(e) => setBranchSearch(e.target.value)}
                             placeholder="Filter branches..."
-                            className="w-full pl-8 pr-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:border-violet-500/50"
+                            className="w-full pl-8 pr-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/40"
                           />
                         </div>
                       </div>
@@ -495,8 +578,8 @@ function ProjectDetailsInner() {
                             className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-white/5 transition-colors text-left"
                           >
                             <GitBranch className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
-                            <span className={`flex-1 text-sm truncate ${b === activeBranch ? 'text-violet-400 font-medium' : 'text-white/70'}`}>{b}</span>
-                            {b === activeBranch && <Check className="w-3.5 h-3.5 text-violet-400 flex-shrink-0" />}
+                            <span className={`flex-1 text-sm truncate ${b === activeBranch ? 'text-white font-medium' : 'text-white/70'}`}>{b}</span>
+                            {b === activeBranch && <Check className="w-3.5 h-3.5 text-white flex-shrink-0" />}
                           </button>
                         ))}
                       </div>
@@ -565,8 +648,8 @@ function ProjectDetailsInner() {
                   <button
                     onClick={() => handleDeploy(project)}
                     disabled={deploying || !state.agentConnected}
-                    title={!state.agentConnected ? 'Agent must be connected' : 'Start a public tunnel (LocalTunnel) to your server'}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                    title={!state.agentConnected ? 'Agent must be connected' : `Installs deps, starts ${getStartCommand(project.framework || '', parseInt(tunnelPort)||8000)}, then opens a public tunnel`}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-white to-white/90 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
                     {deploying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudLightning className="w-4 h-4" />}
                     <span className="text-sm">{deploying ? (deployPhase || 'Starting...') : 'Publish'}</span>
@@ -677,7 +760,7 @@ function OverviewTab({ project, tunnelUrl, deployLogs, deployPhase, tunnelRunnin
               <Globe className="w-5 h-5 text-emerald-400" />
             </motion.div>
             <div>
-              <p className="text-xs text-emerald-400/70 mb-0.5">Live via LocalTunnel</p>
+              <p className="text-xs text-emerald-400/70 mb-0.5">Live via localtunnel</p>
               <a href={tunnelUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-300 font-mono text-sm hover:underline flex items-center gap-1">
                 {tunnelUrl}
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -707,12 +790,12 @@ function OverviewTab({ project, tunnelUrl, deployLogs, deployPhase, tunnelRunnin
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="flex items-start gap-3 p-4 bg-violet-500/5 border border-violet-500/20 rounded-xl text-sm"
+          className="flex items-start gap-3 p-4 bg-white/5 border border-white/20 rounded-xl text-sm"
         >
-          <CloudLightning className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" />
+          <CloudLightning className="w-4 h-4 text-white mt-0.5 flex-shrink-0" />
           <div className="text-white/50 leading-relaxed">
-            <span className="text-violet-300 font-medium">How to publish: </span>
-            Open the <strong className="text-white/70">Terminal</strong> tab → start your server (e.g. <code className="bg-white/5 px-1.5 py-0.5 rounded text-xs font-mono text-white/60">python manage.py runserver 0.0.0.0:8000</code>) → come back here and click <strong className="text-white/70">Publish</strong> to create a public LocalTunnel URL. If the <code className="bg-white/5 px-1 rounded text-xs font-mono text-white/60">loca.lt</code> page asks for a password, enter the IP shown in the publish logs.
+            <span className="text-white font-medium">How to publish: </span>
+            Enter your port (e.g. <code className="bg-white/5 px-1.5 py-0.5 rounded text-xs font-mono text-white/60">8000</code>) → click <strong className="text-white/70">Publish</strong>. Installs deps, starts your server, then opens a public tunnel via <code className="bg-white/5 px-1 rounded text-xs font-mono text-white/60">localtunnel (npx localtunnel --port 3000 --subdomain myapp)</code>.
           </div>
         </motion.div>
       )}
@@ -733,7 +816,7 @@ function OverviewTab({ project, tunnelUrl, deployLogs, deployPhase, tunnelRunnin
           <div ref={deployLogRef} className="h-40 overflow-y-auto p-3 font-mono text-xs space-y-0.5">
             {deployLogs.map((line, i) => (
               <div key={i} className={
-                line.includes('===') ? 'text-violet-400 font-semibold' :
+                line.includes('===') ? 'text-white font-semibold' :
                 line.toLowerCase().includes('error') ? 'text-red-400' :
                 line.includes('loca.lt') ? 'text-emerald-400 font-bold' :
                 'text-gray-400'
@@ -808,7 +891,7 @@ function OverviewTab({ project, tunnelUrl, deployLogs, deployPhase, tunnelRunnin
           <h3 className="font-semibold text-white mb-4">Quick Stats</h3>
           <div className="grid grid-cols-2 gap-4">
             {[
-              { label: 'Deployments', value: String(deployCount), icon: GitBranch, color: 'text-purple-400' },
+              { label: 'Deployments', value: String(deployCount), icon: GitBranch, color: 'text-white' },
               { label: 'Uptime', value: uptime, icon: Activity, color: 'text-green-400' },
               { label: 'AI Tests', value: String(testCount), icon: Brain, color: 'text-blue-400' },
               { label: 'Errors', value: String(errorCount), icon: AlertCircle, color: 'text-red-400' },
@@ -884,7 +967,7 @@ function OverviewTab({ project, tunnelUrl, deployLogs, deployPhase, tunnelRunnin
                   whileHover={{ y: -2 }}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10"
                 >
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center text-xs font-medium text-white">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-white/20 to-white/10 flex items-center justify-center text-xs font-medium text-white">
                     {user ? getInitials(user.name) : '?'}
                   </div>
                   <div>
@@ -1049,11 +1132,11 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
             if (msg.hostname) setHostname(msg.hostname);
             if (msg.cwd) setCwd(msg.cwd.replace(/\/home\/[^/]+/, '~').replace(/\/root/, '~'));
             if (!msg.agentConnected) {
-              setLines((p) => [...p, { type: 'system', text: 'Agent offline — run: bash ~/opendrap-agent/restart.sh' }]);
+              setLines((p) => [...p, { type: 'system', text: 'Agent offline — run: bash ~/opendevops-agent/restart.sh' }]);
             }
           } else if (msg.type === 'agent_disconnected') {
             setAgentConnected(false);
-            setLines((p) => [...p, { type: 'error', text: 'Agent disconnected. Run: bash ~/opendrap-agent/restart.sh' }]);
+            setLines((p) => [...p, { type: 'error', text: 'Agent disconnected. Run: bash ~/opendevops-agent/restart.sh' }]);
           } else if (msg.type === 'error' && text) {
             setLines((p) => [...p, { type: 'error', text }]);
           }
@@ -1098,7 +1181,7 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
       setLines((p) => [
         ...p,
         { type: 'command', text: `${hostname}:${cwd}$ ${trimmed}` },
-        { type: 'error', text: 'Agent not connected. Run: bash ~/opendrap-agent/restart.sh' },
+        { type: 'error', text: 'Agent not connected. Run: bash ~/opendevops-agent/restart.sh' },
       ]);
       setCommand('');
       return;
@@ -1148,8 +1231,8 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-7xl mx-auto">
-      <motion.div variants={itemVariants} className="border border-white/10 rounded-xl overflow-hidden bg-[#060608]">
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-[#0F0F14]">
+      <motion.div variants={itemVariants} className="border border-white/10 rounded-xl overflow-hidden bg-[#080808]">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-[#080808]">
           <div className="flex items-center gap-2">
             <div className="flex gap-1.5">
               <div className="w-3 h-3 rounded-full bg-red-500/60" />
@@ -1170,7 +1253,7 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
               key={i}
               className={cn(
                 'whitespace-pre-wrap leading-relaxed',
-                line.type === 'command' ? 'text-violet-400' :
+                line.type === 'command' ? 'text-white' :
                 line.type === 'error'   ? 'text-red-400' :
                 line.type === 'system'  ? 'text-white/30 text-xs' :
                 'text-gray-200'
@@ -1190,7 +1273,7 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
                 if (e.key === 'Enter') { handleSubmit(e as any); return; }
                 onKeyDown(e);
               }}
-              className="flex-1 bg-transparent outline-none text-white font-mono caret-violet-400"
+              className="flex-1 bg-transparent outline-none text-white font-mono caret-white"
               placeholder={wsConnected ? '' : 'agent offline...'}
               autoFocus
               spellCheck={false}
@@ -1328,9 +1411,9 @@ function EditorTab({ projectId, projectName }: { projectId: string; projectName:
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-7xl mx-auto">
       <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4">
         {/* File browser */}
-        <div className="border border-white/10 rounded-xl overflow-hidden bg-[#0F0F14] flex flex-col">
+        <div className="border border-white/10 rounded-xl overflow-hidden bg-[#080808] flex flex-col">
           <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10">
-            <FolderOpen className="w-4 h-4 text-violet-400 flex-shrink-0" />
+            <FolderOpen className="w-4 h-4 text-white flex-shrink-0" />
             <span className="text-xs font-medium text-white/70">Files</span>
             <div className={`ml-auto flex items-center gap-1.5 text-xs ${agentConnected ? 'text-emerald-400' : 'text-amber-400'}`}>
               <div className={`w-1.5 h-1.5 rounded-full ${agentConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
@@ -1347,9 +1430,9 @@ function EditorTab({ projectId, projectName }: { projectId: string; projectName:
               onChange={(e) => setPathInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') listDir(pathInput); }}
               spellCheck={false}
-              className="flex-1 min-w-0 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-violet-500/50"
+              className="flex-1 min-w-0 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-white/40"
             />
-            <button onClick={() => listDir(pathInput)} className="px-2 py-1.5 rounded-lg bg-violet-600/30 border border-violet-500/30 text-xs text-violet-300 hover:bg-violet-600/40">Go</button>
+            <button onClick={() => listDir(pathInput)} className="px-2 py-1.5 rounded-lg bg-white/15 border border-white/25 text-xs text-white hover:bg-white/25">Go</button>
           </div>
           <div className="flex-1 overflow-y-auto max-h-[460px] py-1">
             {loadingDir ? (
@@ -1363,22 +1446,22 @@ function EditorTab({ projectId, projectName }: { projectId: string; projectName:
                 className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 text-left"
               >
                 {e.dir ? <FolderOpen className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" /> : <FileIcon className="w-3.5 h-3.5 text-white/40 flex-shrink-0" />}
-                <span className={`text-xs truncate ${e.dir ? 'text-blue-300' : 'text-white/70'} ${openFileName === e.name && !e.dir ? 'font-semibold text-violet-300' : ''}`}>{e.name}</span>
+                <span className={`text-xs truncate ${e.dir ? 'text-blue-300' : 'text-white/70'} ${openFileName === e.name && !e.dir ? 'font-semibold text-white' : ''}`}>{e.name}</span>
               </button>
             ))}
           </div>
         </div>
 
         {/* Editor */}
-        <div className="border border-white/10 rounded-xl overflow-hidden bg-[#060608] flex flex-col">
-          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10 bg-[#0F0F14]">
-            <FileEdit className="w-4 h-4 text-violet-400 flex-shrink-0" />
+        <div className="border border-white/10 rounded-xl overflow-hidden bg-[#080808] flex flex-col">
+          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10 bg-[#080808]">
+            <FileEdit className="w-4 h-4 text-white flex-shrink-0" />
             <span className="text-xs font-mono text-white/70 truncate">{openFileAbs || 'No file open'}</span>
             {dirty && <span className="text-[10px] text-amber-400 flex-shrink-0">● unsaved</span>}
             <button
               onClick={save}
               disabled={!openFileAbs || saving || !agentConnected}
-              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs hover:opacity-90 disabled:opacity-40"
+              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-white to-white/90 text-white text-xs hover:opacity-90 disabled:opacity-40"
             >
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
               {saving ? 'Saving' : 'Save'}
@@ -1673,7 +1756,7 @@ function AITestingTab({ projectId }: { projectId: string }) {
               placeholder="Test this website like a customer trying to purchase a product..."
             />
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity">
+          <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-white to-white/90 text-white rounded-lg hover:opacity-90 transition-opacity">
             <Zap className="w-4 h-4" />
             <span>Run AI Test</span>
           </button>
@@ -1710,8 +1793,8 @@ function AITestingTab({ projectId }: { projectId: string }) {
       >
         <h3 className="font-semibold text-white mb-4">Test Results</h3>
         <div className="space-y-4">
-          <div className="aspect-video bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-lg flex items-center justify-center">
-            <Brain className="w-16 h-16 text-purple-500/60" />
+          <div className="aspect-video bg-gradient-to-br from-white/10 to-white/5 rounded-lg flex items-center justify-center">
+            <Brain className="w-16 h-16 text-white/60" />
           </div>
           <p className="text-sm text-white/40">
             {testResults.length > 0
@@ -1777,7 +1860,7 @@ function APILabTab() {
                 />
                 <button
                   onClick={handleSend}
-                  className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity"
+                  className="px-6 py-2 bg-gradient-to-r from-white to-white/90 text-white rounded-lg hover:opacity-90 transition-opacity"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -1811,7 +1894,7 @@ function APILabTab() {
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-white">Response</h3>
-              <button className="text-sm text-purple-400 hover:underline flex items-center gap-1">
+              <button className="text-sm text-white hover:underline flex items-center gap-1">
                 <Copy className="w-3 h-3" /> Copy
               </button>
             </div>
@@ -2075,7 +2158,7 @@ function SettingsTab({ project }: { project: Project }) {
                 <span className="text-white/40">{env.key}=</span>
                 <span>{env.value}</span>
               </div>
-              <button className="text-xs text-purple-400 hover:underline">Edit</button>
+              <button className="text-xs text-white hover:underline">Edit</button>
             </motion.div>
           ))}
         </div>

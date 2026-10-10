@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
+import { motion } from 'motion/react';
 import {
   LayoutDashboard, FolderGit2, Rocket, Brain, FileCode,
   ScrollText, AlertCircle, Terminal, BarChart3, Users,
-  Settings, ChevronDown, Cloud, Plus, Bug, CheckSquare,
+  Settings, ChevronDown, Plus, Bug, CheckSquare,
   MessageSquare, UserPlus, Building2, User, LogOut,
   Wifi, WifiOff, Menu, X
 } from 'lucide-react';
@@ -14,6 +15,7 @@ import { getInitials } from '../../lib/utils';
 import { apiLogout, BASE_URL } from '../../lib/api';
 import { NewProjectModal } from '../pages/ProjectsPage';
 import { AgentInstallModal } from './AgentInstallModal';
+import Logo from './Logo.svg';
 
 function useAgentStatusMonitor() {
   const { state, dispatch } = useApp();
@@ -175,7 +177,7 @@ export function DashboardLayout() {
   );
 
   return (
-    <div className="flex h-screen bg-[#0A0A0F] text-white">
+    <div className="flex h-screen bg-black text-white">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -185,14 +187,18 @@ export function DashboardLayout() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed md:relative z-50 h-full w-[240px] border-r border-white/5 bg-[#0F0F14] flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`fixed md:relative z-50 h-full w-[240px] border-r border-white/10 bg-[#080808] flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         {/* Logo */}
-        <Link to="/dashboard" className="h-[72px] border-b border-white/5 flex items-center gap-3 px-6 hover:bg-white/5 transition-colors">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 flex items-center justify-center shadow-lg shadow-violet-500/25">
-            <Cloud className="w-4 h-4 text-white" strokeWidth={2.5} />
-          </div>
+        <Link to="/dashboard" className="h-[72px] border-b border-white/10 flex items-center gap-3 px-6 hover:bg-white/5 transition-colors">
+          <motion.div
+            whileHover={{ scale: 1.1, rotate: 8 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+            className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-white/10 hover:shadow-white/20 transition-shadow"
+          >
+            <img src={Logo} alt="Opendevops Logo" className="w-5 h-5 invert" />
+          </motion.div>
           <div className="flex flex-col">
-            <span className="font-semibold text-sm text-white leading-none">Opendrap</span>
+            <span className="font-semibold text-sm text-white leading-none">Opendevops</span>
             <span className="text-[10px] text-gray-500 leading-none mt-0.5">DevOps Platform</span>
           </div>
         </Link>
@@ -201,7 +207,7 @@ export function DashboardLayout() {
         <div className="p-4 border-b border-white/5">
           <button
             onClick={() => setShowNewProject(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-black rounded-lg hover:bg-gray-100 transition-all font-semibold text-sm"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-black rounded-lg hover:bg-white/90 transition-all font-semibold text-sm"
           >
             <Plus className="w-4 h-4" />
             New Project
@@ -233,9 +239,9 @@ export function DashboardLayout() {
         </nav>
 
         {/* User Profile */}
-        <div className="p-4 border-t border-white/5">
+        <div className="p-4 border-t border-white/10">
           <Link to="/dashboard/profile" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-xs text-white font-semibold">
+            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs text-black font-semibold">
               {state.user ? getInitials(state.user.name) : '?'}
             </div>
             <div className="flex-1 text-left">
@@ -257,7 +263,7 @@ export function DashboardLayout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden md:ml-0 ml-0">
         {/* Top Header */}
-        <header className="h-[72px] border-b border-white/5 flex items-center justify-between px-4 md:px-8 bg-[#0A0A0F]/80 backdrop-blur-xl">
+        <header className="h-[72px] border-b border-white/10 flex items-center justify-between px-4 md:px-8 bg-black/70 backdrop-blur-xl">
           <div className="flex items-center gap-3 flex-1 max-w-md">
             <button
               className="md:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
@@ -285,7 +291,7 @@ export function DashboardLayout() {
             </div>
             <NotificationDropdown />
             <Link to="/dashboard/profile">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-sm text-white font-semibold hover:opacity-80 transition-opacity cursor-pointer">
+              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-sm text-black font-semibold hover:opacity-80 transition-opacity cursor-pointer">
                 {state.user ? getInitials(state.user.name) : '?'}
               </div>
             </Link>
@@ -293,7 +299,7 @@ export function DashboardLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto bg-[#0A0A0F] flex flex-col">
+        <main className="flex-1 overflow-auto bg-black flex flex-col">
           <Outlet />
         </main>
       </div>

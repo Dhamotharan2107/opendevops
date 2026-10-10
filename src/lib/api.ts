@@ -1,5 +1,5 @@
 export const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8787/api';
-export const DEMO_TOKEN = 'opendrap-demo-2024';
+export const DEMO_TOKEN = 'opendevops-demo-2024';
 
 export function getOAuthUrl(provider: 'google' | 'github') {
   const redirect = encodeURIComponent(`${window.location.origin}/auth/callback`);
@@ -82,6 +82,23 @@ function getToken() {
 
 export function isDemoMode() {
   return getToken() === DEMO_TOKEN;
+}
+
+export interface PlatformStats {
+  users: number;
+  projects: number;
+  deployments: number;
+  successRate: number;
+  bugs: number;
+  errors: number;
+}
+
+// Public endpoint — no auth token required, so bypass the `request` helper.
+export async function apiGetPlatformStats(): Promise<PlatformStats> {
+  const res = await fetch(`${BASE_URL}/stats`);
+  const data = await res.json() as { success: boolean; data: PlatformStats };
+  if (!res.ok || !data.success) throw new Error('Failed to load stats');
+  return data.data;
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {

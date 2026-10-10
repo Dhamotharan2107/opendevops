@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { motion } from 'motion/react';
-import { Cloud, Mail, Lock, User, Eye, EyeOff, Github, Loader2, UserRound } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, Github, Loader2, UserRound } from 'lucide-react';
 import { useApp } from '@/lib/store';
 import { apiRegister, getOAuthUrl } from '@/lib/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import Logo from '../components/Logo.svg';
 
 declare const grecaptcha: { ready: (cb: () => void) => void; execute: (key: string, opts: { action: string }) => Promise<string>; };
 const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '';
@@ -80,13 +81,14 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#0A0A0F] flex items-center justify-center overflow-hidden p-4">
+    <div className="relative min-h-screen bg-black flex items-center justify-center overflow-hidden p-4">
+      {/* Animated Background — pure monochrome */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-violet-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-fuchsia-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-pink-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse" style={{ animationDuration: '12s', animationDelay: '4s' }} />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-500/5 via-transparent to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-fuchsia-500/5 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(255,255,255,0.06)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_80%,rgba(255,255,255,0.04)_0%,transparent_50%)]" />
+        <div className="absolute top-[10%] left-[15%] w-[500px] h-[500px] bg-white/[0.04] rounded-full blur-[120px] animate-aurora" />
+        <div className="absolute bottom-[10%] right-[10%] w-[450px] h-[450px] bg-white/[0.03] rounded-full blur-[120px] animate-aurora-reverse" />
+        <div className="absolute inset-0 grid-fade bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem]" />
       </div>
 
       <motion.div
@@ -97,21 +99,23 @@ export function RegisterPage() {
       >
         <motion.div
           variants={itemVariants}
-          className="rounded-2xl border border-white/[0.08] bg-[#0A0A0F]/60 backdrop-blur-2xl shadow-2xl shadow-violet-500/5 p-8"
+          className="rounded-2xl border border-white/[0.08] bg-black/60 backdrop-blur-2xl shadow-2xl shadow-white/5 p-8"
         >
           <motion.div variants={itemVariants} className="flex flex-col items-center text-center mb-7">
             <Link to="/" className="flex items-center gap-3 group mb-6">
-              <div className="relative">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 flex items-center justify-center shadow-lg shadow-violet-500/25 group-hover:shadow-violet-500/40 transition-all duration-300">
-                  <Cloud className="w-6 h-6 text-white" strokeWidth={2.5} />
-                </div>
-              </div>
+              <motion.div
+                whileHover={{ scale: 1.1, rotate: 8 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-white/10 hover:shadow-white/20 transition-shadow"
+              >
+                <img src={Logo} alt="Opendevops Logo" className="w-7 h-7 invert" />
+              </motion.div>
               <div className="flex flex-col">
-                <span className="font-semibold text-lg text-white leading-none">Opendrap</span>
+                <span className="font-semibold text-lg text-white leading-none">Opendevops</span>
                 <span className="text-[11px] text-gray-500 leading-none mt-0.5">DevOps Platform</span>
               </div>
             </Link>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-white via-violet-200 to-fuchsia-200 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold text-white">
               Create an account
             </h1>
             <p className="text-sm text-gray-500 mt-1.5">Get started with your free account</p>
@@ -134,7 +138,7 @@ export function RegisterPage() {
                     placeholder="johndoe"
                     value={form.username}
                     onChange={updateField('username')}
-                    className="pl-10 h-10 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:border-violet-500/50 focus-visible:ring-violet-500/20 rounded-xl"
+                    className="pl-10 h-10 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:border-white/40 focus-visible:ring-white/20 rounded-xl"
                     required
                   />
                 </div>
@@ -149,7 +153,7 @@ export function RegisterPage() {
                     placeholder="John Doe"
                     value={form.name}
                     onChange={updateField('name')}
-                    className="pl-10 h-10 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:border-violet-500/50 focus-visible:ring-violet-500/20 rounded-xl"
+                    className="pl-10 h-10 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:border-white/40 focus-visible:ring-white/20 rounded-xl"
                     required
                   />
                 </div>
@@ -166,7 +170,7 @@ export function RegisterPage() {
                   placeholder="name@example.com"
                   value={form.email}
                   onChange={updateField('email')}
-                  className="pl-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:border-violet-500/50 focus-visible:ring-violet-500/20 rounded-xl"
+                  className="pl-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:border-white/40 focus-visible:ring-white/20 rounded-xl"
                   required
                 />
               </div>
@@ -183,7 +187,7 @@ export function RegisterPage() {
                     placeholder="Min. 8 chars"
                     value={form.password}
                     onChange={updateField('password')}
-                    className="pl-10 pr-10 h-10 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:border-violet-500/50 focus-visible:ring-violet-500/20 rounded-xl"
+                    className="pl-10 pr-10 h-10 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:border-white/40 focus-visible:ring-white/20 rounded-xl"
                     required
                     minLength={8}
                   />
@@ -206,7 +210,7 @@ export function RegisterPage() {
                     placeholder="Repeat password"
                     value={form.confirmPassword}
                     onChange={updateField('confirmPassword')}
-                    className="pl-10 pr-10 h-10 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:border-violet-500/50 focus-visible:ring-violet-500/20 rounded-xl"
+                    className="pl-10 pr-10 h-10 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:border-white/40 focus-visible:ring-white/20 rounded-xl"
                     required
                     minLength={8}
                   />
@@ -228,7 +232,7 @@ export function RegisterPage() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full h-11 bg-white text-black hover:bg-gray-100 rounded-xl font-semibold text-sm transition-all duration-200 shadow-lg shadow-white/10 hover:shadow-white/20"
+              className="w-full h-11 bg-white text-black hover:bg-white/90 rounded-xl font-semibold text-sm transition-all duration-200 shadow-lg shadow-white/10 hover:shadow-white/20"
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
@@ -243,10 +247,10 @@ export function RegisterPage() {
 
           <motion.div variants={itemVariants} className="relative my-5">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/[0.06]" />
+              <div className="w-full border-t border-white/[0.08]" />
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-[#0A0A0F]/60 px-4 text-xs text-gray-500">or continue with</span>
+              <span className="bg-black/60 px-4 text-xs text-gray-500">or continue with</span>
             </div>
           </motion.div>
 
@@ -275,7 +279,7 @@ export function RegisterPage() {
           <motion.div variants={itemVariants} className="mt-6 text-center">
             <p className="text-sm text-gray-500">
               Already have an account?{' '}
-              <Link to="/login" className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+              <Link to="/login" className="text-white hover:text-gray-300 font-medium transition-colors">
                 Sign in
               </Link>
             </p>

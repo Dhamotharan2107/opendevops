@@ -119,17 +119,17 @@ export function ConnectionsPage() {
         layout
         variants={itemVariants}
         exit="exit"
-        className="group flex items-center gap-4 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-violet-500/20 transition-all duration-300"
+        className="group flex items-center gap-4 p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/20 transition-all duration-300"
       >
         <div className="relative shrink-0">
-          <Avatar className="w-12 h-12 ring-2 ring-white/[0.06] group-hover:ring-violet-500/30 transition-all">
+          <Avatar className="w-12 h-12 ring-2 ring-white/[0.06] group-hover:ring-white/20 transition-all">
             <AvatarImage src={u.avatar} />
-            <AvatarFallback className="text-sm font-semibold bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white">
+            <AvatarFallback className="text-sm font-semibold bg-gradient-to-br from-white to-white/90 text-white">
               {getInitials(u.name)}
             </AvatarFallback>
           </Avatar>
           <div className={cn(
-            'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#0A0A0F]',
+            'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-black',
             type === 'accepted' ? 'bg-emerald-500' : 'bg-yellow-500'
           )} />
         </div>
@@ -144,7 +144,7 @@ export function ConnectionsPage() {
               <Badge
                 key={skill}
                 variant="outline"
-                className="text-[10px] px-2 py-0 text-gray-500 border-white/[0.06] rounded-lg"
+                className="text-[10px] px-2 py-0 text-gray-500 border-white/[0.08] rounded-lg"
               >
                 {skill}
               </Badge>
@@ -159,7 +159,7 @@ export function ConnectionsPage() {
           <div className="flex items-center gap-1.5 shrink-0">
             <Button
               size="sm"
-              className="h-8 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 hover:text-violet-300 rounded-lg border border-violet-500/20"
+              className="h-8 bg-white/10 hover:bg-white/15 text-white hover:text-white rounded-lg border border-white/20"
             >
               <MessageCircle className="w-3.5 h-3.5" />
               Chat
@@ -222,7 +222,7 @@ export function ConnectionsPage() {
       animate={{ opacity: 1, y: 0 }}
       className="flex flex-col items-center justify-center py-16"
     >
-      <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-4">
+      <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mb-4">
         <icon className="w-7 h-7 text-gray-600" />
       </div>
       <p className="text-base font-medium text-gray-400">{title}</p>
@@ -231,11 +231,11 @@ export function ConnectionsPage() {
   );
 
   return (
-    <div className="relative min-h-screen bg-[#0A0A0F] overflow-hidden">
+    <div className="relative min-h-screen bg-black overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-violet-600 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse" style={{ animationDuration: '10s' }} />
-        <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-fuchsia-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse" style={{ animationDuration: '12s', animationDelay: '3s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-pink-600 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-pulse" style={{ animationDuration: '14s', animationDelay: '6s' }} />
+        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-white/[0.05] rounded-full blur-[120px] opacity-15 animate-pulse" style={{ animationDuration: '10s' }} />
+        <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-white/[0.04] rounded-full blur-[120px] opacity-10 animate-pulse" style={{ animationDuration: '12s', animationDelay: '3s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/[0.03] rounded-full blur-[120px] opacity-5 animate-pulse" style={{ animationDuration: '14s', animationDelay: '6s' }} />
       </div>
 
       <motion.div
@@ -245,7 +245,7 @@ export function ConnectionsPage() {
         className="relative max-w-3xl mx-auto px-4 py-8"
       >
         <motion.div variants={itemVariants} className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-500/20">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-white to-white/90 flex items-center justify-center shadow-lg shadow-white/20">
             <Users className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -260,7 +260,7 @@ export function ConnectionsPage() {
             placeholder="Search by name, username or skills..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pl-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:border-violet-500/50 focus-visible:ring-violet-500/20 rounded-xl"
+            className="pl-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:border-white/40 focus-visible:ring-white/20 rounded-xl"
           />
           {search && (
             <button
@@ -274,12 +274,12 @@ export function ConnectionsPage() {
 
         <motion.div variants={itemVariants}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="bg-white/5 border border-white/[0.06] p-1 rounded-xl w-full sm:w-auto">
+            <TabsList className="bg-white/5 border border-white/[0.08] p-1 rounded-xl w-full sm:w-auto">
               {tabItems.map(tab => (
                 <TabsTrigger
                   key={tab.value}
                   value={tab.value}
-                  className="flex-1 sm:flex-none data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-300 text-gray-500 rounded-lg text-sm gap-1.5"
+                  className="flex-1 sm:flex-none data-[state=active]:bg-white/15 data-[state=active]:text-white text-gray-500 rounded-lg text-sm gap-1.5"
                 >
                   <tab.icon className="w-4 h-4" />
                   <span className="hidden sm:inline">{tab.label}</span>

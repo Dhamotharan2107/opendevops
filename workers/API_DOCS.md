@@ -1,6 +1,6 @@
-# Opendrap DevOps AI Platform — API Documentation
+# Opendevops DevOps AI Platform — API Documentation
 
-Base URL: `https://opendrap-api.<your-subdomain>.workers.dev/api`
+Base URL: `https://opendevops-api.<your-subdomain>.workers.dev/api`
 
 All protected endpoints require:
 ```
@@ -595,7 +595,7 @@ Protected.
 ```
 **Response 200**
 ```json
-{ "success": true, "data": { "tunnel_url": "https://opendrap-xxxx.trycloudflare.com", "port": 3000 } }
+{ "success": true, "data": { "tunnel_url": "https://opendevops-xxxx.trycloudflare.com", "port": 3000 } }
 ```
 
 ---

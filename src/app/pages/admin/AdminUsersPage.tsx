@@ -127,7 +127,7 @@ export function AdminUsersPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by name, email, username…"
-            className="w-full pl-9 pr-4 h-10 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-violet-500/40 transition-colors"
+            className="w-full pl-9 pr-4 h-10 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors"
           />
           {q && (
             <button
@@ -158,7 +158,7 @@ export function AdminUsersPage() {
         <div className={cn('flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl overflow-hidden transition-all', selectedUser && 'hidden lg:block')}>
           {loading ? (
             <div className="flex items-center justify-center py-24">
-              <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
+              <Loader2 className="w-6 h-6 animate-spin text-white" />
             </div>
           ) : (
             <>
@@ -183,7 +183,7 @@ export function AdminUsersPage() {
                       >
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-white to-white/90 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">
                               {u.name?.charAt(0).toUpperCase() ?? '?'}
                             </div>
                             <div>
@@ -232,7 +232,7 @@ export function AdminUsersPage() {
                                           className={cn(
                                             'flex-1 text-[10px] font-medium py-1 rounded capitalize transition-colors border',
                                             u.plan === p
-                                              ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
+                                              ? 'bg-white/15 border-white/30 text-white'
                                               : 'bg-white/5 border-white/10 text-gray-500 hover:text-white hover:border-white/20'
                                           )}
                                         >{p}</button>
@@ -376,7 +376,7 @@ function UserDetailPanel({
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
         {/* Avatar + name */}
         <div className="flex flex-col items-center text-center gap-3">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-2xl font-bold text-white">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-white to-white/90 flex items-center justify-center text-2xl font-bold text-white">
             {user.name?.charAt(0).toUpperCase() ?? '?'}
           </div>
           <div>
@@ -402,8 +402,8 @@ function UserDetailPanel({
                 className={cn(
                   'py-1.5 rounded-lg text-xs font-medium capitalize border transition-colors',
                   user.plan === p
-                    ? 'bg-violet-500/20 border-violet-500/40 text-violet-300 cursor-default'
-                    : 'bg-white/5 border-white/10 text-gray-400 hover:border-violet-500/30 hover:text-violet-300'
+                    ? 'bg-white/15 border-white/30 text-white cursor-default'
+                    : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/25 hover:text-white'
                 )}
               >{p}</button>
             ))}
@@ -507,7 +507,7 @@ function InfoRow({ label, value, capitalize }: { label: string; value: string; c
 function PlanBadge({ plan }: { plan: string }) {
   const cfg: Record<string, { cls: string; icon: any; label: string }> = {
     free:       { cls: 'bg-gray-500/10 border-gray-500/20 text-gray-400',         icon: null,  label: 'Free'       },
-    pro:        { cls: 'bg-violet-500/10 border-violet-500/20 text-violet-400',   icon: Zap,   label: 'Pro'        },
+    pro:        { cls: 'bg-white/10 border-white/20 text-white',   icon: Zap,   label: 'Pro'        },
     enterprise: { cls: 'bg-amber-500/10 border-amber-500/20 text-amber-400',      icon: Crown, label: 'Enterprise' },
   };
   const c2 = cfg[plan] ?? cfg.free;

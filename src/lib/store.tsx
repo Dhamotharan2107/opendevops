@@ -67,6 +67,7 @@ type Action =
   | { type: 'SET_AGENT_INSTALLED'; payload: boolean };
 
 const agentInstalledFromStorage = localStorage.getItem('opendrap_agent_installed') === 'true';
+const savedTheme = (localStorage.getItem('opendrap_theme') as 'dark' | 'light') || 'dark';
 
 const emptyState: Omit<AppState, 'user' | 'isAuthenticated' | 'theme'> = {
   projects: [],
@@ -91,7 +92,7 @@ const emptyState: Omit<AppState, 'user' | 'isAuthenticated' | 'theme'> = {
 const initialState: AppState = {
   user: null,
   isAuthenticated: false,
-  theme: 'dark',
+  theme: savedTheme,
   ...emptyState,
 };
 
@@ -102,6 +103,7 @@ function appReducer(state: AppState, action: Action): AppState {
     case 'LOGOUT':
       return { ...initialState };
     case 'SET_THEME':
+      localStorage.setItem('opendrap_theme', action.payload);
       return { ...state, theme: action.payload };
     case 'SET_PROJECTS':
       return { ...state, projects: action.payload };

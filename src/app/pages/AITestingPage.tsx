@@ -73,8 +73,8 @@ export function AITestingPage() {
         {/* Test Runner */}
         <div className="bg-white/5 border border-white/10 rounded-xl p-4 md:p-6 space-y-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 border border-violet-500/20 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-violet-400" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/20 flex items-center justify-center">
+              <Bot className="w-5 h-5 text-white" />
             </div>
             <div>
               <h2 className="font-semibold text-white">Run AI Test Suite</h2>
@@ -88,7 +88,7 @@ export function AITestingPage() {
               <select
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-violet-500/50"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-white/40"
               >
                 <option value="">Select project...</option>
                 {projects.map((p) => (
@@ -103,7 +103,7 @@ export function AITestingPage() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder='e.g. "Test this app like a real customer"'
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-500/50"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40"
               />
             </div>
           </div>
@@ -118,12 +118,12 @@ export function AITestingPage() {
                   className={cn(
                     'p-3 rounded-lg border text-left transition-colors',
                     selectedSuites.includes(suite.id)
-                      ? 'bg-violet-500/10 border-violet-500/30 text-violet-300'
+                      ? 'bg-white/10 border-white/25 text-white'
                       : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
                   )}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={cn('w-2 h-2 rounded-full', selectedSuites.includes(suite.id) ? 'bg-violet-400' : 'bg-gray-600')} />
+                    <div className={cn('w-2 h-2 rounded-full', selectedSuites.includes(suite.id) ? 'bg-white' : 'bg-gray-600')} />
                     <span className="text-xs font-medium">{suite.label}</span>
                   </div>
                   <p className="text-xs text-gray-600">{suite.description}</p>
@@ -135,7 +135,7 @@ export function AITestingPage() {
           <button
             onClick={runTests}
             disabled={running}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-white to-white/90 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
             {running ? 'Running Tests...' : `Run ${selectedSuites.length} Test Suite${selectedSuites.length !== 1 ? 's' : ''}`}
@@ -144,7 +144,7 @@ export function AITestingPage() {
           {running && (
             <div className="bg-black/20 rounded-lg p-4 font-mono text-sm space-y-1">
               <p className="text-gray-400">Starting Playwright browser...</p>
-              <p className="text-violet-400 animate-pulse">Running AI analysis...</p>
+              <p className="text-white animate-pulse">Running AI analysis...</p>
               <p className="text-gray-500">Executing test suites...</p>
             </div>
           )}
@@ -176,8 +176,8 @@ export function AITestingPage() {
                   className="p-5 flex items-center gap-4 cursor-pointer hover:bg-white/5 transition-colors"
                   onClick={() => setExpanded(expanded === run.id ? null : run.id)}
                 >
-                  <div className="w-10 h-10 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center flex-shrink-0">
-                    <Bot className="w-5 h-5 text-violet-400" />
+                  <div className="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-white text-sm mb-1 truncate">{run.prompt}</div>

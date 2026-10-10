@@ -130,7 +130,7 @@ export function LogsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'opendrap-logs.txt';
+    a.download = 'opendevops-logs.txt';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -208,7 +208,7 @@ export function LogsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search logs..."
-              className="w-full sm:w-64 pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50"
+              className="w-full sm:w-64 pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-white/40"
             />
           </div>
           <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
@@ -222,14 +222,14 @@ export function LogsPage() {
           </label>
         </div>
 
-        <div className="flex-1 bg-[#0A0A0F] border border-white/10 rounded-xl overflow-hidden flex flex-col min-h-[300px] md:min-h-[400px]">
+        <div className="flex-1 bg-black border border-white/10 rounded-xl overflow-hidden flex flex-col min-h-[300px] md:min-h-[400px]">
           <div className="flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 border-b border-white/5 bg-white/[0.02]">
             <div className="flex gap-1.5">
               <div className="w-2.5 md:w-3 h-2.5 md:h-3 rounded-full bg-red-500/70" />
               <div className="w-2.5 md:w-3 h-2.5 md:h-3 rounded-full bg-yellow-500/70" />
               <div className="w-2.5 md:w-3 h-2.5 md:h-3 rounded-full bg-green-500/70" />
             </div>
-            <span className="text-xs text-gray-500 font-mono ml-2">opendrap — logs</span>
+            <span className="text-xs text-gray-500 font-mono ml-2">opendevops — logs</span>
             {!paused && !demoMode && connected && (
               <div className="ml-auto flex items-center gap-1.5 text-xs text-emerald-400">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

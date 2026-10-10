@@ -47,11 +47,11 @@ function UpgradeWall({ requiredPlan, featureName }: { requiredPlan: Plan; featur
       >
         {/* Icon */}
         <div className="relative inline-flex mb-6">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 border border-violet-500/20 flex items-center justify-center">
-            <Lock className="w-9 h-9 text-violet-400" />
+          <div className="w-20 h-20 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
+            <Lock className="w-9 h-9 text-white" />
           </div>
-          <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
-            <Zap className="w-3.5 h-3.5 text-white" fill="currentColor" />
+          <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-lg">
+            <Zap className="w-3.5 h-3.5 text-black" fill="currentColor" />
           </div>
         </div>
 
@@ -72,8 +72,8 @@ function UpgradeWall({ requiredPlan, featureName }: { requiredPlan: Plan; featur
           <div className="grid grid-cols-1 gap-2">
             {PRO_FEATURES.map((f) => (
               <div key={f} className="flex items-center gap-2.5 text-sm text-gray-300">
-                <div className="w-4 h-4 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center flex-shrink-0">
-                  <Check className="w-2.5 h-2.5 text-violet-400" />
+                <div className="w-4 h-4 rounded-full bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
+                  <Check className="w-2.5 h-2.5 text-white" />
                 </div>
                 {f}
               </div>
@@ -81,8 +81,8 @@ function UpgradeWall({ requiredPlan, featureName }: { requiredPlan: Plan; featur
           </div>
         </div>
 
-        <div className="p-4 bg-violet-500/10 border border-violet-500/20 rounded-xl text-sm text-violet-300 flex items-center gap-3">
-          <Zap className="w-4 h-4 flex-shrink-0 text-violet-400" fill="currentColor" />
+        <div className="p-4 bg-white/10 border border-white/20 rounded-xl text-sm text-white flex items-center gap-3">
+          <Zap className="w-4 h-4 flex-shrink-0 text-white" fill="currentColor" />
           <span>Ask your admin to upgrade your plan at <strong className="text-white">/admin-prd/users</strong></span>
           <ArrowRight className="w-4 h-4 flex-shrink-0 ml-auto" />
         </div>

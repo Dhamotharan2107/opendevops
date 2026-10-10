@@ -25,7 +25,7 @@ export async function startTunnel(c: Context<{ Bindings: Env }>) {
     }
 
     const tunnelPort = port ?? 3000;
-    const tunnelSubdomain = `opendrap-${projectId.slice(0, 8)}`;
+    const tunnelSubdomain = `opendevops-${projectId.slice(0, 8)}`;
     const tunnelUrl = `https://${tunnelSubdomain}.trycloudflare.com`;
 
     await c.env.DB

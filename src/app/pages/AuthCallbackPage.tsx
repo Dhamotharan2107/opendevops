@@ -49,11 +49,11 @@ export function AuthCallbackPage() {
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-[#0A0A0F] flex items-center justify-center overflow-hidden">
+    <div className="relative min-h-screen bg-black flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-violet-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] bg-fuchsia-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-fuchsia-500/5 via-transparent to-transparent" />
+        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-white/[0.05] rounded-full blur-[120px] opacity-10 animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] bg-white/[0.04] rounded-full blur-[120px] opacity-10 animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/[0.03] via-transparent to-transparent" />
       </div>
 
       <motion.div
@@ -62,12 +62,12 @@ export function AuthCallbackPage() {
         transition={{ type: 'spring', stiffness: 200, damping: 20 }}
         className="relative w-full max-w-[400px]"
       >
-        <motion.div className="rounded-2xl border border-white/[0.08] bg-[#0A0A0F]/60 backdrop-blur-2xl shadow-2xl shadow-violet-500/5 p-10 text-center">
+        <motion.div className="rounded-2xl border border-white/[0.08] bg-black/60 backdrop-blur-2xl shadow-2xl shadow-white/5 p-10 text-center">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 300, damping: 15, delay: 0.1 }}
-            className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 flex items-center justify-center shadow-lg shadow-violet-500/25"
+            className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-white via-white to-white/80 flex items-center justify-center shadow-lg shadow-white/25"
           >
             <Cloud className="w-9 h-9 text-white" strokeWidth={2.5} />
           </motion.div>
@@ -79,7 +79,7 @@ export function AuthCallbackPage() {
           >
             {status === 'loading' && (
               <div className="flex flex-col items-center gap-4">
-                <Loader2 className="w-10 h-10 animate-spin text-violet-400" />
+                <Loader2 className="w-10 h-10 animate-spin text-white" />
                 <p className="text-gray-300 text-sm">{message}</p>
               </div>
             )}

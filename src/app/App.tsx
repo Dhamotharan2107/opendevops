@@ -42,8 +42,8 @@ const AdminEnvPage = named(() => import('./pages/admin/AdminEnvPage'), 'AdminEnv
 
 function RouteFallback() {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#0A0A0F]">
-      <div className="w-8 h-8 rounded-full border-2 border-white/15 border-t-fuchsia-500 animate-spin" />
+    <div className="flex items-center justify-center min-h-screen bg-black">
+      <div className="w-8 h-8 rounded-full border-2 border-white/15 border-t-white animate-spin" />
     </div>
   );
 }
@@ -57,7 +57,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AdminProtectedRoute({ children }: { children: React.ReactNode }) {
-  const session = localStorage.getItem('opendrap_admin_session');
+  const session = localStorage.getItem('opendevops_admin_session');
   if (session !== 'true') return <Navigate to="/admin-prd" replace />;
   return <>{children}</>;
 }
@@ -95,6 +95,7 @@ function SessionRestorer() {
 }
 
 function AppRoutes() {
+  const { state } = useApp();
   return (
     <>
       <SessionRestorer />
@@ -157,12 +158,19 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <div className="size-full dark">
-      <AppProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </AppProvider>
+    <AppProvider>
+      <AppWrapper />
+    </AppProvider>
+  );
+}
+
+function AppWrapper() {
+  const { state } = useApp();
+  return (
+    <div className={`size-full ${state.theme === 'light' ? '' : 'dark'}`}>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
     </div>
   );
 }

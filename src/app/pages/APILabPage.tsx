@@ -23,9 +23,9 @@ const EXAMPLE_COLLECTIONS: APICollection[] = [
     id: '1',
     name: 'Opendrap API',
     requests: [
-      { id: '1a', method: 'GET', url: 'https://opendrap-api.workers.dev/api/auth/me', headers: { Authorization: 'Bearer {{token}}' }, body: undefined },
-      { id: '1b', method: 'GET', url: 'https://opendrap-api.workers.dev/api/projects', headers: { Authorization: 'Bearer {{token}}' }, body: undefined },
-      { id: '1c', method: 'POST', url: 'https://opendrap-api.workers.dev/api/projects', headers: { Authorization: 'Bearer {{token}}', 'Content-Type': 'application/json' }, body: '{"name":"My App","repo":"github.com/user/app"}' },
+      { id: '1a', method: 'GET', url: 'https://opendevops-api.workers.dev/api/auth/me', headers: { Authorization: 'Bearer {{token}}' }, body: undefined },
+      { id: '1b', method: 'GET', url: 'https://opendevops-api.workers.dev/api/projects', headers: { Authorization: 'Bearer {{token}}' }, body: undefined },
+      { id: '1c', method: 'POST', url: 'https://opendevops-api.workers.dev/api/projects', headers: { Authorization: 'Bearer {{token}}', 'Content-Type': 'application/json' }, body: '{"name":"My App","repo":"github.com/user/app"}' },
     ],
   },
 ];
@@ -83,10 +83,10 @@ export function APILabPage() {
   return (
     <div className="flex flex-1 min-h-0">
       {/* Sidebar */}
-      <aside className="w-64 border-r border-white/5 bg-[#0F0F14] flex flex-col overflow-hidden">
+      <aside className="w-64 border-r border-white/5 bg-[#080808] flex flex-col overflow-hidden">
         <div className="p-4 border-b border-white/5">
           <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-            <FolderOpen className="w-4 h-4 text-violet-400" />
+            <FolderOpen className="w-4 h-4 text-white" />
             Collections
           </h2>
           <button
@@ -148,7 +148,7 @@ export function APILabPage() {
           <button
             onClick={sendRequest}
             disabled={loading}
-            className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-lg text-sm font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-white to-white/90 rounded-lg text-sm font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             Send
@@ -166,7 +166,7 @@ export function APILabPage() {
               className={cn(
                 'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors capitalize',
                 activeTab === tab
-                  ? 'border-violet-500 text-violet-400'
+                  ? 'border-white/60 text-white'
                   : 'border-transparent text-gray-500 hover:text-gray-300'
               )}
             >
@@ -232,7 +232,7 @@ export function APILabPage() {
               )}
               {loading && (
                 <div className="flex items-center justify-center py-16">
-                  <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
+                  <Loader2 className="w-8 h-8 animate-spin text-white" />
                 </div>
               )}
               {response && (

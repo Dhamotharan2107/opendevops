@@ -9,14 +9,14 @@ import {
 
 export function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-white">
+    <div className="min-h-screen bg-black text-white">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0A0A0F]/80 backdrop-blur-2xl">
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-black/80 backdrop-blur-2xl">
         <div className="max-w-[1400px] mx-auto px-8 h-[72px] flex items-center justify-between">
           <div className="flex items-center gap-12">
             <Link to="/" className="flex items-center gap-3 group">
               <div className="relative">
-                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 flex items-center justify-center shadow-lg shadow-violet-500/25 group-hover:shadow-violet-500/40 transition-all duration-300">
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-white via-white to-white/80 flex items-center justify-center shadow-lg shadow-white/25 group-hover:shadow-white/40 transition-all duration-300">
                   <Cloud className="w-5 h-5 text-white" strokeWidth={2.5} />
                 </div>
               </div>
@@ -74,7 +74,7 @@ export function LandingPage() {
             <div className="flex items-center justify-center gap-4">
               <Link
                 to="/dashboard"
-                className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center gap-2"
+                className="px-8 py-4 bg-gradient-to-r from-white to-white/90 text-white rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center gap-2"
               >
                 Start Free <ArrowRight className="w-4 h-4" />
               </Link>
@@ -475,7 +475,7 @@ export function LandingPage() {
           <div className="text-center mt-16">
             <Link
               to="/dashboard"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-semibold hover:shadow-2xl hover:shadow-purple-500/30 transition-all duration-300 hover:scale-105"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-white to-white/90 text-white rounded-xl font-semibold hover:shadow-2xl hover:shadow-purple-500/30 transition-all duration-300 hover:scale-105"
             >
               Start Your First Project
               <ArrowRight className="w-5 h-5" />

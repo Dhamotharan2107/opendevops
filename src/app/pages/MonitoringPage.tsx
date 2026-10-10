@@ -75,7 +75,7 @@ export function MonitoringPage() {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload?.length) {
       return (
-        <div className="bg-[#0F0F14] border border-white/10 rounded-lg px-3 py-2 text-xs">
+        <div className="bg-[#080808] border border-white/10 rounded-lg px-3 py-2 text-xs">
           <p className="text-gray-400 mb-1">{label}</p>
           <p className="text-white font-mono">{payload[0].value}</p>
         </div>

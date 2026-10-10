@@ -93,13 +93,13 @@ export function DeploymentsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search deployments..."
-              className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50"
+              className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-white/40"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-violet-500/50"
+            className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-white/40"
           >
             <option value="all">All Status</option>
             <option value="success">Success</option>
@@ -126,7 +126,7 @@ export function DeploymentsPage() {
               {loading && (
                 <tr>
                   <td colSpan={7} className="py-12 text-center">
-                    <Loader2 className="w-6 h-6 animate-spin text-violet-400 mx-auto" />
+                    <Loader2 className="w-6 h-6 animate-spin text-white mx-auto" />
                   </td>
                 </tr>
               )}
@@ -151,7 +151,7 @@ export function DeploymentsPage() {
                     className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors group"
                   >
                     <td className="py-3 md:py-4 px-4 md:px-6">
-                      <Link to={`/dashboard/project/${dep.projectId}`} className="flex items-center gap-3 group-hover:text-violet-400 transition-colors">
+                      <Link to={`/dashboard/project/${dep.projectId}`} className="flex items-center gap-3 group-hover:text-white transition-colors">
                         <div className={cn('w-8 md:w-9 h-8 md:h-9 rounded-lg flex items-center justify-center border flex-shrink-0',
                           dep.status === 'success' ? 'bg-emerald-500/10 border-emerald-500/20' :
                           dep.status === 'failed' ? 'bg-red-500/10 border-red-500/20' :

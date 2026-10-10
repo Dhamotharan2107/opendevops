@@ -19,22 +19,22 @@ export function AdminLayout() {
   const isActive = (path: string) => location.pathname.startsWith(path);
 
   const handleLogout = () => {
-    localStorage.removeItem('opendrap_admin_session');
+    localStorage.removeItem('opendevops_admin_session');
     navigate('/admin-prd');
   };
 
   return (
-    <div className="flex h-screen bg-[#0A0A0F] text-white">
+    <div className="flex h-screen bg-black text-white">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 bg-black/60 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed md:relative z-50 h-full w-[240px] bg-[#0F0F14] border-r border-white/5 flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`fixed md:relative z-50 h-full w-[240px] bg-[#080808] border-r border-white/5 flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         {/* Logo + admin badge */}
         <div className="h-[72px] border-b border-white/5 flex items-center gap-3 px-5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white via-white to-white/80 flex items-center justify-center">
             <Cloud className="w-4 h-4 text-white" strokeWidth={2.5} />
           </div>
           <div className="flex flex-col flex-1 min-w-0">
@@ -92,7 +92,7 @@ export function AdminLayout() {
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="h-[72px] border-b border-white/5 flex items-center justify-between px-4 md:px-8 bg-[#0A0A0F]/80 backdrop-blur-xl">
+        <header className="h-[72px] border-b border-white/5 flex items-center justify-between px-4 md:px-8 bg-black/70 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <button
               className="md:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
@@ -113,7 +113,7 @@ export function AdminLayout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto bg-[#0A0A0F]">
+        <main className="flex-1 overflow-auto bg-black">
           <Outlet />
         </main>
       </div>

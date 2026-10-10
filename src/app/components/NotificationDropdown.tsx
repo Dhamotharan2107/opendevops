@@ -64,7 +64,7 @@ export function NotificationDropdown() {
       >
         <Bell className="w-5 h-5 text-gray-400" />
         {unreadCount > 0 && (
-          <div className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 text-[10px] font-bold text-white shadow-lg shadow-violet-500/25">
+          <div className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-white text-black text-[10px] font-bold shadow-lg shadow-white/25">
             {unreadCount > 99 ? '99+' : unreadCount}
           </div>
         )}
@@ -77,14 +77,14 @@ export function NotificationDropdown() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -8 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 top-full mt-2 w-[calc(100vw-32px)] sm:w-[380px] bg-[#0F0F14] border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50"
+            className="absolute right-0 top-full mt-2 w-[calc(100vw-32px)] sm:w-[380px] bg-[#080808] border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50"
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
               <h3 className="text-sm font-semibold text-white">Notifications</h3>
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllRead}
-                  className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                  className="text-xs text-gray-300 hover:text-white transition-colors"
                 >
                   Mark all read
                 </button>
@@ -103,20 +103,20 @@ export function NotificationDropdown() {
                     <button
                       key={n.id}
                       onClick={() => handleNotificationClick(n)}
-                      className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
+                      className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-white/5 transition-colors border-b border-white/10 last:border-0"
                     >
                       <div
                         className={cn(
                           'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5',
                           n.read
                             ? 'bg-white/5 border border-white/10'
-                            : 'bg-violet-500/10 border border-violet-500/20'
+                            : 'bg-white/10 border border-white/20'
                         )}
                       >
                         <Icon
                           className={cn(
                             'w-4 h-4',
-                            n.read ? 'text-gray-400' : 'text-violet-400'
+                            n.read ? 'text-gray-400' : 'text-white'
                           )}
                         />
                       </div>
@@ -137,7 +137,7 @@ export function NotificationDropdown() {
                         </div>
                       </div>
                       {!n.read && (
-                        <div className="w-2 h-2 rounded-full bg-violet-500 shrink-0 mt-2" />
+                        <div className="w-2 h-2 rounded-full bg-white shrink-0 mt-2" />
                       )}
                     </button>
                   );

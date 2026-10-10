@@ -36,13 +36,13 @@ export function AdminDashboardPage() {
   }, []);
 
   const statCards = stats ? [
-    { icon: Users,      label: 'Total Users',     value: stats.users,          color: 'from-violet-500/20 to-fuchsia-500/10', iconColor: 'text-violet-400'  },
+    { icon: Users,      label: 'Total Users',     value: stats.users,          color: 'from-white/10 to-white/5', iconColor: 'text-white'  },
     { icon: UserX,      label: 'Disabled',        value: stats.disabled_users, color: 'from-red-500/20 to-orange-500/10',     iconColor: 'text-red-400'     },
     { icon: FolderGit2, label: 'Projects',        value: stats.projects,       color: 'from-blue-500/20 to-cyan-500/10',      iconColor: 'text-blue-400'    },
     { icon: Rocket,     label: 'Deployments',     value: stats.deployments,    color: 'from-emerald-500/20 to-teal-500/10',   iconColor: 'text-emerald-400' },
     { icon: Bug,        label: 'Open Bugs',       value: stats.open_bugs,      color: 'from-orange-500/20 to-red-500/10',     iconColor: 'text-orange-400'  },
-    { icon: Building2,  label: 'Companies',       value: stats.companies,      color: 'from-fuchsia-500/20 to-pink-500/10',   iconColor: 'text-fuchsia-400' },
-    { icon: Zap,        label: 'Pro Users',       value: stats.plan_pro,       color: 'from-violet-500/20 to-purple-500/10',  iconColor: 'text-violet-300'  },
+    { icon: Building2,  label: 'Companies',       value: stats.companies,      color: 'from-white/10 to-white/5',   iconColor: 'text-white' },
+    { icon: Zap,        label: 'Pro Users',       value: stats.plan_pro,       color: 'from-white/10 to-white/5',  iconColor: 'text-white'  },
     { icon: Crown,      label: 'Enterprise',      value: stats.plan_enterprise, color: 'from-amber-500/20 to-yellow-500/10', iconColor: 'text-amber-400'   },
     { icon: Users,      label: 'Free Users',      value: stats.plan_free,      color: 'from-gray-500/20 to-slate-500/10',     iconColor: 'text-gray-400'    },
   ] : [];
@@ -56,7 +56,7 @@ export function AdminDashboardPage() {
 
       {loading && (
         <div className="flex items-center justify-center py-24">
-          <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
+          <Loader2 className="w-8 h-8 animate-spin text-white" />
         </div>
       )}
 
@@ -123,7 +123,7 @@ export function AdminDashboardPage() {
                     <tr key={u.id} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-white to-white/90 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">
                             {u.name?.charAt(0).toUpperCase() ?? '?'}
                           </div>
                           <div>

@@ -21,9 +21,9 @@ VALUES (
 INSERT OR IGNORE INTO projects (id, name, description, repo_url, repo_provider, branch, status, framework, build_command, start_command, environment, created_by, company_id, created_at, updated_at)
 VALUES (
   'demo-proj-001',
-  'opendrap-frontend',
+  'opendevops-frontend',
   'Opendrap DevOps AI Platform - Frontend application built with React, TypeScript, and Vite',
-  'https://github.com/opendrap/frontend',
+  'https://github.com/opendevops/frontend',
   'github',
   'main',
   'deployed',
@@ -40,9 +40,9 @@ VALUES (
 INSERT OR IGNORE INTO projects (id, name, description, repo_url, repo_provider, branch, status, framework, build_command, start_command, environment, created_by, company_id, created_at, updated_at)
 VALUES (
   'demo-proj-002',
-  'opendrap-api',
+  'opendevops-api',
   'Opendrap DevOps AI Platform - Cloudflare Worker API with Hono framework',
-  'https://github.com/opendrap/api',
+  'https://github.com/opendevops/api',
   'github',
   'main',
   'deployed',
@@ -59,9 +59,9 @@ VALUES (
 INSERT OR IGNORE INTO projects (id, name, description, repo_url, repo_provider, branch, status, framework, build_command, start_command, environment, created_by, company_id, created_at, updated_at)
 VALUES (
   'demo-proj-003',
-  'opendrap-agent',
+  'opendevops-agent',
   'Opendrap DevOps AI Platform - Agent script for Cloud Shell integration',
-  'https://github.com/opendrap/agent',
+  'https://github.com/opendevops/agent',
   'github',
   'main',
   'building',
@@ -244,15 +244,15 @@ VALUES (
 );
 
 INSERT OR IGNORE INTO activity_logs (id, user_id, project_id, action, details, created_at)
-SELECT 'demo-act-001', 'demo-user-001', 'demo-proj-001', 'deployment_success', 'Deployed opendrap-frontend v2.1.0 to production', datetime('now', '-2 hours')
+SELECT 'demo-act-001', 'demo-user-001', 'demo-proj-001', 'deployment_success', 'Deployed opendevops-frontend v2.1.0 to production', datetime('now', '-2 hours')
 WHERE NOT EXISTS (SELECT 1 FROM activity_logs WHERE id = 'demo-act-001');
 
 INSERT OR IGNORE INTO activity_logs (id, user_id, project_id, action, details, created_at)
-SELECT 'demo-act-002', 'demo-user-001', 'demo-proj-002', 'deployment_success', 'Deployed opendrap-api v1.5.0 to production', datetime('now', '-3 hours')
+SELECT 'demo-act-002', 'demo-user-001', 'demo-proj-002', 'deployment_success', 'Deployed opendevops-api v1.5.0 to production', datetime('now', '-3 hours')
 WHERE NOT EXISTS (SELECT 1 FROM activity_logs WHERE id = 'demo-act-002');
 
 INSERT OR IGNORE INTO activity_logs (id, user_id, project_id, action, details, created_at)
-SELECT 'demo-act-003', 'demo-user-001', 'demo-proj-003', 'project_created', 'Created project opendrap-agent', datetime('now', '-1 days')
+SELECT 'demo-act-003', 'demo-user-001', 'demo-proj-003', 'project_created', 'Created project opendevops-agent', datetime('now', '-1 days')
 WHERE NOT EXISTS (SELECT 1 FROM activity_logs WHERE id = 'demo-act-003');
 
 INSERT OR IGNORE INTO activity_logs (id, user_id, project_id, action, details, created_at)
@@ -268,7 +268,7 @@ SELECT 'demo-act-006', 'demo-user-001', NULL, 'user_login', 'User logged in from
 WHERE NOT EXISTS (SELECT 1 FROM activity_logs WHERE id = 'demo-act-006');
 
 INSERT OR IGNORE INTO notifications (id, user_id, type, title, message, link, read, created_at)
-SELECT 'demo-not-001', 'demo-user-001', 'deployment', 'Deployment Successful', 'opendrap-frontend v2.1.0 deployed to production', '/dashboard/projects/demo-proj-001', 1, datetime('now', '-2 hours')
+SELECT 'demo-not-001', 'demo-user-001', 'deployment', 'Deployment Successful', 'opendevops-frontend v2.1.0 deployed to production', '/dashboard/projects/demo-proj-001', 1, datetime('now', '-2 hours')
 WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE id = 'demo-not-001');
 
 INSERT OR IGNORE INTO notifications (id, user_id, type, title, message, link, read, created_at)
@@ -276,15 +276,15 @@ SELECT 'demo-not-002', 'demo-user-001', 'bug', 'Bug Fixed', 'Critical bug "Termi
 WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE id = 'demo-not-002');
 
 INSERT OR IGNORE INTO notifications (id, user_id, type, title, message, link, read, created_at)
-SELECT 'demo-not-003', 'demo-user-001', 'project', 'New Project Created', 'Project "opendrap-agent" created successfully', '/dashboard/projects/demo-proj-003', 0, datetime('now', '-1 days')
+SELECT 'demo-not-003', 'demo-user-001', 'project', 'New Project Created', 'Project "opendevops-agent" created successfully', '/dashboard/projects/demo-proj-003', 0, datetime('now', '-1 days')
 WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE id = 'demo-not-003');
 
 INSERT OR IGNORE INTO notifications (id, user_id, type, title, message, link, read, created_at)
-SELECT 'demo-not-004', 'demo-user-001', 'deployment', 'Deployment Pending', 'opendrap-agent v0.1.0 is waiting to be deployed', '/dashboard/projects/demo-proj-003', 0, datetime('now', '-30 minutes')
+SELECT 'demo-not-004', 'demo-user-001', 'deployment', 'Deployment Pending', 'opendevops-agent v0.1.0 is waiting to be deployed', '/dashboard/projects/demo-proj-003', 0, datetime('now', '-30 minutes')
 WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE id = 'demo-not-004');
 
 INSERT OR IGNORE INTO notifications (id, user_id, type, title, message, link, read, created_at)
-SELECT 'demo-not-005', 'demo-user-001', 'deployment', 'Deployment Successful', 'opendrap-api v1.5.0 deployed to production', '/dashboard/projects/demo-proj-002', 0, datetime('now', '-3 hours')
+SELECT 'demo-not-005', 'demo-user-001', 'deployment', 'Deployment Successful', 'opendevops-api v1.5.0 deployed to production', '/dashboard/projects/demo-proj-002', 0, datetime('now', '-3 hours')
 WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE id = 'demo-not-005');
 
 INSERT OR IGNORE INTO agent_sessions (id, project_id, status, last_heartbeat, created_at)

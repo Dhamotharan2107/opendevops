@@ -73,7 +73,7 @@ export function AdminEnvPage() {
       <div className="flex items-center gap-3 mb-5">
         <button
           onClick={() => { setEditTarget(null); setShowForm(true); }}
-          className="flex items-center gap-2 px-4 h-10 bg-violet-500/20 border border-violet-500/30 rounded-xl text-sm text-violet-300 hover:bg-violet-500/30 transition-colors font-medium"
+          className="flex items-center gap-2 px-4 h-10 bg-white/15 border border-white/25 rounded-xl text-sm text-white hover:bg-white/20 transition-colors font-medium"
         >
           <Plus className="w-4 h-4" /> Add Variable
         </button>
@@ -121,7 +121,7 @@ export function AdminEnvPage() {
       {/* Table */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
+          <Loader2 className="w-6 h-6 animate-spin text-white" />
         </div>
       ) : (
         <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
@@ -131,7 +131,7 @@ export function AdminEnvPage() {
               <p className="text-gray-500 text-sm">No environment variables yet</p>
               <button
                 onClick={() => { setEditTarget(null); setShowForm(true); }}
-                className="text-xs text-violet-400 hover:text-violet-300 underline"
+                className="text-xs text-white hover:text-white underline"
               >
                 Add your first variable
               </button>
@@ -152,7 +152,7 @@ export function AdminEnvPage() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         {v.is_secret ? (
-                          <Lock className="w-3.5 h-3.5 text-violet-400 flex-shrink-0" />
+                          <Lock className="w-3.5 h-3.5 text-white flex-shrink-0" />
                         ) : (
                           <Key className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
                         )}
@@ -187,7 +187,7 @@ export function AdminEnvPage() {
                       <span className={cn(
                         'text-xs px-2 py-0.5 rounded-full border font-medium',
                         v.is_secret
-                          ? 'bg-violet-500/10 border-violet-500/20 text-violet-400'
+                          ? 'bg-white/10 border-white/20 text-white'
                           : 'bg-gray-500/10 border-gray-500/20 text-gray-500'
                       )}>
                         {v.is_secret ? 'Secret' : 'Plain'}
@@ -286,7 +286,7 @@ function EnvVarForm({
   };
 
   return (
-    <div className="bg-white/5 border border-violet-500/20 rounded-xl p-5">
+    <div className="bg-white/5 border border-white/20 rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-white">{isEdit ? `Edit: ${initial!.key}` : 'Add Variable'}</h3>
         <button onClick={onCancel} className="text-gray-500 hover:text-white transition-colors">
@@ -311,7 +311,7 @@ function EnvVarForm({
               onChange={set('key')}
               placeholder="MY_API_KEY"
               disabled={isEdit}
-              className="w-full px-3 h-10 bg-white/5 border border-white/10 rounded-lg text-sm font-mono text-white placeholder:text-gray-600 focus:outline-none focus:border-violet-500/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase"
+              className="w-full px-3 h-10 bg-white/5 border border-white/10 rounded-lg text-sm font-mono text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase"
               onInput={(e) => { (e.target as HTMLInputElement).value = (e.target as HTMLInputElement).value.toUpperCase(); }}
               required
             />
@@ -327,7 +327,7 @@ function EnvVarForm({
                 value={form.value}
                 onChange={set('value')}
                 placeholder="Enter value…"
-                className="w-full pl-3 pr-9 h-10 bg-white/5 border border-white/10 rounded-lg text-sm font-mono text-white placeholder:text-gray-600 focus:outline-none focus:border-violet-500/40 transition-colors"
+                className="w-full pl-3 pr-9 h-10 bg-white/5 border border-white/10 rounded-lg text-sm font-mono text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors"
               />
               <button
                 type="button"
@@ -348,7 +348,7 @@ function EnvVarForm({
             value={form.description}
             onChange={set('description')}
             placeholder="What is this variable used for?"
-            className="w-full px-3 h-10 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-violet-500/40 transition-colors"
+            className="w-full px-3 h-10 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors"
           />
         </div>
 
@@ -359,7 +359,7 @@ function EnvVarForm({
             className={cn(
               'relative w-10 h-5.5 rounded-full border transition-colors',
               form.is_secret
-                ? 'bg-violet-500 border-violet-500'
+                ? 'bg-white border-white/60'
                 : 'bg-white/10 border-white/20'
             )}
           >
@@ -379,7 +379,7 @@ function EnvVarForm({
           <button
             type="submit"
             disabled={saving}
-            className="flex items-center gap-2 px-5 h-9 bg-violet-500 hover:bg-violet-600 rounded-lg text-sm font-medium text-white transition-colors disabled:opacity-60"
+            className="flex items-center gap-2 px-5 h-9 bg-white hover:bg-white/90 rounded-lg text-sm font-medium text-white transition-colors disabled:opacity-60"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {isEdit ? 'Update' : 'Save'}

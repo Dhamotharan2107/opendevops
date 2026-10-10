@@ -74,20 +74,20 @@ const detailVariants = {
 };
 
 const glowColors = [
-  'from-violet-500/20 via-fuchsia-500/10',
+  'from-white/10 via-white/5',
   'from-blue-500/20 via-cyan-500/10',
   'from-emerald-500/20 via-teal-500/10',
   'from-amber-500/20 via-orange-500/10',
-  'from-rose-500/20 via-pink-500/10',
-  'from-indigo-500/20 via-purple-500/10',
+  'from-white/10 via-white/5',
+  'from-white/10 via-white/5',
 ];
 
 const avatarColors = [
-  'from-violet-500 to-fuchsia-500',
+  'from-white to-white/90',
   'from-blue-500 to-cyan-500',
   'from-emerald-500 to-teal-500',
   'from-amber-500 to-orange-500',
-  'from-rose-500 to-pink-500',
+  'from-white to-white/90',
   'from-indigo-500 to-purple-500',
 ];
 
@@ -121,11 +121,11 @@ function TagInput({
   };
 
   return (
-    <div className="flex flex-wrap gap-1.5 p-2 bg-white/5 border border-white/10 rounded-xl focus-within:border-violet-500/50 focus-within:ring-1 focus-within:ring-violet-500/20 transition-all min-h-[42px]">
+    <div className="flex flex-wrap gap-1.5 p-2 bg-white/5 border border-white/10 rounded-xl focus-within:border-white/60/50 focus-within:ring-1 focus-within:ring-white/20 transition-all min-h-[42px]">
       {tags.map((tag) => (
         <span
           key={tag}
-          className="inline-flex items-center gap-1 px-2.5 py-1 bg-violet-500/15 border border-violet-500/25 rounded-lg text-xs text-violet-300"
+          className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/15 border border-white/60/25 rounded-lg text-xs text-white"
         >
           {tag}
           <button
@@ -156,7 +156,7 @@ function CompanyEmptyState() {
       className="relative col-span-full flex flex-col items-center justify-center py-24 px-6"
     >
       <div className="relative mb-6">
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500/20 via-fuchsia-500/10 to-pink-500/20 border border-white/10 flex items-center justify-center">
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-white/10 border border-white/10 flex items-center justify-center">
           <Building2 className="w-10 h-10 text-gray-500" />
         </div>
         <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white/10 border border-white/10 flex items-center justify-center">
@@ -168,7 +168,7 @@ function CompanyEmptyState() {
         Create your first company to organize your team and projects in one place.
       </p>
       <div className="flex gap-3">
-        <button className="px-5 py-2.5 bg-white text-black rounded-xl font-semibold text-sm hover:bg-gray-100 transition-all flex items-center gap-2 shadow-lg shadow-white/10">
+        <button className="px-5 py-2.5 bg-white text-black rounded-xl font-semibold text-sm hover:bg-white/90 transition-all flex items-center gap-2 shadow-lg shadow-white/10">
           <Plus className="w-4 h-4" />
           Create Company
         </button>
@@ -250,11 +250,11 @@ export function CompaniesPage() {
     company.projects.filter((pid) => projects.some((p) => p.id === pid)).length;
 
   return (
-    <div className="relative min-h-full bg-[#0A0A0F]">
+    <div className="relative min-h-full bg-black">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-violet-600 rounded-full mix-blend-multiply filter blur-3xl opacity-[0.08] animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-fuchsia-600 rounded-full mix-blend-multiply filter blur-3xl opacity-[0.08] animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-pink-600 rounded-full mix-blend-multiply filter blur-3xl opacity-[0.05] animate-pulse" style={{ animationDuration: '12s', animationDelay: '4s' }} />
+        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-white/[0.05] rounded-full blur-[120px] opacity-[0.08] animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-white/[0.04] rounded-full blur-[120px] opacity-[0.08] animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/[0.03] rounded-full blur-[120px] opacity-[0.05] animate-pulse" style={{ animationDuration: '12s', animationDelay: '4s' }} />
       </div>
 
       <div className="relative p-8">
@@ -271,7 +271,7 @@ export function CompaniesPage() {
               </div>
               <button
                 onClick={() => setShowCreate(true)}
-                className="px-5 py-2.5 bg-white text-black rounded-xl font-semibold text-sm hover:bg-gray-100 transition-all flex items-center gap-2 shadow-lg shadow-white/10"
+                className="px-5 py-2.5 bg-white text-black rounded-xl font-semibold text-sm hover:bg-white/90 transition-all flex items-center gap-2 shadow-lg shadow-white/10"
               >
                 <Plus className="w-4 h-4" />
                 Create Company
@@ -299,9 +299,9 @@ export function CompaniesPage() {
                           setSelectedId(selectedId === company.id ? null : company.id)
                         }
                         className={cn(
-                          'group relative p-6 rounded-2xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm cursor-pointer',
+                          'group relative p-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm cursor-pointer',
                           'hover:bg-white/[0.06] transition-all duration-300',
-                          selectedId === company.id && 'ring-1 ring-violet-500/30 bg-white/[0.06]'
+                          selectedId === company.id && 'ring-1 ring-white/20 bg-white/[0.06]'
                         )}
                       >
                         <div className={cn(
@@ -319,7 +319,7 @@ export function CompaniesPage() {
                                 <Building2 className="w-6 h-6 text-white" strokeWidth={2} />
                               </div>
                               <div>
-                                <h3 className="font-semibold text-white group-hover:text-violet-300 transition-colors">
+                                <h3 className="font-semibold text-white group-hover:text-white transition-colors">
                                   {company.name}
                                 </h3>
                                 <span className="text-xs text-gray-500">
@@ -330,7 +330,7 @@ export function CompaniesPage() {
                             <div className={cn(
                               'p-1.5 rounded-lg transition-all duration-300',
                               selectedId === company.id
-                                ? 'bg-violet-500/20 text-violet-400 rotate-180'
+                                ? 'bg-white/15 text-white rotate-180'
                                 : 'text-gray-500 group-hover:text-gray-300'
                             )}>
                               {selectedId === company.id
@@ -352,7 +352,7 @@ export function CompaniesPage() {
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
-                              className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-violet-400 transition-colors mb-4"
+                              className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors mb-4"
                             >
                               <Globe className="w-3.5 h-3.5" />
                               {new URL(company.website).hostname}
@@ -396,7 +396,7 @@ export function CompaniesPage() {
                             exit="exit"
                             className="overflow-hidden"
                           >
-                            <div className="mt-2 p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm">
+                            <div className="mt-2 p-6 rounded-2xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-sm">
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div>
                                   <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -411,7 +411,7 @@ export function CompaniesPage() {
                                           key={memberId}
                                           className="flex items-center gap-2.5 p-2 rounded-lg bg-white/[0.03] border border-white/[0.04]"
                                         >
-                                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-[10px] text-white font-semibold shrink-0">
+                                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-white to-white/90 flex items-center justify-center text-[10px] text-white font-semibold shrink-0">
                                             {isYou ? getInitials(user?.name || '') : getInitials(memberId)}
                                           </div>
                                           <div className="flex-1 min-w-0">
@@ -419,7 +419,7 @@ export function CompaniesPage() {
                                               {isYou ? user?.name : `User ${memberId.slice(0, 6)}`}
                                             </span>
                                             {isYou && (
-                                              <span className="text-[10px] text-violet-400 font-medium">You</span>
+                                              <span className="text-[10px] text-white font-medium">You</span>
                                             )}
                                           </div>
                                         </div>
@@ -444,8 +444,8 @@ export function CompaniesPage() {
                                           key={pid}
                                           className="flex items-center gap-2.5 p-2 rounded-lg bg-white/[0.03] border border-white/[0.04]"
                                         >
-                                          <div className="w-7 h-7 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-                                            <Briefcase className="w-3.5 h-3.5 text-violet-400" />
+                                          <div className="w-7 h-7 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center shrink-0">
+                                            <Briefcase className="w-3.5 h-3.5 text-white" />
                                           </div>
                                           <span className="text-sm text-gray-300 truncate">
                                             {project?.name || `Project ${pid.slice(0, 6)}`}
@@ -468,7 +468,7 @@ export function CompaniesPage() {
                                       {company.techStack.map((tech) => (
                                         <span
                                           key={tech}
-                                          className="px-3 py-1.5 bg-violet-500/10 border border-violet-500/20 rounded-lg text-xs text-violet-300 font-mono"
+                                          className="px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-xs text-white font-mono"
                                         >
                                           {tech}
                                         </span>
@@ -504,7 +504,7 @@ export function CompaniesPage() {
                       value={joinSearch}
                       onChange={(e) => setJoinSearch(e.target.value)}
                       placeholder="Search by name, tech..."
-                      className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+                      className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all"
                     />
                   </div>
                 </div>
@@ -515,9 +515,9 @@ export function CompaniesPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.04, type: 'spring', stiffness: 260, damping: 22 }}
-                      className="group relative p-5 rounded-2xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hover:bg-white/[0.06] transition-all duration-300"
+                      className="group relative p-5 rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm hover:bg-white/[0.06] transition-all duration-300"
                     >
-                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-violet-500/10 via-fuchsia-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                       <div className="relative">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-3">
@@ -562,7 +562,7 @@ export function CompaniesPage() {
                           </div>
                           <button
                             onClick={() => handleJoin(company)}
-                            className="px-3 py-1.5 bg-violet-500/20 border border-violet-500/30 rounded-lg text-xs text-violet-300 font-medium hover:bg-violet-500/30 transition-all flex items-center gap-1.5"
+                            className="px-3 py-1.5 bg-white/15 border border-white/25 rounded-lg text-xs text-white font-medium hover:bg-white/20 transition-all flex items-center gap-1.5"
                           >
                             <UserPlus className="w-3 h-3" />
                             Join
@@ -602,11 +602,11 @@ export function CompaniesPage() {
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="relative w-full max-w-lg rounded-2xl border border-white/[0.08] bg-[#0A0A0F]/90 backdrop-blur-2xl shadow-2xl shadow-violet-500/5 p-8"
+              className="relative w-full max-w-lg rounded-2xl border border-white/[0.08] bg-black/90 backdrop-blur-2xl shadow-2xl shadow-white/5 p-8"
             >
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 flex items-center justify-center shadow-lg shadow-violet-500/25">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-white via-white to-white/80 flex items-center justify-center shadow-lg shadow-white/25">
                     <Building2 className="w-5 h-5 text-white" strokeWidth={2} />
                   </div>
                   <div>
@@ -630,7 +630,7 @@ export function CompaniesPage() {
                     value={form.name}
                     onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     placeholder="e.g. Acme Corp"
-                    className="w-full h-11 px-4 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+                    className="w-full h-11 px-4 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all"
                   />
                 </div>
 
@@ -641,7 +641,7 @@ export function CompaniesPage() {
                     onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                     placeholder="What does your company do?"
                     rows={3}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all resize-none"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all resize-none"
                   />
                 </div>
 
@@ -654,7 +654,7 @@ export function CompaniesPage() {
                       value={form.website}
                       onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))}
                       placeholder="https://acme.com"
-                      className="w-full h-11 pl-10 pr-4 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+                      className="w-full h-11 pl-10 pr-4 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all"
                     />
                   </div>
                 </div>
@@ -680,7 +680,7 @@ export function CompaniesPage() {
                 <button
                   onClick={handleCreate}
                   disabled={!form.name.trim() || isCreating}
-                  className="flex-1 h-11 rounded-xl bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-white/10"
+                  className="flex-1 h-11 rounded-xl bg-white text-black font-semibold text-sm hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-white/10"
                 >
                   {isCreating ? (
                     <>

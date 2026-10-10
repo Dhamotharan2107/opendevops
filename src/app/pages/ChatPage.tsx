@@ -48,11 +48,11 @@ function getChatAvatarInitials(chat: Chat, userId: string, userLookup: Record<st
 
 function getChatAvatarColor(name: string): string {
   const colors = [
-    'from-violet-500 to-fuchsia-500',
+    'from-white to-white/90',
     'from-blue-500 to-cyan-500',
     'from-emerald-500 to-teal-500',
     'from-orange-500 to-rose-500',
-    'from-pink-500 to-purple-500',
+    'from-white to-white/90',
     'from-amber-500 to-orange-500',
   ];
   let hash = 0;
@@ -281,14 +281,14 @@ export function ChatPage() {
     (newChatType === 'project' && selectedProjectId !== null);
 
   return (
-    <div className="flex h-full bg-[#0A0A0F]">
+    <div className="flex h-full bg-black">
       {/* Left Sidebar */}
       <motion.div
         initial="hidden"
         animate="visible"
         variants={containerVariants}
         className={cn(
-          'w-[360px] min-w-[360px] border-r border-white/[0.06] flex flex-col bg-[#0A0A0F]',
+          'w-[360px] min-w-[360px] border-r border-white/[0.08] flex flex-col bg-black',
           selectedChatId && 'hidden lg:flex'
         )}
       >
@@ -297,7 +297,7 @@ export function ChatPage() {
           <h1 className="text-lg font-semibold text-white">Messages</h1>
           <button
             onClick={() => setShowNewChatModal(true)}
-            className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/[0.06] text-gray-400 hover:text-white transition-all"
+            className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/[0.08] text-gray-400 hover:text-white transition-all"
           >
             <Plus className="w-4 h-4" />
           </button>
@@ -312,7 +312,7 @@ export function ChatPage() {
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/[0.06] rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/40 transition-all"
+              className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-white/40/30 focus:border-white/30 transition-all"
             />
           </div>
         </motion.div>
@@ -325,7 +325,7 @@ export function ChatPage() {
               <p className="text-sm text-gray-500">No conversations yet</p>
               <button
                 onClick={() => setShowNewChatModal(true)}
-                className="mt-3 text-sm text-violet-400 hover:text-violet-300 transition-colors"
+                className="mt-3 text-sm text-white hover:text-white transition-colors"
               >
                 Start a new chat
               </button>
@@ -345,7 +345,7 @@ export function ChatPage() {
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left',
                     isActive
-                      ? 'bg-violet-500/10 border border-violet-500/20'
+                      ? 'bg-white/10 border border-white/20'
                       : 'hover:bg-white/5 border border-transparent'
                   )}
                 >
@@ -374,7 +374,7 @@ export function ChatPage() {
                         {lastMsg ? lastMsg.text : (chat.type === 'group' || chat.type === 'project' ? 'Group chat' : 'No messages yet')}
                       </span>
                       {unread > 0 && (
-                        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-violet-500 text-[10px] font-semibold text-white shrink-0">
+                        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-white text-[10px] font-semibold text-white shrink-0">
                           {unread}
                         </span>
                       )}
@@ -393,7 +393,7 @@ export function ChatPage() {
         animate="visible"
         variants={containerVariants}
         className={cn(
-          'flex-1 flex flex-col bg-[#0A0A0F] relative',
+          'flex-1 flex flex-col bg-black relative',
           !selectedChatId && 'hidden lg:flex'
         )}
       >
@@ -403,7 +403,7 @@ export function ChatPage() {
             <div className="lg:hidden absolute top-4 left-4 z-10">
               <button
                 onClick={() => setSelectedChatId(null)}
-                className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/[0.06] text-gray-400 hover:text-white transition-all"
+                className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/[0.08] text-gray-400 hover:text-white transition-all"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -412,7 +412,7 @@ export function ChatPage() {
             {/* Chat Header */}
             <motion.div
               variants={itemVariants}
-              className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06] bg-[#0A0A0F]"
+              className="flex items-center justify-between px-5 py-4 border-b border-white/[0.08] bg-black"
             >
               <div className="flex items-center gap-3">
                 <div
@@ -502,7 +502,7 @@ export function ChatPage() {
                             className={cn(
                               'px-3.5 py-2.5 text-sm leading-relaxed',
                               isMe
-                                ? 'bg-violet-500/20 text-white rounded-2xl rounded-br-md'
+                                ? 'bg-white/15 text-white rounded-2xl rounded-br-md'
                                 : 'bg-white/5 text-gray-200 rounded-2xl rounded-bl-md',
                               'break-words'
                             )}
@@ -532,9 +532,9 @@ export function ChatPage() {
             {/* Message Input */}
             <motion.div
               variants={itemVariants}
-              className="px-5 py-4 border-t border-white/[0.06] bg-[#0A0A0F]"
+              className="px-5 py-4 border-t border-white/[0.08] bg-black"
             >
-              <div className="flex items-center gap-3 bg-white/5 rounded-2xl border border-white/[0.06] px-4 py-2 focus-within:ring-2 focus-within:ring-violet-500/20 focus-within:border-violet-500/40 transition-all">
+              <div className="flex items-center gap-3 bg-white/5 rounded-2xl border border-white/[0.08] px-4 py-2 focus-within:ring-2 focus-within:ring-white/20 focus-within:border-white/30 transition-all">
                 <button className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-all shrink-0">
                   <Paperclip className="w-4 h-4" />
                 </button>
@@ -552,7 +552,7 @@ export function ChatPage() {
                   className={cn(
                     'flex items-center justify-center w-8 h-8 rounded-lg transition-all shrink-0',
                     messageText.trim()
-                      ? 'bg-violet-500 text-white hover:bg-violet-400 shadow-lg shadow-violet-500/25'
+                      ? 'bg-white text-white hover:bg-white shadow-lg shadow-white/25'
                       : 'bg-white/5 text-gray-600 cursor-not-allowed'
                   )}
                 >
@@ -575,8 +575,8 @@ export function ChatPage() {
               transition={{ duration: 0.4, ease: 'easeOut' }}
               className="relative"
             >
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500/10 via-fuchsia-500/10 to-pink-500/10 border border-white/[0.06] flex items-center justify-center mb-6">
-                <MessageSquare className="w-9 h-9 text-violet-400/60" />
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-white/10 border border-white/[0.08] flex items-center justify-center mb-6">
+                <MessageSquare className="w-9 h-9 text-white/60" />
               </div>
             </motion.div>
             <motion.h3
@@ -617,10 +617,10 @@ export function ChatPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-              className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-[#0F0F14] shadow-2xl shadow-violet-500/5 overflow-hidden"
+              className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-[#080808] shadow-2xl shadow-white/5 overflow-hidden"
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08]">
                 <h2 className="text-base font-semibold text-white">
                   {newChatType ? 'New Chat' : 'Create New Chat'}
                 </h2>
@@ -639,37 +639,37 @@ export function ChatPage() {
                   <div className="space-y-3">
                     <button
                       onClick={() => setNewChatType('private')}
-                      className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-white/5 hover:bg-violet-500/10 border border-white/[0.06] hover:border-violet-500/20 transition-all group text-left"
+                      className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/[0.08] hover:border-white/20 transition-all group text-left"
                     >
                       <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
                         <UserPlus className="w-5 h-5 text-blue-400" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-white group-hover:text-violet-200 transition-colors">Private Chat</p>
+                        <p className="text-sm font-medium text-white group-hover:text-white transition-colors">Private Chat</p>
                         <p className="text-xs text-gray-500 mt-0.5">Chat one-on-one with a team member</p>
                       </div>
                     </button>
                     <button
                       onClick={() => setNewChatType('group')}
-                      className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-white/5 hover:bg-violet-500/10 border border-white/[0.06] hover:border-violet-500/20 transition-all group text-left"
+                      className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/[0.08] hover:border-white/20 transition-all group text-left"
                     >
                       <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
                         <Users className="w-5 h-5 text-emerald-400" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-white group-hover:text-violet-200 transition-colors">Group Chat</p>
+                        <p className="text-sm font-medium text-white group-hover:text-white transition-colors">Group Chat</p>
                         <p className="text-xs text-gray-500 mt-0.5">Create a group conversation</p>
                       </div>
                     </button>
                     <button
                       onClick={() => setNewChatType('project')}
-                      className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-white/5 hover:bg-violet-500/10 border border-white/[0.06] hover:border-violet-500/20 transition-all group text-left"
+                      className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/[0.08] hover:border-white/20 transition-all group text-left"
                     >
                       <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
                         <FolderGit2 className="w-5 h-5 text-orange-400" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-white group-hover:text-violet-200 transition-colors">Project Chat</p>
+                        <p className="text-sm font-medium text-white group-hover:text-white transition-colors">Project Chat</p>
                         <p className="text-xs text-gray-500 mt-0.5">Discuss a specific project</p>
                       </div>
                     </button>
@@ -686,7 +686,7 @@ export function ChatPage() {
                           placeholder="Search members..."
                           value={userSearchQuery}
                           onChange={(e) => setUserSearchQuery(e.target.value)}
-                          className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/[0.06] rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/40 transition-all"
+                          className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-white/40/30 focus:border-white/30 transition-all"
                         />
                       </div>
                     </div>
@@ -702,11 +702,11 @@ export function ChatPage() {
                             className={cn(
                               'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left',
                               selectedUsers.includes(user.id)
-                                ? 'bg-violet-500/10 border border-violet-500/20'
+                                ? 'bg-white/10 border border-white/20'
                                 : 'hover:bg-white/5 border border-transparent'
                             )}
                           >
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-xs font-semibold text-white shrink-0">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-white to-white/90 flex items-center justify-center text-xs font-semibold text-white shrink-0">
                               {getInitials(user.name)}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -722,7 +722,7 @@ export function ChatPage() {
                               </div>
                             </div>
                             {selectedUsers.includes(user.id) && (
-                              <div className="w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center">
+                              <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
                                 <Check className="w-3 h-3 text-white" />
                               </div>
                             )}
@@ -741,7 +741,7 @@ export function ChatPage() {
                         placeholder="e.g. Frontend Team"
                         value={newChatName}
                         onChange={(e) => setNewChatName(e.target.value)}
-                        className="w-full px-4 py-2 bg-white/5 border border-white/[0.06] rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/40 transition-all"
+                        className="w-full px-4 py-2 bg-white/5 border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-white/40/30 focus:border-white/30 transition-all"
                       />
                     </div>
 
@@ -754,7 +754,7 @@ export function ChatPage() {
                           placeholder="Search members..."
                           value={userSearchQuery}
                           onChange={(e) => setUserSearchQuery(e.target.value)}
-                          className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/[0.06] rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/40 transition-all"
+                          className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-white/40/30 focus:border-white/30 transition-all"
                         />
                       </div>
                       <div className="max-h-48 overflow-y-auto space-y-1">
@@ -768,18 +768,18 @@ export function ChatPage() {
                               className={cn(
                                 'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left',
                                 selectedUsers.includes(user.id)
-                                  ? 'bg-violet-500/10 border border-violet-500/20'
+                                  ? 'bg-white/10 border border-white/20'
                                   : 'hover:bg-white/5 border border-transparent'
                               )}
                             >
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-[10px] font-semibold text-white shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-white to-white/90 flex items-center justify-center text-[10px] font-semibold text-white shrink-0">
                                 {getInitials(user.name)}
                               </div>
                               <span className="flex-1 text-sm font-medium text-white">{user.name}</span>
                               <div className={cn(
                                 'w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all',
                                 selectedUsers.includes(user.id)
-                                  ? 'bg-violet-500 border-violet-500'
+                                  ? 'bg-white border-white/60'
                                   : 'border-white/20 hover:border-white/40'
                               )}>
                                 {selectedUsers.includes(user.id) && (
@@ -799,7 +799,7 @@ export function ChatPage() {
                           return (
                             <span
                               key={id}
-                              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-500/10 border border-violet-500/20 text-xs text-violet-300"
+                              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 border border-white/20 text-xs text-white"
                             >
                               {u?.name ?? id}
                               <button
@@ -829,7 +829,7 @@ export function ChatPage() {
                             className={cn(
                               'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left',
                               selectedProjectId === project.id
-                                ? 'bg-violet-500/10 border border-violet-500/20'
+                                ? 'bg-white/10 border border-white/20'
                                 : 'hover:bg-white/5 border border-transparent'
                             )}
                           >
@@ -841,7 +841,7 @@ export function ChatPage() {
                               <p className="text-xs text-gray-500 mt-0.5 truncate">{project.repo}</p>
                             </div>
                             {selectedProjectId === project.id && (
-                              <div className="w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center">
+                              <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
                                 <Check className="w-3 h-3 text-white" />
                               </div>
                             )}
@@ -855,7 +855,7 @@ export function ChatPage() {
 
               {/* Modal Footer */}
               {newChatType && (
-                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/[0.06]">
+                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/[0.08]">
                   <button
                     onClick={resetNewChatModal}
                     className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
@@ -868,7 +868,7 @@ export function ChatPage() {
                     className={cn(
                       'px-5 py-2 rounded-xl text-sm font-medium transition-all',
                       canCreateChat
-                        ? 'bg-violet-500 text-white hover:bg-violet-400 shadow-lg shadow-violet-500/25'
+                        ? 'bg-white text-white hover:bg-white shadow-lg shadow-white/25'
                         : 'bg-white/5 text-gray-600 cursor-not-allowed'
                     )}
                   >

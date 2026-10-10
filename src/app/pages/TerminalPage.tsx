@@ -92,7 +92,7 @@ export function TerminalPage() {
               type: 'system',
               text: agentConnected
                 ? `Agent connected — ${h}`
-                : 'Agent offline — run: bash ~/opendrap-agent/restart.sh',
+                : 'Agent offline — run: bash ~/opendevops-agent/restart.sh',
             }]);
             ws.send(JSON.stringify({ type: 'terminal_input', input: 'echo __CWD__:$(pwd)' }));
           } else if (msg.type === 'agent_connected') {
@@ -103,7 +103,7 @@ export function TerminalPage() {
             ws.send(JSON.stringify({ type: 'terminal_input', input: 'echo __CWD__:$(pwd)' }));
           } else if (msg.type === 'agent_disconnected') {
             dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: false } });
-            setLines((prev) => [...prev, { type: 'system', text: 'Agent disconnected. Run: bash ~/opendrap-agent/restart.sh' }]);
+            setLines((prev) => [...prev, { type: 'system', text: 'Agent disconnected. Run: bash ~/opendevops-agent/restart.sh' }]);
           } else if (msg.type === 'error' && text) {
             setLines((prev) => [...prev, { type: 'error', text }]);
           }
@@ -162,7 +162,7 @@ export function TerminalPage() {
 
     // Agent offline — show restart command
     newLines.push({ type: 'error', text: 'Agent not connected. Restart it in Cloud Shell:' });
-    newLines.push({ type: 'error', text: '  bash ~/opendrap-agent/restart.sh' });
+    newLines.push({ type: 'error', text: '  bash ~/opendevops-agent/restart.sh' });
     setLines((prev) => [...prev, ...newLines]);
   };
 
@@ -235,7 +235,7 @@ export function TerminalPage() {
           >
             <strong>Agent offline.</strong> Run this in Google Cloud Shell to reconnect:
             <code className="block mt-2 bg-black/30 px-2 py-1 rounded font-mono text-xs">
-              bash ~/opendrap-agent/restart.sh
+bash ~/opendevops-agent/restart.sh
             </code>
             <span className="block mt-2 text-amber-400/60 text-xs">
               First time? Run:{' '}
@@ -247,11 +247,11 @@ export function TerminalPage() {
         )}
 
         <div
-          className="flex-1 bg-[#060608] border border-white/10 rounded-xl overflow-hidden flex flex-col cursor-text"
+          className="flex-1 bg-[#080808] border border-white/10 rounded-xl overflow-hidden flex flex-col cursor-text"
           style={{ minHeight: 400 }}
           onClick={() => inputRef.current?.focus()}
         >
-          <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-[#0F0F14] flex-shrink-0">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-[#080808] flex-shrink-0">
             <div className="flex gap-2">
               <div className="w-3 h-3 rounded-full bg-red-500/70" />
               <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
@@ -270,7 +270,7 @@ export function TerminalPage() {
                 key={i}
                 className={cn(
                   'whitespace-pre-wrap leading-relaxed',
-                  line.type === 'input'  ? 'text-violet-400' :
+                  line.type === 'input'  ? 'text-white' :
                   line.type === 'error'  ? 'text-red-400' :
                   line.type === 'system' ? 'text-gray-500' :
                   'text-gray-200'
@@ -287,7 +287,7 @@ export function TerminalPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={onKeyDown}
-                className="flex-1 bg-transparent border-0 outline-none text-white font-mono caret-violet-400"
+                className="flex-1 bg-transparent border-0 outline-none text-white font-mono caret-white"
                 autoFocus
                 spellCheck={false}
                 autoComplete="off"

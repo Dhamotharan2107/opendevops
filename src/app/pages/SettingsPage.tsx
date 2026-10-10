@@ -1,13 +1,15 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { Sun, Moon } from 'lucide-react';
 import { motion } from 'motion/react';
 import {
   User, Lock, Bell, Palette, Key, Fingerprint,
   Save, Check, Eye, EyeOff, Loader2, Shield,
-  Terminal, Wifi, WifiOff, Copy, RefreshCw, Download, RotateCcw
+  Terminal, Wifi, WifiOff, Copy, RefreshCw, Download, RotateCcw,
+  Github, ExternalLink, CheckCircle2, XCircle, AlertCircle
 } from 'lucide-react';
 import { useApp } from '@/lib/store';
 import { cn, getInitials } from '@/lib/utils';
-import { apiUpdateProfile } from '@/lib/api';
+import { apiUpdateProfile, githubFetchUser, getGitHubPat, saveGitHubPat, clearGitHubPat } from '@/lib/api';
 
 function getInstallCmd() {
   const token = localStorage.getItem('token');
@@ -28,6 +30,7 @@ const TABS = [
   { id: 'security', label: 'Security', icon: Lock },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'appearance', label: 'Appearance', icon: Palette },
+  { id: 'git', label: 'Git Account', icon: Github },
   { id: 'agent', label: 'Agent', icon: Terminal },
 ];
 
@@ -72,7 +75,7 @@ export function SettingsPage() {
   if (!user) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-7 h-7 animate-spin text-violet-400" />
+        <Loader2 className="w-7 h-7 animate-spin text-white" />
       </div>
     );
   }
@@ -139,7 +142,7 @@ export function SettingsPage() {
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                 {/* Avatar */}
                 <div className="flex items-center gap-5 p-6 bg-white/5 border border-white/10 rounded-xl">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-2xl font-bold text-white">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-white to-white/90 flex items-center justify-center text-2xl font-bold text-white">
                     {getInitials(user.name)}
                   </div>
                   <div>
@@ -168,7 +171,7 @@ export function SettingsPage() {
                           value={(profile as any)[key]}
                           onChange={(e) => setProfile((p) => ({ ...p, [key]: e.target.value }))}
                           placeholder={placeholder}
-                          className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-500/50"
+                          className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40"
                         />
                       </div>
                     ))}
@@ -180,7 +183,7 @@ export function SettingsPage() {
                       onChange={(e) => setProfile((p) => ({ ...p, bio: e.target.value }))}
                       placeholder="Tell us about yourself..."
                       rows={3}
-                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-500/50 resize-none"
+                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 resize-none"
                     />
                   </div>
                   <div>
@@ -189,13 +192,13 @@ export function SettingsPage() {
                       value={profile.skills}
                       onChange={(e) => setProfile((p) => ({ ...p, skills: e.target.value }))}
                       placeholder="React, TypeScript, Docker, Kubernetes"
-                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-500/50"
+                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40"
                     />
                   </div>
                   <button
                     onClick={saveProfile}
                     disabled={saving}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-white to-white/90 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
                     {saved ? <Check className="w-4 h-4" /> : saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     {saved ? 'Saved!' : saving ? 'Saving...' : 'Save Changes'}
@@ -208,7 +211,7 @@ export function SettingsPage() {
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                 <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-4">
                   <div className="flex items-center gap-3 mb-2">
-                    <Shield className="w-5 h-5 text-violet-400" />
+                    <Shield className="w-5 h-5 text-white" />
                     <h3 className="font-semibold text-white">Change Password</h3>
                   </div>
                   {(['current', 'new', 'confirm'] as const).map((field) => (
@@ -221,8 +224,8 @@ export function SettingsPage() {
                           type={showPwd[field] ? 'text' : 'password'}
                           value={passwords[field]}
                           onChange={(e) => setPasswords((p) => ({ ...p, [field]: e.target.value }))}
-                          placeholder="••••••••"
-                          className="w-full px-4 py-2.5 pr-10 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-500/50"
+                          placeholder="��������"
+                          className="w-full px-4 py-2.5 pr-10 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40"
                         />
                         <button
                           type="button"
@@ -236,7 +239,7 @@ export function SettingsPage() {
                   ))}
                   <button
                     onClick={saveLocal}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-white to-white/90 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity"
                   >
                     {saved ? <Check className="w-4 h-4" /> : <Key className="w-4 h-4" />}
                     {saved ? 'Password Updated!' : 'Update Password'}
@@ -273,7 +276,7 @@ export function SettingsPage() {
                         onClick={() => setNotifications((n) => ({ ...n, [key]: !(n as any)[key] }))}
                         className={cn(
                           'w-11 h-6 rounded-full transition-colors relative',
-                          (notifications as any)[key] ? 'bg-violet-500' : 'bg-white/10'
+                          (notifications as any)[key] ? 'bg-white' : 'bg-white/10'
                         )}
                       >
                         <span className={cn(
@@ -283,7 +286,7 @@ export function SettingsPage() {
                       </button>
                     </div>
                   ))}
-                  <button onClick={saveLocal} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity">
+                  <button onClick={saveLocal} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-white to-white/90 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity">
                     {saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
                     {saved ? 'Saved!' : 'Save Preferences'}
                   </button>
@@ -297,18 +300,30 @@ export function SettingsPage() {
                   <h3 className="font-semibold text-white">Appearance</h3>
                   <div>
                     <label className="block text-sm text-gray-400 mb-3">Theme</label>
-                    <div className="grid grid-cols-3 gap-3">
-                      {[
-                        { value: 'dark', label: 'Dark', preview: 'bg-[#0A0A0F]' },
-                        { value: 'darker', label: 'Darker', preview: 'bg-black' },
-                        { value: 'midnight', label: 'Midnight', preview: 'bg-[#060614]' },
-                      ].map((t) => (
+                    <div className="grid grid-cols-2 gap-3">
+                      {([
+                        { value: 'light', label: 'Light', icon: Sun, preview: 'bg-white', text: 'text-gray-800', border: 'border-gray-200' },
+                        { value: 'dark',  label: 'Dark',  icon: Moon, preview: 'bg-[#0a0a0a]', text: 'text-white', border: 'border-white/10' },
+                      ] as const).map((t) => (
                         <button
                           key={t.value}
-                          className="p-3 bg-white/5 border border-violet-500/30 rounded-lg text-sm text-violet-300 flex flex-col items-center gap-2"
+                          onClick={() => dispatch({ type: 'SET_THEME', payload: t.value })}
+                          className={cn(
+                            'p-4 rounded-xl border-2 flex flex-col items-center gap-3 transition-all',
+                            state.theme === t.value
+                              ? 'border-white bg-white/10'
+                              : 'border-white/10 bg-white/5 hover:bg-white/8 hover:border-white/25'
+                          )}
                         >
-                          <div className={cn('w-full h-10 rounded', t.preview, 'border border-white/10')} />
-                          {t.label}
+                          <div className={cn('w-full h-14 rounded-lg border flex items-center justify-center', t.preview, t.border)}>
+                            <t.icon className={cn('w-5 h-5', t.text)} />
+                          </div>
+                          <span className={cn('text-sm font-medium', state.theme === t.value ? 'text-white' : 'text-gray-400')}>
+                            {t.label}
+                          </span>
+                          {state.theme === t.value && (
+                            <span className="text-[10px] text-emerald-400 font-medium">Active</span>
+                          )}
                         </button>
                       ))}
                     </div>
@@ -337,18 +352,186 @@ export function SettingsPage() {
                       <option value="jetbrains-mono">JetBrains Mono</option>
                     </select>
                   </div>
-                  <button onClick={saveLocal} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity">
+                  <button onClick={saveLocal} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-white to-white/90 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity">
                     {saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
                     {saved ? 'Saved!' : 'Save Appearance'}
                   </button>
                 </div>
               </motion.div>
             )}
+            {tab === 'git' && <GitTab />}
             {tab === 'agent' && <AgentTab />}
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+const GUIDE_STEPS = [
+  {
+    step: 1,
+    title: 'Go to GitHub Settings',
+    desc: 'Open GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)',
+    link: 'https://github.com/settings/tokens/new',
+    linkLabel: 'Open GitHub →',
+  },
+  {
+    step: 2,
+    title: 'Generate a new token',
+    desc: 'Click "Generate new token (classic)". Add a note like "Opendrap DevOps" and set an expiration.',
+  },
+  {
+    step: 3,
+    title: 'Select scopes',
+    desc: 'Check repo (full control of private repositories) and read:user. Click "Generate token".',
+  },
+  {
+    step: 4,
+    title: 'Copy & paste the token below',
+    desc: 'Copy the generated token (starts with ghp_) and paste it in the field below. It will only be shown once.',
+  },
+];
+
+function GitTab() {
+  const savedPat = getGitHubPat();
+  const [pat, setPat] = useState('');
+  const [showPat, setShowPat] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'connected' | 'error'>(
+    savedPat ? 'connected' : 'idle'
+  );
+  const [ghUser, setGhUser] = useState<{ login: string; name: string; avatar_url: string } | null>(null);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const connect = async () => {
+    if (!pat.trim()) return;
+    setStatus('loading');
+    setErrorMsg('');
+    try {
+      const user = await githubFetchUser(pat.trim());
+      saveGitHubPat(pat.trim());
+      setGhUser(user);
+      setStatus('connected');
+      setPat('');
+    } catch (e: any) {
+      setStatus('error');
+      setErrorMsg(e.message || 'Invalid token. Please check and try again.');
+    }
+  };
+
+  const disconnect = () => {
+    clearGitHubPat();
+    setGhUser(null);
+    setStatus('idle');
+    setPat('');
+    setErrorMsg('');
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+      {/* Connected state */}
+      {status === 'connected' && (
+        <div className="p-6 bg-emerald-500/5 border border-emerald-500/20 rounded-xl space-y-4">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            <h3 className="font-semibold text-white">GitHub Connected</h3>
+          </div>
+          {ghUser && (
+            <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-lg">
+              <img src={ghUser.avatar_url} alt="" className="w-10 h-10 rounded-full" />
+              <div>
+                <p className="text-sm font-medium text-white">{ghUser.name || ghUser.login}</p>
+                <p className="text-xs text-gray-500">@{ghUser.login}</p>
+              </div>
+            </div>
+          )}
+          {!ghUser && (
+            <p className="text-sm text-gray-400">Token saved. Your GitHub account is connected.</p>
+          )}
+          <button
+            onClick={disconnect}
+            className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400 hover:bg-red-500/20 transition-colors"
+          >
+            <XCircle className="w-4 h-4" /> Disconnect GitHub
+          </button>
+        </div>
+      )}
+
+      {/* Guide */}
+      {status !== 'connected' && (
+        <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-5">
+          <div className="flex items-center gap-3">
+            <Github className="w-5 h-5 text-white" />
+            <h3 className="font-semibold text-white">Connect GitHub Account</h3>
+          </div>
+          <p className="text-sm text-gray-400">Use a Personal Access Token (PAT) to connect your GitHub account. Follow the steps below:</p>
+
+          <div className="space-y-3">
+            {GUIDE_STEPS.map(({ step, title, desc, link, linkLabel }) => (
+              <div key={step} className="flex gap-3">
+                <div className="w-6 h-6 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5">
+                  {step}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">{title}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+                  {link && (
+                    <a
+                      href={link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 mt-1 transition-colors"
+                    >
+                      {linkLabel} <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Token input */}
+      {status !== 'connected' && (
+        <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-4">
+          <h3 className="font-semibold text-white">Enter Personal Access Token</h3>
+          <div className="relative">
+            <input
+              type={showPat ? 'text' : 'password'}
+              value={pat}
+              onChange={e => setPat(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && connect()}
+              placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+              className="w-full px-4 py-2.5 pr-10 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 font-mono"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPat(s => !s)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+            >
+              {showPat ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+
+          {status === 'error' && (
+            <div className="flex items-center gap-2 text-sm text-red-400">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {errorMsg}
+            </div>
+          )}
+
+          <button
+            onClick={connect}
+            disabled={!pat.trim() || status === 'loading'}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-white to-white/90 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity disabled:opacity-40"
+          >
+            {status === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Github className="w-4 h-4" />}
+            {status === 'loading' ? 'Connecting...' : 'Connect GitHub'}
+          </button>
+        </div>
+      )}
+    </motion.div>
   );
 }
 
@@ -378,8 +561,8 @@ function AgentTab() {
   };
 
   const resetAgent = () => {
-    localStorage.removeItem('opendrap_agent_installed');
-    localStorage.removeItem('opendrap_agent_id');
+    localStorage.removeItem('opendevops_agent_installed');
+    localStorage.removeItem('opendevops_agent_id');
     dispatch({ type: 'SET_AGENT_INSTALLED', payload: false });
     dispatch({ type: 'SET_AGENT_STATUS', payload: { connected: false, agentId: null as any } });
   };
@@ -389,7 +572,7 @@ function AgentTab() {
       {/* Status card */}
       <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-4">
         <h3 className="font-semibold text-white flex items-center gap-2">
-          <Terminal className="w-4 h-4 text-violet-400" />
+          <Terminal className="w-4 h-4 text-white" />
           Agent Status
         </h3>
 
@@ -409,18 +592,18 @@ function AgentTab() {
             },
             {
               label: 'Agent ID',
-              value: state.agentId ? state.agentId.slice(0, 20) + '...' : '—',
+              value: state.agentId ? state.agentId.slice(0, 20) + '...' : '�',
               icon: Key,
-              color: 'text-violet-400',
+              color: 'text-white',
             },
             {
               label: 'Workspace',
-              value: '~/opendrap-agent',
+              value: '~/opendevops-agent',
               icon: Terminal,
               color: 'text-blue-400',
             },
           ].map((row) => (
-            <div key={row.label} className="flex flex-col gap-1 p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
+            <div key={row.label} className="flex flex-col gap-1 p-3 bg-white/[0.03] border border-white/[0.08] rounded-lg">
               <span className="text-xs text-gray-500">{row.label}</span>
               <div className="flex items-center gap-1.5">
                 <row.icon className={cn('w-3.5 h-3.5', row.color)} />
@@ -433,14 +616,14 @@ function AgentTab() {
         {!state.agentConnected && state.agentInstalled && (
           <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg text-xs text-amber-300/80 font-mono">
             Agent is offline. Reconnect by running in Cloud Shell:<br />
-            <span className="text-white">cd ~/opendrap-agent && python3 agent.py</span>
+            <span className="text-white">cd ~/opendevops-agent && python3 agent.py</span>
           </div>
         )}
 
         <div className="flex flex-wrap gap-2 pt-1">
           <button
             onClick={reconnect}
-            className="flex items-center gap-2 px-4 py-2 bg-violet-500/10 border border-violet-500/20 rounded-lg text-sm text-violet-300 hover:bg-violet-500/20 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-sm text-white hover:bg-white/15 transition-colors"
           >
             <RefreshCw className="w-4 h-4" /> Reconnect Agent
           </button>
@@ -463,7 +646,7 @@ function AgentTab() {
       <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-4">
         <h3 className="font-semibold text-white">Install Command</h3>
         <p className="text-sm text-gray-400">Run this in your terminal to install and start the agent automatically.</p>
-        <div className="flex items-center gap-2 p-3.5 bg-[#060608] border border-white/10 rounded-xl">
+        <div className="flex items-center gap-2 p-3.5 bg-[#080808] border border-white/10 rounded-xl">
           <code className="flex-1 text-emerald-300 font-mono text-sm truncate">{installCmd}</code>
           <button
             onClick={copyCmd}
@@ -479,11 +662,11 @@ function AgentTab() {
       {hasToken && (
         <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-4">
           <h3 className="font-semibold text-white flex items-center gap-2">
-            <Fingerprint className="w-4 h-4 text-violet-400" />
+            <Fingerprint className="w-4 h-4 text-white" />
             API Token
           </h3>
           <p className="text-sm text-gray-400">Your authentication token. Used in the install command above. Keep it secret.</p>
-          <div className="flex items-center gap-2 p-3.5 bg-[#060608] border border-white/10 rounded-xl">
+          <div className="flex items-center gap-2 p-3.5 bg-[#080808] border border-white/10 rounded-xl">
             <code className="flex-1 text-amber-300 font-mono text-xs break-all select-all">{getTokenDisplay(token)}</code>
             <button
               onClick={copyToken}

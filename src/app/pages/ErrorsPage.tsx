@@ -121,7 +121,7 @@ export function ErrorsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search errors..."
-              className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50"
+              className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-white/40"
             />
           </div>
           <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)} className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 focus:outline-none">
