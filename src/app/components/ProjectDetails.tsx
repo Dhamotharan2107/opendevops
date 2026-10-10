@@ -120,6 +120,33 @@ export function ProjectDetails() {
   return <ProjectErrorBoundary><ProjectDetailsInner /></ProjectErrorBoundary>;
 }
 
+// ── Per-project port + subdomain helpers ─────────────────────────────
+// Two projects must never share a port or a localtunnel subdomain,
+// otherwise the second Publish kills/replaces the first one's link.
+function defaultPortForProject(projectId: string): string {
+  let h = 0;
+  for (const ch of projectId) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return String(8000 + (h % 1000));
+}
+
+function subdomainForProject(project: { id: string; name: string }): string {
+  const base = (project.name || 'app').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '').slice(0, 30) || 'app';
+  const suffix = (project.id || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6) || 'app';
+  return `${base}-${suffix}`;
+}
+
+function findPortOwner(usePort: string, selfId: string): string | null {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith('opendevops_port_')) continue;
+      if (key === 'opendevops_port_' + selfId) continue;
+      if (localStorage.getItem(key) === usePort) return key.replace('opendevops_port_', '');
+    }
+  } catch {}
+  return null;
+}
+
 function ProjectDetailsInner() {
   const { id } = useParams();
   const { state, dispatch } = useApp();
@@ -176,6 +203,17 @@ function ProjectDetailsInner() {
         localStorage.removeItem('opendevops_tunnel_' + id);
       }
     } catch {}
+  }, [id]);
+
+  // Each project gets its own default port (8000-8999 derived from id) so two
+  // projects never default to the same port. A saved per-project port wins.
+  useEffect(() => {
+    if (!id) return;
+    try {
+      const savedPort = localStorage.getItem('opendevops_port_' + id);
+      if (savedPort) { setTunnelPort(savedPort); return; }
+    } catch {}
+    setTunnelPort(defaultPortForProject(id));
   }, [id]);
 
   const tabs = [
@@ -325,8 +363,7 @@ function ProjectDetailsInner() {
 
   const statusColor = getStatusColor(project.status);
 
-  function getStartCommand(framework: string, port: number): string {
-    switch (framework) {
+  function getStartCommand(framework: string, port: number): string {    switch (framework) {
       case 'nextjs':  return `npm run start -- -p ${port}`;
       case 'react':   return `npx serve dist -p ${port} -s`;
       case 'vue':     return `npm run preview -- --port ${port}`;
@@ -364,8 +401,23 @@ function ProjectDetailsInner() {
     setDeployLogs([]);
     setDeployPhase('Starting server & tunnel...');
 
-    const port = parseInt(tunnelPort, 10) || 8000;
-    const subdomain = (project.name || 'app').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '') || 'app';
+    const port = parseInt(tunnelPort, 10) || parseInt(defaultPortForProject(project.id), 10);
+    // Unique subdomain per project so localtunnel never reports "in use" for
+    // a second project and both links can stay live at the same time.
+    const subdomain = subdomainForProject(project);
+    // Guard: two live projects must not share a port — the second Publish
+    // would otherwise kill the first server via fuser -k.
+    const portOwner = findPortOwner(String(port), project.id);
+    if (portOwner) {
+      setDeployLogs([
+        `=== ERROR: port ${port} is already used by another project.`,
+        '=== Pick a different port above and click Publish again.',
+      ]);
+      setDeployPhase('');
+      setDeploying(false);
+      return;
+    }
+    try { localStorage.setItem('opendevops_port_' + project.id, String(port)); } catch {}
     const deploymentId = crypto.randomUUID();
     dispatch({ type: 'ADD_DEPLOYMENT', payload: {
       id: deploymentId, projectId: project.id,
@@ -454,9 +506,18 @@ function ProjectDetailsInner() {
           const msg = JSON.parse(event.data);
           const text: string = msg.data || msg.message || '';
           if (!text) return;
+          // Ignore tunnel URLs that belong to a different project's publish
+          // (the worker used to broadcast every command's output to all tabs).
+          // Only our own expected subdomain may claim this deployment.
+          if (text.includes('.loca.lt') && !text.includes(subdomain)) return;
           setDeployLogs((prev) => [...prev, text]);
+          if (/subdomain.*(in use|taken|unavailable)|address in use|EADDRINUSE/i.test(text)) {
+            setDeployLogs((prev) => [...prev,
+              `=== Port ${port} or subdomain "${subdomain}" is busy. Change the port above and Publish again.`,
+            ]);
+          }
           const match = text.match(TUNNEL_REGEX);
-          if (match && !urlFound) {
+          if (match && !urlFound && match[0].includes(subdomain)) {
             urlFound = true;
             if (waitTimer) { clearTimeout(waitTimer); waitTimer = null; }
             const url = match[0];
@@ -466,7 +527,9 @@ function ProjectDetailsInner() {
             setDeploying(false);
             // Persist so the live URL survives a page refresh (the tunnel keeps
             // running in Cloud Shell via nohup, so the URL stays valid).
-            try { localStorage.setItem('opendevops_tunnel_' + project.id, JSON.stringify({ url, ts: Date.now() })); } catch {}
+            // Port is stored per-project so a second project picks its own port.
+            try { localStorage.setItem('opendevops_tunnel_' + project.id, JSON.stringify({ url, ts: Date.now(), port: String(port) })); } catch {}
+            try { localStorage.setItem('opendevops_port_' + project.id, String(port)); } catch {}
             dispatch({ type: 'UPDATE_PROJECT', payload: { ...project, url, status: 'deployed' } });
           }
         } catch {}
@@ -494,10 +557,21 @@ function ProjectDetailsInner() {
     const wsBase = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
     const token = localStorage.getItem('token');
     if (token && project) {
+      // Stop ONLY this project's server + tunnel (by its own port/subdomain).
+      // A global `pkill -f localtunnel` would kill every other project's link.
+      const port = parseInt(tunnelPort, 10) || parseInt(defaultPortForProject(project.id), 10);
+      const subdomain = subdomainForProject(project);
+      const stopCmd = [
+        `pkill -f "localtunnel --port ${port}" 2>/dev/null || true`,
+        `pkill -f "${subdomain}" 2>/dev/null || true`,
+        `fuser -k ${port}/tcp 2>/dev/null || true`,
+        `rm -f /tmp/opendev_server_${port}.log 2>/dev/null || true`,
+        `echo "Stopped ${project.name} (port ${port})."`,
+      ].join('; ');
       try {
         const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=stop-${Date.now()}&projectId=default&token=${encodeURIComponent(token)}`);
         ws.onopen = () => {
-          ws.send(JSON.stringify({ type: 'terminal_input', input: 'pkill -f "localtunnel" 2>/dev/null; pkill -f "proxy.tunnl.gg" 2>/dev/null; pkill -f "bin/lt" 2>/dev/null; echo "Stopped."' }));
+          ws.send(JSON.stringify({ type: 'terminal_input', input: stopCmd }));
           setTimeout(() => ws.close(), 5000);
         };
       } catch {}
@@ -640,7 +714,10 @@ function ProjectDetailsInner() {
                     <input
                       type="number"
                       value={tunnelPort}
-                      onChange={(e) => setTunnelPort(e.target.value)}
+                      onChange={(e) => {
+                        setTunnelPort(e.target.value);
+                        try { if (id) localStorage.setItem('opendevops_port_' + id, e.target.value); } catch {}
+                      }}
                       className="w-16 px-2 py-2 bg-transparent text-sm text-white outline-none"
                       placeholder="8000"
                     />

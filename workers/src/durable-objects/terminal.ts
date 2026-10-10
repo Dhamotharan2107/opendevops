@@ -18,6 +18,9 @@ export class TerminalDurableObject implements DurableObject {
   private agentSessionId: string | null;
   private heartbeatTimer: ReturnType<typeof setTimeout> | null;
   private lastHeartbeat: number;
+  // Maps agent command_id -> originating browser session so concurrent
+  // publishes from two projects don't receive each other's output/URLs.
+  private commandOrigins: Map<string, string>;
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
@@ -27,6 +30,7 @@ export class TerminalDurableObject implements DurableObject {
     this.agentSessionId = null;
     this.heartbeatTimer = null;
     this.lastHeartbeat = 0;
+    this.commandOrigins = new Map();
     // Restore persisted agent status on cold start
     this.state.blockConcurrencyWhile(async () => {
       const stored = await this.state.storage.get<string>('agentSessionId');
@@ -121,6 +125,10 @@ export class TerminalDurableObject implements DurableObject {
 
   private handleDisconnect(sessionId: string, ws: WebSocket): void {
     this.websockets.delete(sessionId);
+    // Drop pending command routes for the closed tab so the map can't grow.
+    for (const [cid, origin] of this.commandOrigins.entries()) {
+      if (origin === sessionId) this.commandOrigins.delete(cid);
+    }
 
     if (this.agentSessionId === sessionId) {
       this.agentSessionId = null;
@@ -227,9 +235,17 @@ export class TerminalDurableObject implements DurableObject {
           const agentWs = this.websockets.get(this.agentSessionId);
           if (agentWs) {
             try {
+              const commandId = crypto.randomUUID();
+              // Remember who asked so the agent's reply goes back only to
+              // this tab — not to every other open project.
+              this.commandOrigins.set(commandId, sessionId);
+              if (this.commandOrigins.size > 500) {
+                const oldest = this.commandOrigins.keys().next().value;
+                if (oldest) this.commandOrigins.delete(oldest);
+              }
               agentWs.send(JSON.stringify({
                 type: 'execute_command',
-                command_id: crypto.randomUUID(),
+                command_id: commandId,
                 command: input,
               }));
             } catch {
@@ -247,16 +263,32 @@ export class TerminalDurableObject implements DurableObject {
 
       case 'command_output': {
         const output = data.output as string;
+        const commandId = data.command_id as string | undefined;
         const filtered = output.split('\n').filter((l) => !l.startsWith('__DONE_')).join('\n');
         if (filtered.trim()) {
-          for (const [sid, ws] of this.websockets.entries()) {
-            if (sid === AGENT_SESSION_ID) continue;
-            const s = this.sessions.get(sid);
+          const origin = commandId ? this.commandOrigins.get(commandId) : undefined;
+          if (origin) {
+            // Targeted delivery: only the tab that started this command.
+            const s = this.sessions.get(origin);
             if (s) {
               s.buffer.push(filtered);
               if (s.buffer.length > 1000) s.buffer.splice(0, s.buffer.length - 1000);
             }
-            try { ws.send(JSON.stringify({ type: 'terminal_output', data: filtered })); } catch {}
+            const target = this.websockets.get(origin);
+            if (target) {
+              try { target.send(JSON.stringify({ type: 'terminal_output', data: filtered, command_id: commandId })); } catch {}
+            }
+          } else {
+            // Legacy agent without command_id: fall back to broadcast.
+            for (const [sid, ws] of this.websockets.entries()) {
+              if (sid === AGENT_SESSION_ID) continue;
+              const s = this.sessions.get(sid);
+              if (s) {
+                s.buffer.push(filtered);
+                if (s.buffer.length > 1000) s.buffer.splice(0, s.buffer.length - 1000);
+              }
+              try { ws.send(JSON.stringify({ type: 'terminal_output', data: filtered })); } catch {}
+            }
           }
         }
         break;
@@ -265,14 +297,27 @@ export class TerminalDurableObject implements DurableObject {
       case 'command_completed': {
         const output = data.output as string;
         const newCwd = data.cwd as string | undefined;
+        const commandId = data.command_id as string | undefined;
+        const origin = commandId ? this.commandOrigins.get(commandId) : undefined;
+        if (commandId) this.commandOrigins.delete(commandId);
+        const sendTo = (sid: string, message: string) => {
+          const target = this.websockets.get(sid);
+          if (target) {
+            try { target.send(message); } catch {}
+          }
+        };
         if (output && output.trim()) {
-          this.broadcastToBrowsers(JSON.stringify({
+          const payload = JSON.stringify({
             type: 'terminal_output',
             data: output,
-          }), sessionId);
+          });
+          if (origin) sendTo(origin, payload);
+          else this.broadcastToBrowsers(payload, sessionId);
         }
         if (newCwd) {
-          this.broadcastToBrowsers(JSON.stringify({ type: 'cwd', data: newCwd }), sessionId);
+          const payload = JSON.stringify({ type: 'cwd', data: newCwd });
+          if (origin) sendTo(origin, payload);
+          else this.broadcastToBrowsers(payload, sessionId);
         }
         break;
       }
