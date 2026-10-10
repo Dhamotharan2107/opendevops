@@ -1165,6 +1165,17 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
   );
 }
 
+// Command names offered for first-token Tab completion (plus shell history).
+const COMMON_COMMANDS = [
+  'ls', 'cd', 'pwd', 'cat', 'less', 'head', 'tail', 'grep', 'find', 'echo',
+  'mkdir', 'rmdir', 'rm', 'mv', 'cp', 'touch', 'chmod', 'chown', 'ln',
+  'git', 'npm', 'npx', 'node', 'yarn', 'pnpm', 'python', 'python3', 'pip', 'pip3',
+  'docker', 'kubectl', 'curl', 'wget', 'ssh', 'scp', 'tar', 'zip', 'unzip',
+  'vim', 'nano', 'code', 'clear', 'exit', 'history', 'export', 'source',
+  'bash', 'sh', 'ps', 'kill', 'top', 'df', 'du', 'whoami', 'hostname',
+  'opendevops-agent', 'nohup', 'fuser', 'tail', 'diff', 'sort', 'uniq', 'wc',
+];
+
 function TerminalTab({ projectId, projectName }: { projectId: string; projectName: string }) {
   const [cwd, setCwd] = useState('~');
   const [hostname, setHostname] = useState('cloudshell');
@@ -1179,6 +1190,16 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
   const wsRef = useRef<WebSocket | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  // Tab-completion state (Termius-style): candidate list + cycle index.
+  const [suggest, setSuggest] = useState<string[]>([]);
+  const [suggestIdx, setSuggestIdx] = useState(0);
+  const dirCacheRef = useRef(new Map<string, { entries: { name: string; dir: boolean }[]; ts: number }>());
+  const pendingCompleteRef = useRef<{
+    request_id: string; cacheKey: string; cmd: string;
+    tokStart: number; tokEnd: number; base: string; dirsOnly: boolean;
+  } | null>(null);
+  const completedTokenRef = useRef<string | null>(null);
+  const lastTokRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
 
   useEffect(() => {
     const wsBase = BASE_URL.replace('/api', '').replace('https://', 'wss://').replace('http://', 'ws://');
@@ -1231,6 +1252,17 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
           } else if (msg.type === 'agent_disconnected') {
             setAgentConnected(false);
             setLines((p) => [...p, { type: 'error', text: 'Agent disconnected. Run: bash ~/opendevops-agent/restart.sh' }]);
+          } else if (msg.type === 'dir_list') {
+            // Reply to a Tab-completion listing request (not a normal terminal line).
+            const pend = pendingCompleteRef.current;
+            if (pend && msg.request_id && msg.request_id === pend.request_id) {
+              pendingCompleteRef.current = null;
+              if (!msg.error && Array.isArray(msg.entries)) {
+                const entries = msg.entries as { name: string; dir: boolean }[];
+                dirCacheRef.current.set(pend.cacheKey, { entries, ts: Date.now() });
+                applyPathCandidates(entries, pend);
+              }
+            }
           } else if (msg.type === 'error' && text) {
             setLines((p) => [...p, { type: 'error', text }]);
           }
@@ -1284,6 +1316,8 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
     setHistory((h) => [trimmed, ...h.slice(0, 99)]);
     setHistIdx(-1);
     setCommand('');
+    clearSuggest();
+    pendingCompleteRef.current = null;
 
     setLines((p) => [...p, { type: 'command', text: `${hostname}:${cwd}$ ${trimmed}` }]);
 
@@ -1297,10 +1331,159 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
     wsRef.current.send(JSON.stringify({ type: 'terminal_input', input: actualCmd }));
   };
 
+  const clearSuggest = () => {
+    setSuggest([]);
+    setSuggestIdx(0);
+    completedTokenRef.current = null;
+  };
+
+  const commonPrefix = (items: string[]): string => {
+    if (!items.length) return '';
+    let prefix = items[0];
+    for (let i = 1; i < items.length; i++) {
+      let j = 0;
+      while (j < prefix.length && j < items[i].length && prefix[j] === items[i][j]) j++;
+      prefix = prefix.slice(0, j);
+      if (!prefix) break;
+    }
+    return prefix;
+  };
+
+  // Replace the token at [start, end) with text and restore the caret.
+  const replaceToken = (start: number, end: number, text: string) => {
+    setCommand((prev) => prev.slice(0, start) + text + prev.slice(end));
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (el) {
+        const pos = start + text.length;
+        el.setSelectionRange(pos, pos);
+        el.focus();
+      }
+    });
+  };
+
+  // Shared single-vs-multiple logic. `full` are complete replacement strings
+  // for the token (already include dir prefix + trailing '/' or ' ').
+  const applyCandidates = (full: string[], start: number, end: number, base: string) => {
+    if (full.length === 0) return;
+    if (full.length === 1) {
+      replaceToken(start, end, full[0]);
+      completedTokenRef.current = full[0];
+      setSuggest([]);
+      return;
+    }
+    const prefix = commonPrefix(full);
+    if (prefix.length > base.length) {
+      replaceToken(start, end, prefix);
+      lastTokRef.current = { start, end: start + prefix.length };
+      completedTokenRef.current = prefix;
+    } else {
+      lastTokRef.current = { start, end };
+      completedTokenRef.current = base;
+    }
+    setSuggest(full);
+    setSuggestIdx(0);
+  };
+
+  const pickSuggestion = (i: number) => {
+    const c = suggest[i];
+    if (c == null) return;
+    const { start, end } = lastTokRef.current;
+    replaceToken(start, end, c);
+    completedTokenRef.current = c;
+    setSuggest([]);
+  };
+
+  // Called with a fresh agent dir listing for a pending path completion.
+  const applyPathCandidates = (
+    entries: { name: string; dir: boolean }[],
+    pend: { cmd: string; tokStart: number; tokEnd: number; base: string; dirsOnly: boolean },
+  ) => {
+    const slash = pend.base.lastIndexOf('/');
+    const filePart = slash >= 0 ? pend.base.slice(slash + 1) : pend.base;
+    const dirPart = slash >= 0 ? pend.base.slice(0, slash + 1) : '';
+    const names = entries
+      .filter((en) => (pend.dirsOnly ? en.dir : true))
+      .map((en) => en.name)
+      .filter((n) => n.startsWith(filePart) && (filePart.startsWith('.') || !n.startsWith('.')));
+    const isDir = (n: string) => entries.some((en) => en.name === n && en.dir);
+    applyCandidates(
+      names.map((n) => dirPart + n + (isDir(n) ? '/' : ' ')),
+      pend.tokStart,
+      pend.tokEnd,
+      pend.base,
+    );
+  };
+
+  const handleTab = () => {
+    if (!agentConnected || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    const el = inputRef.current;
+    const cursor = el?.selectionStart ?? command.length;
+    const before = command.slice(0, cursor);
+    const m = before.match(/(\S+)$/);
+    const token = m ? m[1] : '';
+    const tokEnd = cursor;
+    const tokStart = cursor - token.length;
+    if (!token) return;
+
+    // Repeated Tab on the same completed token → cycle candidates.
+    if (suggest.length > 1 && completedTokenRef.current === token) {
+      const next = (suggestIdx + 1) % suggest.length;
+      setSuggestIdx(next);
+      replaceToken(tokStart, tokEnd, suggest[next]);
+      completedTokenRef.current = suggest[next];
+      lastTokRef.current = { start: tokStart, end: tokStart + suggest[next].length };
+      return;
+    }
+
+    const firstSpace = before.search(/\s/);
+    const isFirstToken = firstSpace === -1;
+    const cmdName = (isFirstToken ? '' : before.slice(0, firstSpace)).trim();
+
+    if (isFirstToken) {
+      // Command-name completion from history + common commands.
+      const seen = new Set<string>();
+      const pool: string[] = [];
+      history.forEach((h) => {
+        const w = h.trim().split(/\s+/)[0];
+        if (w && w.startsWith(token) && !seen.has(w)) { seen.add(w); pool.push(w); }
+      });
+      COMMON_COMMANDS.forEach((c) => {
+        if (c.startsWith(token) && !seen.has(c)) { seen.add(c); pool.push(c); }
+      });
+      lastTokRef.current = { start: tokStart, end: tokEnd };
+      applyCandidates(pool.map((c) => c + ' '), tokStart, tokEnd, token);
+      return;
+    }
+
+    // Path completion via a live agent dir listing (cached 5s per dir).
+    if (pendingCompleteRef.current) return; // one in flight already
+    const slash = token.lastIndexOf('/');
+    const dirPart = slash >= 0 ? token.slice(0, slash + 1) : '';
+    let listPath: string;
+    if (!dirPart) listPath = cwd;
+    else if (dirPart.startsWith('~') || dirPart.startsWith('/')) listPath = dirPart;
+    else listPath = cwd === '~' ? `~/${dirPart}` : `${cwd}/${dirPart}`;
+    // Strip trailing slash for the cache key, keep display prefix as typed.
+    const cacheKey = listPath.replace(/\/+$/, '') || '/';
+    const dirsOnly = cmdName === 'cd' || cmdName === 'rmdir';
+    const cached = dirCacheRef.current.get(cacheKey);
+    if (cached && Date.now() - cached.ts < 5000) {
+      applyPathCandidates(cached.entries, { cmd: command, tokStart, tokEnd, base: token, dirsOnly });
+      return;
+    }
+    const request_id = crypto.randomUUID();
+    pendingCompleteRef.current = { request_id, cacheKey, cmd: command, tokStart, tokEnd, base: token, dirsOnly };
+    wsRef.current.send(JSON.stringify({ type: 'list_dir', path: listPath, request_id }));
+    setTimeout(() => {
+      if (pendingCompleteRef.current?.request_id === request_id) pendingCompleteRef.current = null;
+    }, 8000);
+  };
+
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Tab') {
       e.preventDefault();
-      setCommand((prev) => prev + '\t');
+      handleTab();
     } else if (e.ctrlKey && e.key === 'c') {
       e.preventDefault();
       setLines((p) => [...p, { type: 'command', text: '^C' }]);
@@ -1359,12 +1542,12 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
 
           <div className="flex items-center gap-2 mt-1">
             <span className="text-white/40 flex-shrink-0 select-none">{prompt}</span>
-            <input
-              ref={inputRef}
+            <input              ref={inputRef}
               value={command}
-              onChange={(e) => setCommand(e.target.value)}
+              onChange={(e) => { setCommand(e.target.value); setSuggest([]); }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') { handleSubmit(e as any); return; }
+                if (e.key === 'Escape') { setSuggest([]); return; }
                 onKeyDown(e);
               }}
               className="flex-1 bg-transparent outline-none text-white font-mono caret-white"
@@ -1375,6 +1558,25 @@ function TerminalTab({ projectId, projectName }: { projectId: string; projectNam
               disabled={!wsConnected}
             />
           </div>
+          {suggest.length > 1 && (
+            <div className="flex flex-wrap items-center gap-1.5 mt-2 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10">
+              <span className="text-[10px] text-white/30 font-mono select-none">TAB</span>
+              {suggest.slice(0, 12).map((s, i) => (
+                <button
+                  key={s}
+                  onClick={() => pickSuggestion(i)}
+                  className={`px-2 py-0.5 rounded font-mono text-xs transition-colors ${
+                    i === suggestIdx ? 'bg-white/20 text-white' : 'text-white/50 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {s.trim() || s}
+                </button>
+              ))}
+              {suggest.length > 12 && (
+                <span className="text-[10px] text-white/30 font-mono">+{suggest.length - 12} more</span>
+              )}
+            </div>
+          )}
           <div ref={endRef} />
         </div>
       </motion.div>
