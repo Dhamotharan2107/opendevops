@@ -163,12 +163,34 @@ export async function apiLogout() {
 
 export async function apiGetProjects(page = 1, limit = 20) {
   if (isDemoMode()) return { projects: DEMO_PROJECTS, total: DEMO_PROJECTS.length };
-  return request<{ projects: any[]; total: number }>(`/projects?page=${page}&limit=${limit}`);
+  const res = await request<{ projects: any[]; total: number }>(`/projects?page=${page}&limit=${limit}`);
+  return { projects: (res.projects || []).map(normalizeProject), total: res.total ?? 0 };
 }
 
 export async function apiGetDeployments(projectId: string) {
   if (isDemoMode()) return DEMO_DEPLOYMENTS.filter(d => d.projectId === projectId);
-  return request<any[]>(`/projects/${projectId}/deployments`);
+  // Backend serves deployments at GET /deployments?projectId=… with a
+  // paginated { items, total } envelope (NOT /projects/:id/deployments).
+  const res = await request<{ items: any[]; total: number }>(`/deployments?projectId=${encodeURIComponent(projectId)}&limit=50`);
+  return (res.items || []).map((d: any) => ({
+    id: d.id,
+    projectId: d.project_id || d.projectId || projectId,
+    version: d.version || 'v1.0.0',
+    commit: d.commit_hash || d.commit || 'HEAD',
+    branch: d.branch || 'main',
+    status: (d.status === 'success' || d.status === 'failed' || d.status === 'building') ? d.status : 'building',
+    time: d.created_at ? new Date(d.created_at).toLocaleString() : '',
+  }));
+}
+
+export async function apiCreateDeployment(data: { project_id: string; branch: string; commit_hash?: string; commit_message?: string }) {
+  if (isDemoMode()) return null;
+  return request<any>('/deployments', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function apiUpdateDeployment(id: string, data: { status?: 'building' | 'success' | 'failed'; logs?: string }) {
+  if (isDemoMode()) return null;
+  return request<any>(`/deployments/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 }
 
 export async function apiGetNotifications() {
@@ -341,21 +363,63 @@ export async function apiCreateProject(data: any) {
       members: [],
     };
   }
-  return request<any>('/projects', { method: 'POST', body: JSON.stringify(data) });
+  // Backend expects `repo_url` (a valid URL) — the UI collects `repo`.
+  const payload: any = { ...data };
+  if (payload.repo !== undefined) {
+    payload.repo_url = normalizeRepoUrl(payload.repo);
+    delete payload.repo;
+  } else if (payload.repo_url !== undefined) {
+    payload.repo_url = normalizeRepoUrl(payload.repo_url);
+  }
+  delete payload.github_token; // local-only credential, never sent
+  const created = await request<any>('/projects', { method: 'POST', body: JSON.stringify(payload) });
+  return normalizeProject(created);
 }
 
 export async function apiGetProject(id: string) {
   if (isDemoMode()) return DEMO_PROJECTS.find(p => p.id === id) || null;
-  return request<any>(`/projects/${id}`);
+  const raw = await request<any>(`/projects/${id}`);
+  return normalizeProject(raw);
+}
+
+/** Backend rows use repo_url / tunnel_url / created_at — the UI uses repo / url / lastDeploy. */
+export function normalizeProject(p: any) {
+  if (!p || typeof p !== 'object') return p;
+  return {
+    ...p,
+    repo: p.repo ?? p.repo_url ?? '',
+    url: p.url ?? p.tunnel_url ?? '',
+    lastDeploy: p.lastDeploy ?? (p.updated_at ? new Date(p.updated_at).toLocaleString() : p.created_at ? new Date(p.created_at).toLocaleString() : ''),
+    visits: p.visits ?? '—',
+    build_command: p.build_command ?? '',
+    start_command: p.start_command ?? '',
+  };
+}
+
+/** Backend zod schemas require repo_url to be a valid URL — accept bare
+ *  "github.com/user/repo" input by prefixing https:// automatically. */
+export function normalizeRepoUrl(repo: string): string | undefined {
+  const v = (repo || '').trim();
+  if (!v) return undefined;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(v)) return v;
+  if (v.startsWith('git@') || v.endsWith('.git') || v.includes('@')) return v;
+  return `https://${v}`;
 }
 
 export async function apiUpdateProject(id: string, data: {
-  name?: string; branch?: string; framework?: string;
+  name?: string; description?: string; branch?: string; framework?: string;
   build_command?: string; start_command?: string; environment?: string;
-  repo_url?: string; status?: string;
+  repo_url?: string; status?: string; tunnel_url?: string;
 }) {
   if (isDemoMode()) return { ...DEMO_PROJECTS.find(p => p.id === id), ...data };
-  return request<any>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+  const payload: any = { ...data };
+  if (payload.repo_url !== undefined) {
+    const normalized = normalizeRepoUrl(payload.repo_url);
+    if (normalized === undefined) delete payload.repo_url;
+    else payload.repo_url = normalized;
+  }
+  const updated = await request<any>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  return normalizeProject(updated);
 }
 
 export async function apiGetDashboard() {

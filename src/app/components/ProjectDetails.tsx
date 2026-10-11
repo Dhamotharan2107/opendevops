@@ -16,7 +16,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { useApp } from '../../lib/store';
-import { BASE_URL, githubFetchBranches, getGitHubPat, apiGetProjects, apiGetLogs, apiGetErrors, apiReportLog, apiReportError, apiUpdateProject, isDemoMode, DEMO_ERRORS } from '../../lib/api';
+import { BASE_URL, githubFetchBranches, getGitHubPat, apiGetProjects, apiGetLogs, apiGetErrors, apiGetDeployments, apiCreateDeployment, apiUpdateDeployment, apiReportLog, apiReportError, apiUpdateProject, isDemoMode, DEMO_ERRORS } from '../../lib/api';
 import { cn, getStatusColor, getPriorityColor, getInitials } from '../../lib/utils';
 import type { Project, Deployment, LogEntry, ErrorRecord, AITestResult, APIRequest } from '../../lib/types';
 
@@ -135,6 +135,10 @@ function subdomainForProject(project: { id: string; name: string }): string {
   return `${base}-${suffix}`;
 }
 
+function shellQuote(value: string): string {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
 function findPortOwner(usePort: string, selfId: string): string | null {
   try {
     for (let i = 0; i < localStorage.length; i++) {
@@ -223,7 +227,6 @@ function ProjectDetailsInner() {
     { id: 'editor', label: 'Editor', icon: FileEdit },
     { id: 'logs', label: 'Logs', icon: ScrollText },
     { id: 'errors', label: 'Errors', icon: AlertCircle },
-    { id: 'ai-testing', label: 'AI Testing', icon: Brain },
     { id: 'api-lab', label: 'API Lab', icon: FileCode },
     { id: 'monitoring', label: 'Monitoring', icon: BarChart3 },
     { id: 'settings', label: 'Settings', icon: Settings },
@@ -277,7 +280,7 @@ function ProjectDetailsInner() {
       ws.onopen = () => {
         ws.send(JSON.stringify({
           type: 'terminal_input',
-          input: `cd ~/opendev/projects/${project.name} 2>/dev/null && git fetch --all -q 2>/dev/null; git branch -a 2>/dev/null || echo main`,
+          input: `cd $HOME/opendev/projects/${shellQuote(project.name)} 2>/dev/null && git fetch --all -q 2>/dev/null; git branch -a 2>/dev/null || echo main`,
         }));
         setTimeout(() => ws.close(), 15000);
       };
@@ -307,19 +310,39 @@ function ProjectDetailsInner() {
     if (token) {
       try {
         const ws = new WebSocket(`${wsBase}/api/terminal/ws?sessionId=branch-${Date.now()}&projectId=default&token=${encodeURIComponent(token)}`);
+        let branchOutput = '';
+        let branchFailed = false;
         ws.onopen = () => {
           ws.send(JSON.stringify({
             type: 'terminal_input',
-            input: `cd ~/opendev/projects/${project.name} && git fetch --all && git checkout ${branch} && git pull origin ${branch} && echo "Switched to ${branch}"`,
+            input: `cd $HOME/opendev/projects/${shellQuote(project.name)} && git fetch --all && git checkout ${shellQuote(branch)} && git pull origin ${shellQuote(branch)} && echo "Switched to ${branch}"`,
           }));
           setTimeout(() => ws.close(), 15000);
         };
-      } catch {}
+        ws.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data);
+            branchOutput += String(msg.data || msg.output || msg.message || '');
+            if (/fatal:|error:/i.test(branchOutput)) branchFailed = true;
+          } catch {}
+        };
+        ws.onclose = () => {
+          if (branchFailed) setChangingBranch(false);
+        };
+      } catch { setChangingBranch(false); }
     }
 
-    setActiveBranch(branch);
-    dispatch({ type: 'UPDATE_PROJECT', payload: { ...project, branch } });
-    setTimeout(() => setChangingBranch(false), 1500);
+    // Persist first so a refresh cannot revert the selection. The agent
+    // checkout above updates the working tree when an agent is connected.
+    try {
+      await apiUpdateProject(project.id, { branch });
+      setActiveBranch(branch);
+      dispatch({ type: 'UPDATE_PROJECT', payload: { ...project, branch } });
+    } catch {
+      setActiveBranch(project.branch || 'main');
+    } finally {
+      setChangingBranch(false);
+    }
   };
 
   const filteredBranches = branches.filter((b) =>
@@ -421,7 +444,13 @@ function ProjectDetailsInner() {
     // Record the publish in the project's Logs tab (execution happens on the
     // agent via WebSocket, so the backend API never sees it otherwise).
     apiReportLog(project.id, 'info', `Publish started on port ${port} (subdomain ${subdomain})`);
-    const deploymentId = crypto.randomUUID();
+    const localDeploymentId = crypto.randomUUID();
+    const persistedDeployment = await apiCreateDeployment({
+      project_id: project.id,
+      branch: activeBranch || project.branch || 'main',
+      commit_hash: 'HEAD',
+    }).catch(() => null);
+    const deploymentId = persistedDeployment?.id || localDeploymentId;
     dispatch({ type: 'ADD_DEPLOYMENT', payload: {
       id: deploymentId, projectId: project.id,
       version: `v${Date.now()}`, commit: 'HEAD', branch: activeBranch || project.branch,
@@ -433,28 +462,29 @@ function ProjectDetailsInner() {
     if (!token) { setDeploying(false); return; }
 
     const serverCmd = getStartCommand(project.framework || '', port);
-    const buildCmd = getBuildCommand(project.framework || '');
-    const projectDir = `~/opendev/projects/${project.name}`;
-    const isPython = ['django', 'python', 'fastapi'].includes(project.framework || '');
+    const projectDir = `$HOME/opendev/projects/${shellQuote(project.name)}`;
+    // Saved Settings tab commands win over framework defaults. A custom run
+    // command runs as-is (no python venv wrapping); a custom build command
+    // replaces the framework install/build step. Build is optional.
+    const customStart = (project.start_command || '').trim();
+    const customBuild = (project.build_command || '').trim();
+    const runCmd = customStart || serverCmd;
+    const installCmd = customBuild;
+    const isPython = !customStart && ['django', 'python', 'fastapi'].includes(project.framework || '');
+    const pythonSetup = isPython ? [
+      `if [ -f venv/bin/python ]; then PYTHON=$(pwd)/venv/bin/python`,
+      `elif [ -f .venv/bin/python ]; then PYTHON=$(pwd)/.venv/bin/python`,
+      `else PYTHON=$(which python3 2>/dev/null || which python 2>/dev/null); fi`,
+      `echo "=== Python: $PYTHON"`,
+    ] : [];
 
     // LocalTunnel with stable subdomain. Matches "https://myapp.loca.lt"
     const TUNNEL_REGEX = /https:\/\/[a-zA-Z0-9-]+\.loca\.lt/;
 
     const script = [
       `cd ${projectDir} 2>/dev/null || { echo '=== ERROR: project folder not found: ${projectDir}'; exit 1; }`,
-      ...(isPython ? [
-        `if [ -f venv/bin/python ]; then PYTHON=$(pwd)/venv/bin/python`,
-        `elif [ -f .venv/bin/python ]; then PYTHON=$(pwd)/.venv/bin/python`,
-        `else PYTHON=$(which python3 2>/dev/null || which python 2>/dev/null); fi`,
-        `echo "=== Python: $PYTHON"`,
-        `if [ -f requirements.txt ]; then $PYTHON -m pip install -r requirements.txt -q`,
-        `elif [ -d requirements ]; then for f in requirements/*.txt; do $PYTHON -m pip install -r "$f" -q; done`,
-        `elif [ -f pyproject.toml ]; then $PYTHON -m pip install -e . -q 2>/dev/null || $PYTHON -m pip install . -q`,
-        `else echo '=== No requirements file found, skipping install'; fi`,
-        `$PYTHON manage.py migrate --run-syncdb -v 0 2>/dev/null || true`,
-      ] : [
-        buildCmd,
-      ]),
+      ...(customBuild ? [installCmd] : []),
+      ...pythonSetup,
       `fuser -k ${port}/tcp 2>/dev/null || true`,
       `echo '=== Starting server...'`,
       ...(isPython ? [
@@ -462,7 +492,7 @@ function ProjectDetailsInner() {
         `PROJECT_ABS=$(pwd)`,
         `nohup $PYTHON_ABS $PROJECT_ABS/manage.py runserver 0.0.0.0:${port} > /tmp/opendev_server_${port}.log 2>&1 &`,
       ] : [
-        `nohup ${serverCmd} > /tmp/opendev_server_${port}.log 2>&1 &`,
+        `nohup ${runCmd} > /tmp/opendev_server_${port}.log 2>&1 &`,
       ]),
       `echo "=== Server PID: $!"`,
       `echo '=== Waiting for port ${port}...'`,
@@ -545,6 +575,7 @@ function ProjectDetailsInner() {
             try { localStorage.setItem('opendevops_tunnel_' + project.id, JSON.stringify({ url, ts: Date.now(), port: String(port) })); } catch {}
             try { localStorage.setItem('opendevops_port_' + project.id, String(port)); } catch {}
             apiReportLog(project.id, 'info', `Published — live at ${url} (port ${port})`);
+            apiUpdateDeployment(deploymentId, { status: 'success', logs: deployLogs.join('\n') }).catch(() => {});
             dispatch({ type: 'UPDATE_PROJECT', payload: { ...project, url, status: 'deployed' } });
           }
         } catch {}
@@ -556,6 +587,7 @@ function ProjectDetailsInner() {
           setDeployLogs((prev) => [...prev, '=== Connection closed before the tunnel came up. Click Publish to retry.']);
           setDeployPhase('');
           setDeploying(false);
+          apiUpdateDeployment(deploymentId, { status: 'failed', logs: deployLogs.join('\n') }).catch(() => {});
           reportPublishError('Publish failed: tunnel never came up', `No localtunnel URL appeared for ${project.name} on port ${port}. Check the agent connection and that the server started.`);
         }
       };
@@ -611,20 +643,20 @@ function ProjectDetailsInner() {
   return (
     <div className="h-full flex flex-col bg-black">
       <div className="border-b border-white/10 bg-white/[0.02] backdrop-blur-sm">
-        <div className="p-6">
-          <div className="flex items-start justify-between mb-6">
+        <div className="p-3 sm:p-4 md:p-6">
+          <div className="flex flex-col xl:flex-row xl:items-start gap-4 xl:justify-between mb-4 sm:mb-6">
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ type: 'spring', stiffness: 300, damping: 26 }}
             >
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl font-bold text-white">{project.name}</h1>
+              <div className="flex items-start gap-2 mb-2 min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-white truncate">{project.name}</h1>
                 <span className={cn('px-2.5 py-0.5 rounded-lg text-xs font-medium border', statusColor)}>
                   {project.status}
                 </span>
               </div>
-              <div className="flex items-center gap-4 text-sm text-white/40">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-white/40 min-w-0">
                 <div className="flex items-center gap-2">
                   <Code className="w-4 h-4" />
                   <span className="truncate max-w-xs">{project.repo}</span>
@@ -680,7 +712,7 @@ function ProjectDetailsInner() {
               </div>
             </motion.div>
             <motion.div
-              className="flex items-center gap-3 flex-wrap"
+              className="flex items-center gap-2 sm:gap-3 flex-wrap w-full xl:w-auto"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.15, type: 'spring', stiffness: 300, damping: 22 }}
@@ -725,7 +757,7 @@ function ProjectDetailsInner() {
                   <span className="text-sm">{stopping ? 'Stopping...' : 'Stop Tunnel'}</span>
                 </button>
               ) : (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <div className="flex items-center gap-1 border border-white/10 rounded-lg bg-white/5 overflow-hidden">
                     <span className="pl-3 text-xs text-white/30 select-none">port</span>
                     <input
@@ -742,8 +774,8 @@ function ProjectDetailsInner() {
                   <button
                     onClick={() => handleDeploy(project)}
                     disabled={deploying || !state.agentConnected}
-                    title={!state.agentConnected ? 'Agent must be connected' : `Installs deps, starts ${getStartCommand(project.framework || '', parseInt(tunnelPort)||8000)}, then opens a public tunnel`}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-white to-white/90 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                    title={!state.agentConnected ? 'Agent must be connected' : `Runs: ${((project.start_command || '').trim() || getStartCommand(project.framework || '', parseInt(tunnelPort) || 8000))}, then opens a public tunnel`}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-white to-white/90 text-black rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
                     {deploying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudLightning className="w-4 h-4" />}
                     <span className="text-sm">{deploying ? (deployPhase || 'Starting...') : 'Publish'}</span>
@@ -753,13 +785,13 @@ function ProjectDetailsInner() {
             </motion.div>
           </div>
 
-          <div className="flex items-center gap-1 overflow-x-auto">
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap',
+                  'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap shrink-0',
                   activeTab === tab.id
                     ? 'bg-white/10 text-white font-medium'
                     : 'text-white/40 hover:text-white hover:bg-white/5'
@@ -773,7 +805,7 @@ function ProjectDetailsInner() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4 md:p-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -787,7 +819,6 @@ function ProjectDetailsInner() {
             {activeTab === 'editor' && <EditorTab projectId={project.id} projectName={project.name} />}
             {activeTab === 'logs' && <LogsTab projectId={project.id} />}
             {activeTab === 'errors' && <ErrorsTab projectId={project.id} />}
-            {activeTab === 'ai-testing' && <AITestingTab projectId={project.id} />}
             {activeTab === 'api-lab' && <APILabTab />}
             {activeTab === 'monitoring' && <MonitoringTab />}
             {activeTab === 'deployments' && <DeploymentsTab projectId={project.id} />}
@@ -920,10 +951,10 @@ function OverviewTab({ project, tunnelUrl, deployLogs, deployPhase, tunnelRunnin
         </motion.div>
       )}
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <motion.div
           variants={itemVariants}
-          className="border border-white/10 rounded-xl p-6 bg-white/[0.02] backdrop-blur-sm"
+          className="border border-white/10 rounded-xl p-4 sm:p-6 bg-white/[0.02] backdrop-blur-sm"
         >
           <h3 className="font-semibold text-white mb-4">Project Status</h3>
           <div className="space-y-4">
@@ -980,7 +1011,7 @@ function OverviewTab({ project, tunnelUrl, deployLogs, deployPhase, tunnelRunnin
 
         <motion.div
           variants={itemVariants}
-          className="border border-white/10 rounded-xl p-6 bg-white/[0.02] backdrop-blur-sm"
+          className="border border-white/10 rounded-xl p-4 sm:p-6 bg-white/[0.02] backdrop-blur-sm"
         >
           <h3 className="font-semibold text-white mb-4">Quick Stats</h3>
           <div className="grid grid-cols-2 gap-4">
@@ -1079,11 +1110,32 @@ function OverviewTab({ project, tunnelUrl, deployLogs, deployPhase, tunnelRunnin
 }
 
 function DeploymentsTab({ projectId }: { projectId: string }) {
-  const { state } = useApp();
-  const deployments = useMemo(
+  const { state, dispatch } = useApp();
+  const localDeployments = useMemo(
     () => state.deployments.filter((d) => d.projectId === projectId),
     [projectId, state.deployments]
   );
+  const [loading, setLoading] = useState(false);
+
+  const loadDeployments = async () => {
+    setLoading(true);
+    try {
+      const remote = await apiGetDeployments(projectId);
+      if (remote.length) dispatch({ type: 'SET_DEPLOYMENTS', payload: [
+        ...remote,
+        ...state.deployments.filter((d) => d.projectId !== projectId),
+      ] });
+    } catch { /* keep local deployment activity visible */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { loadDeployments(); }, [projectId]);
+
+  const deployments = useMemo(() => {
+    const byId = new Map<string, Deployment>();
+    [...localDeployments, ...state.deployments.filter((d) => d.projectId === projectId)].forEach((d) => byId.set(d.id, d));
+    return [...byId.values()];
+  }, [localDeployments, projectId, state.deployments]);
 
   return (
     <motion.div
@@ -1097,7 +1149,8 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
         className="border border-white/10 rounded-xl overflow-hidden bg-white/[0.02] backdrop-blur-sm"
       >
         {deployments.length > 0 ? (
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px]">
             <thead>
               <tr className="border-b border-white/10 bg-white/5">
                 <th className="text-left py-3 px-6 text-sm font-medium text-white/40">Version</th>
@@ -1154,10 +1207,11 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
               ))}
             </tbody>
           </table>
+          </div>
         ) : (
           <div className="py-12 text-center">
             <GitBranch className="w-8 h-8 text-white/20 mx-auto mb-3" />
-            <p className="text-sm text-white/40">No deployments found</p>
+            <p className="text-sm text-white/40">{loading ? 'Loading deployments...' : 'No deployments found'}</p>
           </div>
         )}
       </motion.div>
@@ -2005,6 +2059,7 @@ function LogsTab({ projectId }: { projectId: string }) {
   const [levelFilter, setLevelFilter] = useState<'all' | 'info' | 'warn' | 'error'>('all');
   const [fetched, setFetched] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   const DEMO_LOGS: LogEntry[] = [
     { id: 'dl1', projectId, level: 'info', message: 'Server started on port 3000', timestamp: new Date(Date.now() - 60000).toISOString() },
@@ -2015,7 +2070,7 @@ function LogsTab({ projectId }: { projectId: string }) {
   ];
 
   const loadLogs = async () => {
-    if (isDemoMode()) { setFetched(DEMO_LOGS); return; }
+    if (isDemoMode()) { setFetched(DEMO_LOGS); setLoadError(''); return; }
     setLoading(true);
     try {
       const res = await apiGetLogs(projectId, levelFilter === 'all' ? undefined : levelFilter, search.trim() || undefined, 1, 200);
@@ -2027,19 +2082,30 @@ function LogsTab({ projectId }: { projectId: string }) {
         timestamp: item.created_at ? new Date(item.created_at).toLocaleString() : new Date().toLocaleString(),
       }));
       setFetched(mapped);
-    } catch {
-      // keep whatever we have
+      setLoadError('');
+    } catch (e: any) {
+      // Surface the failure instead of showing a misleading empty list.
+      setLoadError(e?.message || 'Could not load logs from the server.');
     } finally {
       setLoading(false);
     }
   };
 
+  // Immediate load on tab/project/filter change…
   useEffect(() => {
     loadLogs();
-    const t = setInterval(loadLogs, 5000);
+    // …plus background polling so new server-side entries appear.
+    const t = setInterval(loadLogs, 10000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [levelFilter, search]);
+  }, [projectId, levelFilter]);
+
+  // Debounced search so typing doesn't spam the API.
+  useEffect(() => {
+    const t = setTimeout(loadLogs, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const filteredLogs = useMemo(() => {
     // Merge any in-state project logs with the fetched backend logs.
@@ -2060,7 +2126,7 @@ function LogsTab({ projectId }: { projectId: string }) {
       animate="visible"
       className="max-w-7xl mx-auto space-y-4"
     >
-      <motion.div variants={itemVariants} className="flex items-center gap-4">
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
           <input
@@ -2071,13 +2137,13 @@ function LogsTab({ projectId }: { projectId: string }) {
             className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/20"
           />
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 overflow-x-auto">
           {(['all', 'info', 'warn', 'error'] as const).map((level) => (
             <button
               key={level}
               onClick={() => setLevelFilter(level)}
               className={cn(
-                'px-3 py-2 rounded-lg text-sm transition-colors',
+                'px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap',
                 levelFilter === level
                   ? 'bg-white/10 text-white'
                   : 'text-white/40 hover:text-white hover:bg-white/5'
@@ -2087,11 +2153,19 @@ function LogsTab({ projectId }: { projectId: string }) {
             </button>
           ))}
         </div>
-        <button onClick={loadLogs} className="flex items-center gap-2 px-4 py-2 border border-white/10 rounded-lg hover:bg-white/5 text-white/60 hover:text-white transition-colors">
+        <button onClick={loadLogs} className="flex items-center justify-center gap-2 px-4 py-2 border border-white/10 rounded-lg hover:bg-white/5 text-white/60 hover:text-white transition-colors">
           <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
           <span className="text-sm">Refresh</span>
         </button>
       </motion.div>
+
+      {loadError && filteredLogs.length === 0 && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          {loadError}
+          <button onClick={loadLogs} className="ml-auto underline hover:no-underline shrink-0">Retry</button>
+        </div>
+      )}
 
       <motion.div
         variants={itemVariants}
@@ -2138,20 +2212,24 @@ function ErrorsTab({ projectId }: { projectId: string }) {
   const { state } = useApp();
   const [fetched, setFetched] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   const loadErrors = async () => {
     // Demo mode: the backend returns an empty list, so surface the bundled
     // demo errors for this project instead of showing "No errors reported".
     if (isDemoMode()) {
       setFetched(DEMO_ERRORS.filter((e) => e.projectId === projectId));
+      setLoadError('');
       return;
     }
     setLoading(true);
     try {
       const res = await apiGetErrors(projectId);
       setFetched(res.errors || []);
-    } catch {
-      // keep whatever we have
+      setLoadError('');
+    } catch (e: any) {
+      // Surface the failure instead of showing a misleading empty list.
+      setLoadError(e?.message || 'Could not load errors from the server.');
     } finally {
       setLoading(false);
     }
@@ -2200,6 +2278,13 @@ function ErrorsTab({ projectId }: { projectId: string }) {
           <span className="text-sm">Refresh</span>
         </button>
       </div>
+      {loadError && errors.length === 0 && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          {loadError}
+          <button onClick={loadErrors} className="ml-auto underline hover:no-underline shrink-0">Retry</button>
+        </div>
+      )}
       {errors.length > 0 ? (
         errors.map((error, i) => (
           <motion.div
@@ -2335,7 +2420,7 @@ function AITestingTab({ projectId }: { projectId: string }) {
 
       {allTests.length > 0 && (
         <motion.div variants={itemVariants}>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {allTests.map((test, i) => (
               <motion.div
                 key={i}
@@ -2401,15 +2486,15 @@ function APILabTab() {
       animate="visible"
       className="max-w-7xl mx-auto"
     >
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           <motion.div
             variants={itemVariants}
-            className="border border-white/10 rounded-xl p-6 bg-white/[0.02] backdrop-blur-sm"
+            className="border border-white/10 rounded-xl p-4 sm:p-6 bg-white/[0.02] backdrop-blur-sm"
           >
             <h3 className="font-semibold text-white mb-4">Request Builder</h3>
             <div className="space-y-4">
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <select
                   value={method}
                   onChange={(e) => setMethod(e.target.value as APIRequest['method'])}
@@ -2430,7 +2515,7 @@ function APILabTab() {
                 />
                 <button
                   onClick={handleSend}
-                  className="px-6 py-2 bg-gradient-to-r from-white to-white/90 text-white rounded-lg hover:opacity-90 transition-opacity"
+                  className="px-6 py-2 bg-gradient-to-r from-white to-white/90 text-black rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -2460,7 +2545,7 @@ function APILabTab() {
 
           <motion.div
             variants={itemVariants}
-            className="border border-white/10 rounded-xl p-6 bg-white/[0.02] backdrop-blur-sm"
+            className="border border-white/10 rounded-xl p-4 sm:p-6 bg-white/[0.02] backdrop-blur-sm"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-white">Response</h3>
@@ -2468,7 +2553,7 @@ function APILabTab() {
                 <Copy className="w-3 h-3" /> Copy
               </button>
             </div>
-            <div className="p-4 bg-black rounded-lg font-mono text-xs text-gray-400 whitespace-pre-wrap">
+            <div className="p-4 bg-black rounded-lg font-mono text-xs text-gray-400 whitespace-pre-wrap break-all overflow-x-auto">
               {response
                 ? `HTTP/1.1 ${response.status} OK\nContent-Type: application/json\n\n${response.body}`
                 : 'Send a request to see the response here.'}
@@ -2476,10 +2561,10 @@ function APILabTab() {
           </motion.div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <motion.div
             variants={itemVariants}
-            className="border border-white/10 rounded-xl p-6 bg-white/[0.02] backdrop-blur-sm"
+            className="border border-white/10 rounded-xl p-4 sm:p-6 bg-white/[0.02] backdrop-blur-sm"
           >
             <h3 className="font-semibold text-white mb-4">Collections</h3>
             <div className="space-y-2">
@@ -2536,10 +2621,10 @@ function MonitoringTab() {
       animate="visible"
       className="max-w-7xl mx-auto space-y-6"
     >
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <motion.div
           variants={itemVariants}
-          className="border border-white/10 rounded-xl p-6 bg-white/[0.02] backdrop-blur-sm"
+          className="border border-white/10 rounded-xl p-4 sm:p-6 bg-white/[0.02] backdrop-blur-sm min-w-0"
         >
           <h3 className="font-semibold text-white mb-4">CPU Usage</h3>
           <ResponsiveContainer width="100%" height={200}>
@@ -2564,7 +2649,7 @@ function MonitoringTab() {
 
         <motion.div
           variants={itemVariants}
-          className="border border-white/10 rounded-xl p-6 bg-white/[0.02] backdrop-blur-sm"
+          className="border border-white/10 rounded-xl p-4 sm:p-6 bg-white/[0.02] backdrop-blur-sm min-w-0"
         >
           <h3 className="font-semibold text-white mb-4">Memory Usage (GB)</h3>
           <ResponsiveContainer width="100%" height={200}>
@@ -2588,10 +2673,10 @@ function MonitoringTab() {
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <motion.div
           variants={itemVariants}
-          className="border border-white/10 rounded-xl p-6 bg-white/[0.02] backdrop-blur-sm"
+          className="border border-white/10 rounded-xl p-4 sm:p-6 bg-white/[0.02] backdrop-blur-sm min-w-0"
         >
           <h3 className="font-semibold text-white mb-4">Requests</h3>
           <ResponsiveContainer width="100%" height={200}>
@@ -2610,7 +2695,7 @@ function MonitoringTab() {
 
         <motion.div
           variants={itemVariants}
-          className="border border-white/10 rounded-xl p-6 bg-white/[0.02] backdrop-blur-sm"
+          className="border border-white/10 rounded-xl p-4 sm:p-6 bg-white/[0.02] backdrop-blur-sm min-w-0"
         >
           <h3 className="font-semibold text-white mb-4">Latency (ms)</h3>
           <ResponsiveContainer width="100%" height={200}>
@@ -2628,20 +2713,20 @@ function MonitoringTab() {
         </motion.div>
       </div>
 
-      <motion.div variants={itemVariants} className="grid grid-cols-4 gap-6">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {metrics.map((metric, i) => (
           <motion.div
             key={metric.label}
             variants={cardVariants}
             custom={i}
             whileHover={{ y: -3 }}
-            className="border border-white/10 rounded-xl p-6 bg-white/[0.02] backdrop-blur-sm"
+            className="border border-white/10 rounded-xl p-4 sm:p-6 bg-white/[0.02] backdrop-blur-sm"
           >
             <div className="flex items-center justify-between mb-3">
               <metric.icon className={cn('w-5 h-5', metric.color)} />
             </div>
-            <div className="text-2xl font-bold text-white mb-1">{metric.value}</div>
-            <div className="text-sm text-white/40">{metric.label}</div>
+            <div className="text-xl sm:text-2xl font-bold text-white mb-1 truncate">{metric.value}</div>
+            <div className="text-xs sm:text-sm text-white/40">{metric.label}</div>
           </motion.div>
         ))}
       </motion.div>
@@ -2692,6 +2777,7 @@ function SettingsTab({ project }: { project: Project }) {
     setSaveMsg(null);
     try {
       const updated = await apiUpdateProject(project.id, {
+        description: form.description.trim() || undefined,
         branch: form.branch.trim() || 'main',
         framework: form.framework.trim() || undefined,
         environment: form.environment,
@@ -2699,6 +2785,7 @@ function SettingsTab({ project }: { project: Project }) {
         status: project.status,
         build_command: form.build_command.trim() || undefined,
         start_command: form.start_command.trim() || undefined,
+        tunnel_url: form.url.trim() || undefined,
       });
       // Merge the saved values into global state so every tab sees them
       dispatch({
