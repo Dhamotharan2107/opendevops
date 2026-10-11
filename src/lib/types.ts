@@ -29,6 +29,8 @@ export interface Project {
   description?: string;
   members?: ProjectMember[];
   environment?: string;
+  build_command?: string;
+  start_command?: string;
 }
 
 export interface ProjectMember {

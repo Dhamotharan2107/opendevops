@@ -135,7 +135,7 @@ export function DashboardLayout() {
 
   const management = [
     { icon: CheckSquare, label: 'Tasks', path: '/dashboard/tasks' },
-    { icon: Bug, label: 'Bugs', path: '/dashboard/bugs' },
+    { icon: Bug, label: 'Bugs', path: '/dashboard/begs' },
     { icon: BarChart3, label: 'Monitoring', path: '/dashboard/monitoring' },
   ];
 
@@ -165,8 +165,8 @@ export function DashboardLayout() {
           onClick={() => setSidebarOpen(false)}
           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
             isActive(item.path)
-              ? 'bg-white/10 text-white'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
+              ? 'bg-accent text-accent-foreground'
+              : 'text-muted-foreground hover:text-foreground hover:bg-accent'
           }`}
         >
           <item.icon className="w-[18px] h-[18px]" />
@@ -177,37 +177,37 @@ export function DashboardLayout() {
   );
 
   return (
-    <div className="flex h-screen bg-black text-white">
+    <div className="flex h-screen bg-background text-foreground">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+          className="fixed inset-0 z-40 bg-background/60 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed md:relative z-50 h-full w-[240px] border-r border-white/10 bg-[#080808] flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`fixed md:relative z-50 h-full w-[240px] border-r border-border bg-card flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         {/* Logo */}
-        <Link to="/dashboard" className="h-[72px] border-b border-white/10 flex items-center gap-3 px-6 hover:bg-white/5 transition-colors">
+        <Link to="/dashboard" className="h-[72px] border-b border-border flex items-center gap-3 px-6 hover:bg-accent transition-colors">
           <motion.div
             whileHover={{ scale: 1.1, rotate: 8 }}
             transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-            className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-white/10 hover:shadow-white/20 transition-shadow"
+            className="w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:shadow-primary/20 transition-shadow"
           >
-            <img src={Logo} alt="Opendevops Logo" className="w-5 h-5 invert" />
+            <img src={Logo} alt="Opendevops Logo" className="w-5 h-5" />
           </motion.div>
           <div className="flex flex-col">
-            <span className="font-semibold text-sm text-white leading-none">Opendevops</span>
-            <span className="text-[10px] text-gray-500 leading-none mt-0.5">DevOps Platform</span>
+            <span className="font-semibold text-sm text-foreground leading-none">Opendevops</span>
+            <span className="text-[10px] text-muted-foreground leading-none mt-0.5">DevOps Platform</span>
           </div>
         </Link>
 
         {/* New Project Button */}
-        <div className="p-4 border-b border-white/5">
+        <div className="p-4 border-b border-border">
           <button
             onClick={() => setShowNewProject(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-black rounded-lg hover:bg-white/90 transition-all font-semibold text-sm"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all font-semibold text-sm"
           >
             <Plus className="w-4 h-4" />
             New Project
@@ -217,42 +217,42 @@ export function DashboardLayout() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3 space-y-4">
           <div>
-            <div className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider px-3 mb-2">Main</div>
+            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">Main</div>
             <NavSection items={mainNav} />
           </div>
           <div>
-            <div className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider px-3 mb-2">Dev Tools</div>
+            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">Dev Tools</div>
             <NavSection items={devTools} />
           </div>
           <div>
-            <div className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider px-3 mb-2">Management</div>
+            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">Management</div>
             <NavSection items={management} />
           </div>
           <div>
-            <div className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider px-3 mb-2">Collaboration</div>
+            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">Collaboration</div>
             <NavSection items={collaboration} />
           </div>
           <div>
-            <div className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider px-3 mb-2">Account</div>
+            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">Account</div>
             <NavSection items={userNav} />
           </div>
         </nav>
 
         {/* User Profile */}
-        <div className="p-4 border-t border-white/10">
-          <Link to="/dashboard/profile" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors">
-            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs text-black font-semibold">
+        <div className="p-4 border-t border-border">
+          <Link to="/dashboard/profile" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition-colors">
+            <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-semibold">
               {state.user ? getInitials(state.user.name) : '?'}
             </div>
             <div className="flex-1 text-left">
-              <div className="text-sm font-medium text-white">{state.user?.name || 'User'}</div>
-              <div className="text-xs text-gray-500">{state.user?.email || ''}</div>
+              <div className="text-sm font-medium text-foreground">{state.user?.name || 'User'}</div>
+              <div className="text-xs text-muted-foreground">{state.user?.email || ''}</div>
             </div>
-            <ChevronDown className="w-4 h-4 text-gray-500" />
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors text-sm"
+            className="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors text-sm"
           >
             <LogOut className="w-4 h-4" />
             Sign out
@@ -263,10 +263,10 @@ export function DashboardLayout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden md:ml-0 ml-0">
         {/* Top Header */}
-        <header className="h-[72px] border-b border-white/10 flex items-center justify-between px-4 md:px-8 bg-black/70 backdrop-blur-xl">
+        <header className="h-[72px] border-b border-border flex items-center justify-between px-4 md:px-8 bg-background/70 backdrop-blur-xl">
           <div className="flex items-center gap-3 flex-1 max-w-md">
             <button
-              className="md:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+              className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               onClick={() => setSidebarOpen((o) => !o)}
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -277,10 +277,10 @@ export function DashboardLayout() {
             {/* Agent status badge */}
             <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium ${
               state.agentConnected
-                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 dark:bg-emerald-500/20 dark:border-emerald-500/30 dark:text-emerald-300'
                 : state.agentInstalled
-                  ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                  : 'bg-gray-500/10 border-gray-500/20 text-gray-500'
+                  ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 dark:bg-amber-500/20 dark:border-amber-500/30 dark:text-amber-300'
+                  : 'bg-muted border-border text-muted-foreground'
             }`}>
               {state.agentConnected
                 ? <><Wifi className="w-3 h-3" /> Agent Connected</>
@@ -291,7 +291,7 @@ export function DashboardLayout() {
             </div>
             <NotificationDropdown />
             <Link to="/dashboard/profile">
-              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-sm text-black font-semibold hover:opacity-80 transition-opacity cursor-pointer">
+              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold hover:opacity-80 transition-opacity cursor-pointer">
                 {state.user ? getInitials(state.user.name) : '?'}
               </div>
             </Link>
@@ -299,9 +299,10 @@ export function DashboardLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto bg-black flex flex-col">
+        <main className="flex-1 overflow-auto bg-background flex flex-col">
           <Outlet />
         </main>
+
       </div>
 
       {/* Agent install modal — shown when user is authenticated but hasn't installed agent */}

@@ -349,6 +349,15 @@ export async function apiGetProject(id: string) {
   return request<any>(`/projects/${id}`);
 }
 
+export async function apiUpdateProject(id: string, data: {
+  name?: string; branch?: string; framework?: string;
+  build_command?: string; start_command?: string; environment?: string;
+  repo_url?: string; status?: string;
+}) {
+  if (isDemoMode()) return { ...DEMO_PROJECTS.find(p => p.id === id), ...data };
+  return request<any>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+}
+
 export async function apiGetDashboard() {
   if (isDemoMode()) {
     return {

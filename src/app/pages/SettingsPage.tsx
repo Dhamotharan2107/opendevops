@@ -75,7 +75,7 @@ export function SettingsPage() {
   if (!user) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-7 h-7 animate-spin text-white" />
+        <Loader2 className="w-7 h-7 animate-spin text-foreground" />
       </div>
     );
   }
@@ -111,8 +111,8 @@ export function SettingsPage() {
     <div className="p-4 md:p-8">
       <div className="max-w-[900px] mx-auto space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Settings</h1>
-          <p className="text-gray-400 text-sm">Manage your account and preferences</p>
+          <h1 className="text-2xl font-bold text-foreground mb-1">Settings</h1>
+          <p className="text-muted-foreground text-sm">Manage your account and preferences</p>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
@@ -125,8 +125,8 @@ export function SettingsPage() {
                 className={cn(
                   'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-left',
                   tab === t.id
-                    ? 'bg-white/10 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                 )}
               >
                 <t.icon className="w-4 h-4" />
@@ -141,21 +141,21 @@ export function SettingsPage() {
             {tab === 'profile' && (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                 {/* Avatar */}
-                <div className="flex items-center gap-5 p-6 bg-white/5 border border-white/10 rounded-xl">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-white to-white/90 flex items-center justify-center text-2xl font-bold text-white">
+                <div className="flex items-center gap-5 p-6 bg-card border border-border rounded-xl">
+                  <div className="w-20 h-20 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold">
                     {getInitials(user.name)}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white mb-1">{user.name}</h3>
-                    <p className="text-sm text-gray-500 mb-3">{user.email}</p>
-                    <button className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 hover:bg-white/10 transition-colors">
+                    <h3 className="font-semibold text-foreground mb-1">{user.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-3">{user.email}</p>
+                    <button className="px-4 py-1.5 bg-accent border border-border rounded-lg text-sm text-muted-foreground hover:bg-accent transition-colors">
                       Change Avatar
                     </button>
                   </div>
                 </div>
 
-                <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-4">
-                  <h3 className="font-semibold text-white">Personal Info</h3>
+                <div className="p-6 bg-card border border-border rounded-xl space-y-4">
+                  <h3 className="font-semibold text-foreground">Personal Info</h3>
                   <div className="grid grid-cols-2 gap-4">
                     {[
                       { label: 'Full Name', key: 'name', placeholder: 'Your full name' },
@@ -166,39 +166,39 @@ export function SettingsPage() {
                       { label: 'GitHub', key: 'github', placeholder: 'github.com/username' },
                     ].map(({ label, key, placeholder }) => (
                       <div key={key}>
-                        <label className="block text-sm text-gray-400 mb-1.5">{label}</label>
+                        <label className="block text-sm text-muted-foreground mb-1.5">{label}</label>
                         <input
                           value={(profile as any)[key]}
                           onChange={(e) => setProfile((p) => ({ ...p, [key]: e.target.value }))}
                           placeholder={placeholder}
-                          className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40"
+                          className="w-full px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus-visible:ring-ring/20"
                         />
                       </div>
                     ))}
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1.5">Bio</label>
+                    <label className="block text-sm text-muted-foreground mb-1.5">Bio</label>
                     <textarea
                       value={profile.bio}
                       onChange={(e) => setProfile((p) => ({ ...p, bio: e.target.value }))}
                       placeholder="Tell us about yourself..."
                       rows={3}
-                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 resize-none"
+                      className="w-full px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus-visible:ring-ring/20 resize-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1.5">Skills (comma separated)</label>
+                    <label className="block text-sm text-muted-foreground mb-1.5">Skills (comma separated)</label>
                     <input
                       value={profile.skills}
                       onChange={(e) => setProfile((p) => ({ ...p, skills: e.target.value }))}
                       placeholder="React, TypeScript, Docker, Kubernetes"
-                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40"
+                      className="w-full px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus-visible:ring-ring/20"
                     />
                   </div>
                   <button
                     onClick={saveProfile}
                     disabled={saving}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-white to-white/90 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:bg-primary/90 transition-all disabled:opacity-50"
                   >
                     {saved ? <Check className="w-4 h-4" /> : saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     {saved ? 'Saved!' : saving ? 'Saving...' : 'Save Changes'}
@@ -209,14 +209,14 @@ export function SettingsPage() {
 
             {tab === 'security' && (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-4">
+                <div className="p-6 bg-card border border-border rounded-xl space-y-4">
                   <div className="flex items-center gap-3 mb-2">
-                    <Shield className="w-5 h-5 text-white" />
-                    <h3 className="font-semibold text-white">Change Password</h3>
+                    <Shield className="w-5 h-5 text-foreground" />
+                    <h3 className="font-semibold text-foreground">Change Password</h3>
                   </div>
                   {(['current', 'new', 'confirm'] as const).map((field) => (
                     <div key={field}>
-                      <label className="block text-sm text-gray-400 mb-1.5">
+                      <label className="block text-sm text-muted-foreground mb-1.5">
                         {field === 'new' ? 'New Password' : field === 'confirm' ? 'Confirm New Password' : 'Current Password'}
                       </label>
                       <div className="relative">
@@ -224,13 +224,13 @@ export function SettingsPage() {
                           type={showPwd[field] ? 'text' : 'password'}
                           value={passwords[field]}
                           onChange={(e) => setPasswords((p) => ({ ...p, [field]: e.target.value }))}
-                          placeholder="��������"
-                          className="w-full px-4 py-2.5 pr-10 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40"
+                          placeholder="••••••••"
+                          className="w-full px-4 py-2.5 pr-10 bg-accent border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus-visible:ring-ring/20"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPwd((s) => ({ ...s, [field]: !s[field] }))}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                         >
                           {showPwd[field] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -239,16 +239,16 @@ export function SettingsPage() {
                   ))}
                   <button
                     onClick={saveLocal}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-white to-white/90 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:bg-primary/90 transition-all"
                   >
                     {saved ? <Check className="w-4 h-4" /> : <Key className="w-4 h-4" />}
                     {saved ? 'Password Updated!' : 'Update Password'}
                   </button>
                 </div>
-                <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-xl space-y-3">
-                  <h3 className="font-semibold text-red-400">Danger Zone</h3>
-                  <p className="text-sm text-gray-500">Permanently delete your account and all associated data.</p>
-                  <button className="px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400 hover:bg-red-500/20 transition-colors">
+                <div className="p-6 bg-destructive/5 border border-destructive/20 rounded-xl space-y-3">
+                  <h3 className="font-semibold text-destructive">Danger Zone</h3>
+                  <p className="text-sm text-muted-foreground">Permanently delete your account and all associated data.</p>
+                  <button className="px-4 py-2 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive hover:bg-destructive/20 transition-colors">
                     Delete Account
                   </button>
                 </div>
@@ -257,8 +257,8 @@ export function SettingsPage() {
 
             {tab === 'notifications' && (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-5">
-                  <h3 className="font-semibold text-white">Notification Preferences</h3>
+                <div className="p-6 bg-card border border-border rounded-xl space-y-5">
+                  <h3 className="font-semibold text-foreground">Notification Preferences</h3>
                   {[
                     { key: 'deployments', label: 'Deployment Updates', desc: 'Get notified when deployments succeed or fail' },
                     { key: 'bugs', label: 'Bug Reports', desc: 'New bugs assigned to you or your project' },
@@ -269,24 +269,24 @@ export function SettingsPage() {
                   ].map(({ key, label, desc }) => (
                     <div key={key} className="flex items-center justify-between">
                       <div>
-                        <div className="text-sm font-medium text-white">{label}</div>
-                        <div className="text-xs text-gray-500 mt-0.5">{desc}</div>
+                        <div className="text-sm font-medium text-foreground">{label}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{desc}</div>
                       </div>
                       <button
                         onClick={() => setNotifications((n) => ({ ...n, [key]: !(n as any)[key] }))}
                         className={cn(
                           'w-11 h-6 rounded-full transition-colors relative',
-                          (notifications as any)[key] ? 'bg-white' : 'bg-white/10'
+                          (notifications as any)[key] ? 'bg-primary' : 'bg-accent'
                         )}
                       >
                         <span className={cn(
-                          'absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform',
+                          'absolute top-1 w-4 h-4 bg-primary rounded-full shadow transition-transform',
                           (notifications as any)[key] ? 'translate-x-6' : 'translate-x-1'
                         )} />
                       </button>
                     </div>
                   ))}
-                  <button onClick={saveLocal} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-white to-white/90 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity">
+                  <button onClick={saveLocal} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:bg-primary/90 transition-all">
                     {saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
                     {saved ? 'Saved!' : 'Save Preferences'}
                   </button>
@@ -296,14 +296,14 @@ export function SettingsPage() {
 
             {tab === 'appearance' && (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-5">
-                  <h3 className="font-semibold text-white">Appearance</h3>
+                <div className="p-6 bg-card border border-border rounded-xl space-y-5">
+                  <h3 className="font-semibold text-foreground">Appearance</h3>
                   <div>
-                    <label className="block text-sm text-gray-400 mb-3">Theme</label>
+                    <label className="block text-sm text-muted-foreground mb-3">Theme</label>
                     <div className="grid grid-cols-2 gap-3">
                       {([
-                        { value: 'light', label: 'Light', icon: Sun, preview: 'bg-white', text: 'text-gray-800', border: 'border-gray-200' },
-                        { value: 'dark',  label: 'Dark',  icon: Moon, preview: 'bg-[#0a0a0a]', text: 'text-white', border: 'border-white/10' },
+                        { value: 'light', label: 'Light', icon: Sun, preview: 'bg-background', text: 'text-foreground', border: 'border-border' },
+                        { value: 'dark',  label: 'Dark',  icon: Moon, preview: 'bg-background', text: 'text-foreground', border: 'border-border' },
                       ] as const).map((t) => (
                         <button
                           key={t.value}
@@ -311,14 +311,14 @@ export function SettingsPage() {
                           className={cn(
                             'p-4 rounded-xl border-2 flex flex-col items-center gap-3 transition-all',
                             state.theme === t.value
-                              ? 'border-white bg-white/10'
-                              : 'border-white/10 bg-white/5 hover:bg-white/8 hover:border-white/25'
+                              ? 'border-primary bg-accent'
+                              : 'border-border bg-accent/5 hover:bg-accent/8 hover:border-border'
                           )}
                         >
                           <div className={cn('w-full h-14 rounded-lg border flex items-center justify-center', t.preview, t.border)}>
                             <t.icon className={cn('w-5 h-5', t.text)} />
                           </div>
-                          <span className={cn('text-sm font-medium', state.theme === t.value ? 'text-white' : 'text-gray-400')}>
+                          <span className={cn('text-sm font-medium', state.theme === t.value ? 'text-foreground' : 'text-muted-foreground')}>
                             {t.label}
                           </span>
                           {state.theme === t.value && (
@@ -329,11 +329,11 @@ export function SettingsPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-400 mb-2">Interface Density</label>
+                    <label className="block text-sm text-muted-foreground mb-2">Interface Density</label>
                     <select
                       value={appearance.density}
                       onChange={(e) => setAppearance((a) => ({ ...a, density: e.target.value }))}
-                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 focus:outline-none"
+                      className="w-full px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-muted-foreground focus:outline-none focus:border-ring focus-visible:ring-ring/20"
                     >
                       <option value="compact">Compact</option>
                       <option value="comfortable">Comfortable</option>
@@ -341,18 +341,18 @@ export function SettingsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-400 mb-2">Code Font</label>
+                    <label className="block text-sm text-muted-foreground mb-2">Code Font</label>
                     <select
                       value={appearance.codeFont}
                       onChange={(e) => setAppearance((a) => ({ ...a, codeFont: e.target.value }))}
-                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 focus:outline-none"
+                      className="w-full px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-muted-foreground focus:outline-none focus:border-ring focus-visible:ring-ring/20"
                     >
                       <option value="monospace">Monospace</option>
                       <option value="fira-code">Fira Code</option>
                       <option value="jetbrains-mono">JetBrains Mono</option>
                     </select>
                   </div>
-                  <button onClick={saveLocal} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-white to-white/90 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity">
+                  <button onClick={saveLocal} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:bg-primary/90 transition-all">
                     {saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
                     {saved ? 'Saved!' : 'Save Appearance'}
                   </button>
@@ -397,7 +397,8 @@ function GitTab() {
   const savedPat = getGitHubPat();
   const [pat, setPat] = useState('');
   const [showPat, setShowPat] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'connected' | 'error'>(
+  type GitStatus = 'idle' | 'loading' | 'connected' | 'error';
+  const [status, setStatus] = useState<GitStatus>(
     savedPat ? 'connected' : 'idle'
   );
   const [ghUser, setGhUser] = useState<{ login: string; name: string; avatar_url: string } | null>(null);
@@ -434,23 +435,23 @@ function GitTab() {
         <div className="p-6 bg-emerald-500/5 border border-emerald-500/20 rounded-xl space-y-4">
           <div className="flex items-center gap-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-            <h3 className="font-semibold text-white">GitHub Connected</h3>
+            <h3 className="font-semibold text-foreground">GitHub Connected</h3>
           </div>
           {ghUser && (
-            <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-lg">
+            <div className="flex items-center gap-3 p-3 bg-accent border border-border rounded-lg">
               <img src={ghUser.avatar_url} alt="" className="w-10 h-10 rounded-full" />
               <div>
-                <p className="text-sm font-medium text-white">{ghUser.name || ghUser.login}</p>
-                <p className="text-xs text-gray-500">@{ghUser.login}</p>
+                <p className="text-sm font-medium text-foreground">{ghUser.name || ghUser.login}</p>
+                <p className="text-xs text-muted-foreground">@{ghUser.login}</p>
               </div>
             </div>
           )}
           {!ghUser && (
-            <p className="text-sm text-gray-400">Token saved. Your GitHub account is connected.</p>
+            <p className="text-sm text-muted-foreground">Token saved. Your GitHub account is connected.</p>
           )}
           <button
             onClick={disconnect}
-            className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400 hover:bg-red-500/20 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive hover:bg-destructive/20 transition-colors"
           >
             <XCircle className="w-4 h-4" /> Disconnect GitHub
           </button>
@@ -459,28 +460,28 @@ function GitTab() {
 
       {/* Guide */}
       {status !== 'connected' && (
-        <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-5">
+        <div className="p-6 bg-card border border-border rounded-xl space-y-5">
           <div className="flex items-center gap-3">
-            <Github className="w-5 h-5 text-white" />
-            <h3 className="font-semibold text-white">Connect GitHub Account</h3>
+            <Github className="w-5 h-5 text-foreground" />
+            <h3 className="font-semibold text-foreground">Connect GitHub Account</h3>
           </div>
-          <p className="text-sm text-gray-400">Use a Personal Access Token (PAT) to connect your GitHub account. Follow the steps below:</p>
+          <p className="text-sm text-muted-foreground">Use a Personal Access Token (PAT) to connect your GitHub account. Follow the steps below:</p>
 
           <div className="space-y-3">
             {GUIDE_STEPS.map(({ step, title, desc, link, linkLabel }) => (
               <div key={step} className="flex gap-3">
-                <div className="w-6 h-6 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5">
+                <div className="w-6 h-6 rounded-full bg-accent border border-border flex items-center justify-center text-xs font-bold text-foreground shrink-0 mt-0.5">
                   {step}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">{title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+                  <p className="text-sm font-medium text-foreground">{title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
                   {link && (
                     <a
                       href={link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 mt-1 transition-colors"
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 mt-1 transition-colors"
                     >
                       {linkLabel} <ExternalLink className="w-3 h-3" />
                     </a>
@@ -494,8 +495,8 @@ function GitTab() {
 
       {/* Token input */}
       {status !== 'connected' && (
-        <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-4">
-          <h3 className="font-semibold text-white">Enter Personal Access Token</h3>
+        <div className="p-6 bg-card border border-border rounded-xl space-y-4">
+          <h3 className="font-semibold text-foreground">Enter Personal Access Token</h3>
           <div className="relative">
             <input
               type={showPat ? 'text' : 'password'}
@@ -503,19 +504,19 @@ function GitTab() {
               onChange={e => setPat(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && connect()}
               placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-              className="w-full px-4 py-2.5 pr-10 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 font-mono"
+              className="w-full px-4 py-2.5 pr-10 bg-accent border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground font-mono focus:outline-none focus:border-ring focus-visible:ring-ring/20"
             />
             <button
               type="button"
               onClick={() => setShowPat(s => !s)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               {showPat ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
 
           {status === 'error' && (
-            <div className="flex items-center gap-2 text-sm text-red-400">
+            <div className="flex items-center gap-2 text-sm text-destructive">
               <AlertCircle className="w-4 h-4 shrink-0" />
               {errorMsg}
             </div>
@@ -524,7 +525,7 @@ function GitTab() {
           <button
             onClick={connect}
             disabled={!pat.trim() || status === 'loading'}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-white to-white/90 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity disabled:opacity-40"
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-40"
           >
             {status === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Github className="w-4 h-4" />}
             {status === 'loading' ? 'Connecting...' : 'Connect GitHub'}
@@ -570,9 +571,9 @@ function AgentTab() {
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       {/* Status card */}
-      <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-4">
-        <h3 className="font-semibold text-white flex items-center gap-2">
-          <Terminal className="w-4 h-4 text-white" />
+      <div className="p-6 bg-card border border-border rounded-xl space-y-4">
+        <h3 className="font-semibold text-foreground flex items-center gap-2">
+          <Terminal className="w-4 h-4 text-foreground" />
           Agent Status
         </h3>
 
@@ -588,13 +589,13 @@ function AgentTab() {
               label: 'Installed',
               value: state.agentInstalled ? 'Yes' : 'Not installed',
               icon: Shield,
-              color: state.agentInstalled ? 'text-emerald-400' : 'text-gray-500',
+              color: state.agentInstalled ? 'text-emerald-400' : 'text-muted-foreground',
             },
             {
               label: 'Agent ID',
               value: state.agentId ? state.agentId.slice(0, 20) + '...' : '�',
               icon: Key,
-              color: 'text-white',
+              color: 'text-foreground',
             },
             {
               label: 'Workspace',
@@ -603,8 +604,8 @@ function AgentTab() {
               color: 'text-blue-400',
             },
           ].map((row) => (
-            <div key={row.label} className="flex flex-col gap-1 p-3 bg-white/[0.03] border border-white/[0.08] rounded-lg">
-              <span className="text-xs text-gray-500">{row.label}</span>
+            <div key={row.label} className="flex flex-col gap-1 p-3 bg-accent/5 border border-border rounded-lg">
+              <span className="text-xs text-muted-foreground">{row.label}</span>
               <div className="flex items-center gap-1.5">
                 <row.icon className={cn('w-3.5 h-3.5', row.color)} />
                 <span className={cn('text-sm font-mono font-medium', row.color)}>{row.value}</span>
@@ -616,26 +617,26 @@ function AgentTab() {
         {!state.agentConnected && state.agentInstalled && (
           <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg text-xs text-amber-300/80 font-mono">
             Agent is offline. Reconnect by running in Cloud Shell:<br />
-            <span className="text-white">cd ~/opendevops-agent && python3 agent.py</span>
+            <span className="text-foreground">cd ~/opendevops-agent && python3 agent.py</span>
           </div>
         )}
 
         <div className="flex flex-wrap gap-2 pt-1">
           <button
             onClick={reconnect}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-sm text-white hover:bg-white/15 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-accent border border-border rounded-lg text-sm text-foreground hover:bg-accent/80 transition-colors"
           >
             <RefreshCw className="w-4 h-4" /> Reconnect Agent
           </button>
           <button
             onClick={reconnect}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 hover:bg-white/10 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-accent/5 border border-border rounded-lg text-sm text-muted-foreground hover:bg-accent/10 transition-colors"
           >
             <RotateCcw className="w-4 h-4" /> Restart Agent
           </button>
           <button
             onClick={() => {}}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 hover:bg-white/10 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-accent/5 border border-border rounded-lg text-sm text-muted-foreground hover:bg-accent/10 transition-colors"
           >
             <Download className="w-4 h-4" /> Download Logs
           </button>
@@ -643,14 +644,14 @@ function AgentTab() {
       </div>
 
       {/* Install command */}
-      <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-4">
-        <h3 className="font-semibold text-white">Install Command</h3>
-        <p className="text-sm text-gray-400">Run this in your terminal to install and start the agent automatically.</p>
-        <div className="flex items-center gap-2 p-3.5 bg-[#080808] border border-white/10 rounded-xl">
+      <div className="p-6 bg-card border border-border rounded-xl space-y-4">
+        <h3 className="font-semibold text-foreground">Install Command</h3>
+        <p className="text-sm text-muted-foreground">Run this in your terminal to install and start the agent automatically.</p>
+        <div className="flex items-center gap-2 p-3.5 bg-card border border-border rounded-xl">
           <code className="flex-1 text-emerald-300 font-mono text-sm truncate">{installCmd}</code>
           <button
             onClick={copyCmd}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-gray-300 hover:text-white transition-all"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded bg-accent hover:bg-accent border border-border text-xs text-muted-foreground hover:text-foreground transition-all"
           >
             {cmdCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
             {cmdCopied ? 'Copied!' : 'Copy'}
@@ -660,17 +661,17 @@ function AgentTab() {
 
       {/* Token */}
       {hasToken && (
-        <div className="p-6 bg-white/5 border border-white/10 rounded-xl space-y-4">
-          <h3 className="font-semibold text-white flex items-center gap-2">
-            <Fingerprint className="w-4 h-4 text-white" />
+        <div className="p-6 bg-card border border-border rounded-xl space-y-4">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <Fingerprint className="w-4 h-4 text-foreground" />
             API Token
           </h3>
-          <p className="text-sm text-gray-400">Your authentication token. Used in the install command above. Keep it secret.</p>
-          <div className="flex items-center gap-2 p-3.5 bg-[#080808] border border-white/10 rounded-xl">
+          <p className="text-sm text-muted-foreground">Your authentication token. Used in the install command above. Keep it secret.</p>
+          <div className="flex items-center gap-2 p-3.5 bg-card border border-border rounded-xl">
             <code className="flex-1 text-amber-300 font-mono text-xs break-all select-all">{getTokenDisplay(token)}</code>
             <button
               onClick={copyToken}
-              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-gray-300 hover:text-white transition-all"
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded bg-accent hover:bg-accent border border-border text-xs text-muted-foreground hover:text-foreground transition-all"
             >
               {tokenCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               {tokenCopied ? 'Copied!' : 'Copy'}
@@ -680,12 +681,12 @@ function AgentTab() {
       )}
 
       {/* Danger zone */}
-      <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-xl space-y-3">
-        <h3 className="font-semibold text-red-400">Reset Agent</h3>
-        <p className="text-sm text-gray-500">Remove agent registration from this dashboard. You will need to reinstall.</p>
+      <div className="p-6 bg-destructive/5 border border-destructive/20 rounded-xl space-y-3">
+        <h3 className="font-semibold text-destructive">Reset Agent</h3>
+        <p className="text-sm text-muted-foreground">Remove agent registration from this dashboard. You will need to reinstall.</p>
         <button
           onClick={resetAgent}
-          className="px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400 hover:bg-red-500/20 transition-colors"
+          className="px-4 py-2 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive hover:bg-destructive/20 transition-colors"
         >
           Reset & Uninstall Agent
         </button>
@@ -693,4 +694,3 @@ function AgentTab() {
     </motion.div>
   );
 }
-

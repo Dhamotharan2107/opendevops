@@ -167,7 +167,7 @@ export default function App() {
 function AppWrapper() {
   const { state } = useApp();
   return (
-    <div className={`size-full ${state.theme === 'light' ? '' : 'dark'}`}>
+    <div className={`size-full ${state.theme === 'dark' ? 'dark' : ''}`}>
       <BrowserRouter>
         <AppRoutes />
       </BrowserRouter>

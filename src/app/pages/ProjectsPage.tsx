@@ -47,15 +47,15 @@ export function ProjectsPage() {
       <div className="max-w-[1400px] mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-white mb-1">Projects</h1>
-            <p className="text-gray-400 text-sm">{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
+            <h1 className="text-xl md:text-2xl font-bold text-foreground mb-1">Projects</h1>
+            <p className="text-muted-foreground text-sm">{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
           </div>
           <button
             onClick={() => {
               if (getGitHubPat()) setShowModal(true);
               else setShowGitGate(true);
             }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-white to-white/90 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity"
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:bg-primary/90 transition-all"
           >
             <Plus className="w-4 h-4" />
             New Project
@@ -64,18 +64,18 @@ export function ProjectsPage() {
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
           <div className="relative w-full sm:flex-1 sm:max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search projects..."
-              className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-white/40"
+              className="w-full pl-9 pr-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus-visible:ring-ring/20"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-white/40"
+            className="px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-muted-foreground focus:outline-none focus:border-ring focus-visible:ring-ring/20"
           >
             <option value="all">All Status</option>
             <option value="deployed">Deployed</option>
@@ -87,17 +87,17 @@ export function ProjectsPage() {
 
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-white" />
+            <Loader2 className="w-8 h-8 animate-spin text-foreground" />
           </div>
         )}
 
         {!loading && filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <FolderGit2 className="w-12 h-12 text-gray-600 mb-4" />
-            <h3 className="text-lg font-medium text-gray-400 mb-2">
+            <FolderGit2 className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-muted-foreground mb-2">
               {search || statusFilter !== 'all' ? 'No projects match your filters' : 'No projects yet'}
             </h3>
-            <p className="text-gray-600 text-sm mb-6">
+            <p className="text-muted-foreground text-sm mb-6">
               {search || statusFilter !== 'all' ? 'Try adjusting your search or filters' : 'Import from GitHub or enter a repo URL to get started'}
             </p>
             {!search && statusFilter === 'all' && (
@@ -106,7 +106,7 @@ export function ProjectsPage() {
                   if (getGitHubPat()) setShowModal(true);
                   else setShowGitGate(true);
                 }}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-white to-white/90 rounded-lg font-semibold text-sm text-white hover:opacity-90 transition-opacity"
+                className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:bg-primary/90 transition-all"
               >
                 <Plus className="w-4 h-4" />
                 Create Project
@@ -127,20 +127,20 @@ export function ProjectsPage() {
               >
                 <Link
                   to={`/dashboard/project/${project.id}`}
-                  className="block p-6 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all group"
+                  className="block p-6 bg-card border border-border rounded-xl hover:bg-accent hover:border-border transition-all group"
                 >
                   <div className="flex items-start justify-between mb-4">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-white/10 to-white/5 border border-white/20 flex items-center justify-center">
-                      <FolderGit2 className="w-5 h-5 text-white" />
+                    <div className="w-10 h-10 rounded-lg bg-accent border border-border flex items-center justify-center">
+                      <FolderGit2 className="w-5 h-5 text-foreground" />
                     </div>
                     <div className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium', getStatusColor(project.status))}>
                       <div className={cn('w-1.5 h-1.5 rounded-full bg-current', project.status === 'deployed' && 'animate-pulse')} />
                       {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
                     </div>
                   </div>
-                  <h3 className="font-semibold text-white mb-1 group-hover:text-white transition-colors">{project.name}</h3>
-                  {project.description && <p className="text-xs text-gray-500 mb-3 line-clamp-2">{project.description}</p>}
-                  <div className="space-y-2 text-xs text-gray-500 mt-3">
+                  <h3 className="font-semibold text-foreground mb-1 group-hover:text-foreground transition-colors">{project.name}</h3>
+                  {project.description && <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{project.description}</p>}
+                  <div className="space-y-2 text-xs text-muted-foreground mt-3">
                     {project.repo && (
                       <div className="flex items-center gap-2">
                         <GitBranch className="w-3.5 h-3.5 flex-shrink-0" />
@@ -160,14 +160,14 @@ export function ProjectsPage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
                     <div className="flex items-center gap-2">
                       {project.framework && (
-                        <span className="px-2 py-0.5 bg-white/5 rounded text-xs text-gray-400 font-mono">{project.framework}</span>
+                        <span className="px-2 py-0.5 bg-accent rounded text-xs text-muted-foreground font-mono">{project.framework}</span>
                       )}
-                      {project.visits && <span className="text-xs text-gray-500">{project.visits} visits</span>}
+                      {project.visits && <span className="text-xs text-muted-foreground">{project.visits} visits</span>}
                     </div>
-                    <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-white transition-colors" />
+                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                   </div>
                 </Link>
               </motion.div>
@@ -258,28 +258,28 @@ function GitConnectGate({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
         onClick={onClose}
       />
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="relative bg-[#080808] border border-white/10 rounded-2xl w-full max-w-md mx-4 shadow-2xl overflow-hidden"
+        className="relative bg-card border border-border rounded-2xl w-full max-w-md mx-4 shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#161B22] border border-white/10 flex items-center justify-center">
-              <Github className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-lg bg-accent border border-border flex items-center justify-center">
+              <Github className="w-4 h-4 text-foreground" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-white">Connect GitHub First</h2>
-              <p className="text-xs text-gray-500">Required to create a project</p>
+              <h2 className="text-sm font-semibold text-foreground">Connect GitHub First</h2>
+              <p className="text-xs text-muted-foreground">Required to create a project</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 transition-colors">
+          <button onClick={onClose} className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -292,13 +292,13 @@ function GitConnectGate({
                 <img src={ghUser.avatar_url} alt="" className="w-10 h-10 rounded-full" />
                 <div>
                   <p className="text-sm font-medium text-emerald-400">Connected as @{ghUser.login}</p>
-                  <p className="text-xs text-gray-500">{ghUser.name}</p>
+                  <p className="text-xs text-muted-foreground">{ghUser.name}</p>
                 </div>
                 <CheckCircle2 className="w-5 h-5 text-emerald-400 ml-auto" />
               </div>
               <button
                 onClick={onConnected}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-white to-white/90 rounded-lg text-sm text-white font-semibold hover:opacity-90 transition-opacity"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-all"
               >
                 <Plus className="w-4 h-4" /> Continue to Create Project
               </button>
@@ -308,7 +308,7 @@ function GitConnectGate({
               {/* Why required */}
               <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl flex items-start gap-3">
                 <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   A GitHub Personal Access Token is required to import repositories and manage deployments. Your token is stored locally and never sent to our servers.
                 </p>
               </div>
@@ -317,18 +317,18 @@ function GitConnectGate({
               <div className="space-y-3">
                 {GUIDE_STEPS.map(({ step, title, desc, link, linkLabel }) => (
                   <div key={step} className="flex gap-3">
-                    <div className="w-5 h-5 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-0.5">
+                    <div className="w-5 h-5 rounded-full bg-accent border border-border flex items-center justify-center text-[10px] font-bold text-foreground shrink-0 mt-0.5">
                       {step}
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-white">{title}</p>
-                      <p className="text-[11px] text-gray-500 mt-0.5">{desc}</p>
+                      <p className="text-xs font-medium text-foreground">{title}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{desc}</p>
                       {link && (
                         <a
                           href={link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 mt-1 transition-colors"
+                          className="inline-flex items-center gap-1 text-[11px] text-primary hover:text-primary/80 mt-1 transition-colors"
                         >
                           {linkLabel} <ExternalLink className="w-3 h-3" />
                         </a>
@@ -340,28 +340,28 @@ function GitConnectGate({
 
               {/* Token input */}
               <div className="space-y-3">
-                <label className="block text-sm text-gray-400">Personal Access Token</label>
+                <label className="block text-sm text-muted-foreground">Personal Access Token</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     value={patInput}
                     onChange={(e) => setPatInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && connect()}
                     type={showPat ? 'text' : 'password'}
                     placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                    className="w-full pl-9 pr-10 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 font-mono focus:outline-none focus:border-white/40"
+                    className="w-full pl-9 pr-10 py-2.5 bg-accent border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground font-mono focus:outline-none focus:border-ring focus-visible:ring-ring/20"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPat((s) => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     {showPat ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
 
                 {error && (
-                  <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2.5">
+                  <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2.5">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                     {error}
                   </div>
@@ -370,7 +370,7 @@ function GitConnectGate({
                 <button
                   onClick={connect}
                   disabled={loading || !patInput.trim()}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#161B22] border border-white/20 rounded-lg text-sm text-white font-semibold hover:bg-white/10 transition-colors disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-foreground font-semibold hover:bg-accent/80 transition-colors disabled:opacity-50"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Github className="w-4 h-4" />}
                   {loading ? 'Verifying...' : 'Connect GitHub'}
@@ -455,7 +455,8 @@ export function NewProjectModal({
   const [createError, setCreateError] = useState('');
   const [cloneCopied, setCloneCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const [runStatus, setRunStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
+  type CloneStatus = 'idle' | 'running' | 'done' | 'error';
+  const [runStatus, setRunStatus] = useState<CloneStatus>('idle');
   const [cloneOutput, setCloneOutput] = useState<string[]>([]);
   const cloneOutputRef = useRef<HTMLDivElement>(null);
 
@@ -675,19 +676,19 @@ export function NewProjectModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
         onClick={onClose}
       />
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="relative bg-[#080808] border border-white/10 rounded-2xl w-full mx-4 shadow-2xl overflow-hidden"
+        className="relative bg-card border border-border rounded-2xl w-full mx-4 shadow-2xl overflow-hidden"
         style={{ maxWidth: step === 'repo-pick' ? 700 : 520, maxHeight: '90vh' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-3">
             {step !== 'source' && (
               <button
@@ -696,12 +697,12 @@ export function NewProjectModal({
                   else if (step === 'repo-pick' || step === 'manual') setStep('source');
                   else if (step === 'github-auth') setStep('source');
                 }}
-                className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 transition-colors"
+                className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
             )}
-            <h2 className="text-base font-semibold text-white">
+            <h2 className="text-base font-semibold text-foreground">
               {step === 'source' && 'New Project'}
               {step === 'github-auth' && 'Connect GitHub'}
               {step === 'repo-pick' && 'Select Repository'}
@@ -709,7 +710,7 @@ export function NewProjectModal({
               {step === 'configure' && 'Configure Project'}
             </h2>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 transition-colors">
+          <button onClick={onClose} className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -719,7 +720,7 @@ export function NewProjectModal({
           {/* ── Step: source ── */}
           {step === 'source' && (
             <div className="p-6 space-y-4">
-              <p className="text-sm text-gray-400">How do you want to add your project?</p>
+              <p className="text-sm text-muted-foreground">How do you want to add your project?</p>
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={() => {
@@ -729,13 +730,13 @@ export function NewProjectModal({
                       setStep('github-auth');
                     }
                   }}
-                  className="group p-6 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/25 transition-all text-left"
+                  className="group p-6 bg-accent border border-border rounded-xl hover:bg-accent hover:border-border transition-all text-left"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-[#161B22] border border-white/10 flex items-center justify-center mb-4 group-hover:border-white/25 transition-colors">
-                    <Github className="w-6 h-6 text-white" />
+                  <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center mb-4 group-hover:border-border transition-colors">
+                    <Github className="w-6 h-6 text-foreground" />
                   </div>
-                  <h3 className="font-semibold text-white mb-1">Import from GitHub</h3>
-                  <p className="text-xs text-gray-500">Connect GitHub and browse your repositories</p>
+                  <h3 className="font-semibold text-foreground mb-1">Import from GitHub</h3>
+                  <p className="text-xs text-muted-foreground">Connect GitHub and browse your repositories</p>
                   {ghUser && (
                     <div className="mt-3 flex items-center gap-2 text-xs text-emerald-400">
                       <CheckCircle2 className="w-3.5 h-3.5" />
@@ -745,13 +746,13 @@ export function NewProjectModal({
                 </button>
                 <button
                   onClick={goManual}
-                  className="group p-6 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/25 transition-all text-left"
+                  className="group p-6 bg-accent border border-border rounded-xl hover:bg-accent hover:border-border transition-all text-left"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center mb-4 group-hover:border-white/30 transition-colors">
-                    <Key className="w-6 h-6 text-white" />
+                  <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center mb-4 group-hover:border-border transition-colors">
+                    <Key className="w-6 h-6 text-foreground" />
                   </div>
-                  <h3 className="font-semibold text-white mb-1">Enter URL Manually</h3>
-                  <p className="text-xs text-gray-500">Paste any Git repo URL with optional access token</p>
+                  <h3 className="font-semibold text-foreground mb-1">Enter URL Manually</h3>
+                  <p className="text-xs text-muted-foreground">Paste any Git repo URL with optional access token</p>
                 </button>
               </div>
             </div>
@@ -760,34 +761,34 @@ export function NewProjectModal({
           {/* ── Step: github-auth ── */}
           {step === 'github-auth' && (
             <div className="p-6 space-y-5">
-              <div className="p-4 bg-[#161B22] border border-white/10 rounded-xl text-sm text-gray-400 leading-relaxed">
-                Create a GitHub <strong className="text-white">Personal Access Token</strong> (classic) with <code className="bg-white/10 px-1.5 py-0.5 rounded text-xs font-mono">repo</code> scope to import private and public repositories.
+              <div className="p-4 bg-accent border border-border rounded-xl text-sm text-muted-foreground leading-relaxed">
+                Create a GitHub <strong className="text-foreground">Personal Access Token</strong> (classic) with <code className="bg-accent px-1.5 py-0.5 rounded text-xs font-mono">repo</code> scope to import private and public repositories.
                 <a
                   href="https://github.com/settings/tokens/new?scopes=repo&description=Opendrap"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block mt-3 text-white hover:text-white underline text-xs"
+                  className="block mt-3 text-primary hover:text-primary/80 underline text-xs"
                 >
                   Generate token on GitHub →
                 </a>
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1.5">Personal Access Token</label>
+                <label className="block text-sm text-muted-foreground mb-1.5">Personal Access Token</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     value={patInput}
                     onChange={(e) => setPatInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && connectWithPat()}
                     type={showPat ? 'text' : 'password'}
                     placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                    className="w-full pl-9 pr-10 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 font-mono focus:outline-none focus:border-white/40"
+                    className="w-full pl-9 pr-10 py-2.5 bg-accent border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground font-mono focus:outline-none focus:border-ring focus-visible:ring-ring/20"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPat((s) => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     {showPat ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -795,7 +796,7 @@ export function NewProjectModal({
               </div>
 
               {ghError && (
-                <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
+                <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   {ghError}
                 </div>
@@ -804,14 +805,14 @@ export function NewProjectModal({
               <div className="flex gap-3">
                 <button
                   onClick={goManual}
-                  className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 hover:bg-white/10 transition-colors"
+                  className="flex-1 px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-muted-foreground hover:bg-accent transition-colors"
                 >
                   Skip — Enter URL instead
                 </button>
                 <button
                   onClick={connectWithPat}
                   disabled={ghLoading || !patInput.trim()}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#161B22] border border-white/20 rounded-lg text-sm text-white font-semibold hover:bg-white/10 transition-colors disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-foreground font-semibold hover:bg-accent/80 transition-colors disabled:opacity-50"
                 >
                   {ghLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Github className="w-4 h-4" />}
                   {ghLoading ? 'Connecting...' : 'Connect GitHub'}
@@ -824,7 +825,7 @@ export function NewProjectModal({
                   <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-emerald-400">Connected as @{ghUser.login}</p>
-                    <p className="text-xs text-gray-500">{ghUser.name}</p>
+                    <p className="text-xs text-muted-foreground">{ghUser.name}</p>
                   </div>
                   <button
                     onClick={loadRepos}
@@ -850,63 +851,63 @@ export function NewProjectModal({
                 )}
                 <button
                   onClick={() => { clearGitHubPat(); setPat(''); setGhUser(null); setStep('github-auth'); }}
-                  className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Disconnect
                 </button>
-                <button onClick={loadRepos} disabled={reposLoading} className="ml-auto text-xs text-gray-500 hover:text-gray-300 flex items-center gap-1 transition-colors">
+                <button onClick={loadRepos} disabled={reposLoading} className="ml-auto text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
                   <RefreshCw className={cn('w-3.5 h-3.5', reposLoading && 'animate-spin')} />
                   Refresh
                 </button>
               </div>
 
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   value={repoSearch}
                   onChange={(e) => setRepoSearch(e.target.value)}
                   placeholder="Search repositories..."
-                  className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-white/40"
+                  className="w-full pl-9 pr-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus-visible:ring-ring/20"
                 />
               </div>
 
               {reposLoading && (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 animate-spin text-white" />
+                  <Loader2 className="w-6 h-6 animate-spin text-foreground" />
                 </div>
               )}
 
               {!reposLoading && (
                 <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
                   {filteredRepos.length === 0 && (
-                    <p className="text-center text-gray-500 text-sm py-8">No repositories found</p>
+                    <p className="text-center text-muted-foreground text-sm py-8">No repositories found</p>
                   )}
                   {filteredRepos.map((repo) => (
                     <button
                       key={repo.id}
                       onClick={() => pickRepo(repo)}
-                      className="w-full flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all text-left group"
+                      className="w-full flex items-center gap-4 p-4 bg-accent border border-border rounded-xl hover:bg-accent hover:border-border transition-all text-left group"
                     >
-                      <div className="w-10 h-10 rounded-lg bg-[#161B22] border border-white/10 flex items-center justify-center flex-shrink-0">
-                        <Github className="w-5 h-5 text-gray-400" />
+                      <div className="w-10 h-10 rounded-lg bg-accent border border-border flex items-center justify-center flex-shrink-0">
+                        <Github className="w-5 h-5 text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="font-medium text-white text-sm group-hover:text-white transition-colors truncate">
+                          <span className="font-medium text-foreground text-sm group-hover:text-foreground transition-colors truncate">
                             {repo.name}
                           </span>
                           {repo.private && (
-                            <span className="flex-shrink-0 text-xs text-gray-500 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">Private</span>
+                            <span className="flex-shrink-0 text-xs text-muted-foreground bg-accent border border-border px-1.5 py-0.5 rounded">Private</span>
                           )}
                           {repo.language && (
-                            <span className="flex-shrink-0 text-xs text-gray-500 font-mono">{repo.language}</span>
+                            <span className="flex-shrink-0 text-xs text-muted-foreground font-mono">{repo.language}</span>
                           )}
                         </div>
                         {repo.description && (
-                          <p className="text-xs text-gray-500 truncate">{repo.description}</p>
+                          <p className="text-xs text-muted-foreground truncate">{repo.description}</p>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-gray-600 flex-shrink-0">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-shrink-0">
                         {repo.stargazers_count > 0 && (
                           <span className="flex items-center gap-1"><Star className="w-3 h-3" />{repo.stargazers_count}</span>
                         )}
@@ -923,14 +924,14 @@ export function NewProjectModal({
           {step === 'manual' && (
             <div className="p-6 space-y-5">
               <div>
-                <label className="block text-sm text-gray-400 mb-1.5">Repository URL *</label>
+                <label className="block text-sm text-muted-foreground mb-1.5">Repository URL *</label>
                 <input
                   value={form.repo}
                   onChange={(e) => setForm((f) => ({ ...f, repo: e.target.value }))}
                   placeholder="https://github.com/user/repo.git"
-                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 font-mono focus:outline-none focus:border-white/40"
+                  className="w-full px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground font-mono focus:outline-none focus:border-ring focus-visible:ring-ring/20"
                 />
-                <p className="text-xs text-gray-600 mt-1">Supports GitHub, GitLab, Bitbucket HTTPS/SSH URLs</p>
+                <p className="text-xs text-muted-foreground mt-1">Supports GitHub, GitLab, Bitbucket HTTPS/SSH URLs</p>
               </div>
 
               {/* Cloud Shell clone section — appears once URL is entered */}
@@ -938,25 +939,25 @@ export function NewProjectModal({
                 <motion.div
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-4 bg-white/5 border border-white/20 rounded-xl space-y-3"
+                  className="p-4 bg-accent border border-border rounded-xl space-y-3"
                 >
-                  <div className="flex items-center gap-2 text-sm text-white font-medium">
+                  <div className="flex items-center gap-2 text-sm text-foreground font-medium">
                     <Terminal className="w-4 h-4" />
                     Clone in Cloud Shell
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Run this inside your Google Cloud Shell at{' '}
-                    <code className="font-mono text-gray-400">~/opendev/projects</code>:
+                    <code className="font-mono text-muted-foreground">~/openddev/projects</code>:
                   </p>
 
                   {/* Command box — no $ prefix so it's clean to copy */}
-                  <div className="flex items-center gap-2 p-3 bg-[#080808] border border-white/10 rounded-lg">
+                  <div className="flex items-center gap-2 p-3 bg-card border border-border rounded-lg">
                     <code className="flex-1 text-emerald-300 font-mono text-xs break-all leading-relaxed">
                       {`mkdir -p ~/opendev/projects && cd ~/opendev/projects && git clone ${form.repo}`}
                     </code>
                     <button
                       onClick={copyCloneCmd}
-                      className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-gray-300 hover:text-white transition-all"
+                      className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded bg-accent hover:bg-accent border border-border text-xs text-muted-foreground hover:text-foreground transition-all"
                     >
                       {cloneCopied
                         ? <><Check className="w-3 h-3 text-emerald-400" /> Copied!</>
@@ -990,7 +991,7 @@ export function NewProjectModal({
                     </button>
                     <button
                       onClick={copyCloudShellLink}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-gray-300 hover:bg-white/10 transition-colors"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-accent border border-border rounded-lg text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                     >
                       {linkCopied
                         ? <><Check className="w-3.5 h-3.5 text-emerald-400" /> Copied!</>
@@ -1001,15 +1002,15 @@ export function NewProjectModal({
                   {cloneOutput.length > 0 && (
                     <div
                       ref={cloneOutputRef}
-                      className="max-h-32 overflow-y-auto bg-black/60 rounded-lg p-2.5 font-mono text-[11px] text-gray-300 space-y-0.5 border border-white/5"
+                      className="max-h-32 overflow-y-auto bg-background/60 rounded-lg p-2.5 font-mono text-[11px] text-muted-foreground space-y-0.5 border border-border"
                     >
                       {cloneOutput.map((line, i) => (
-                        <div key={i} className={line.startsWith('$') ? 'text-emerald-400' : line.toLowerCase().includes('error') ? 'text-red-400' : 'text-gray-300'}>
+                        <div key={i} className={line.startsWith('$') ? 'text-emerald-400' : line.toLowerCase().includes('error') ? 'text-destructive' : 'text-muted-foreground'}>
                           {line}
                         </div>
                       ))}
                       {runStatus === 'running' && (
-                        <div className="flex items-center gap-1.5 text-white mt-1">
+                        <div className="flex items-center gap-1.5 text-foreground mt-1">
                           <Loader2 className="w-3 h-3 animate-spin" />
                           <span>Cloning...</span>
                         </div>
@@ -1023,7 +1024,7 @@ export function NewProjectModal({
                     </div>
                   )}
 
-                  <p className="text-[11px] text-gray-600">
+                  <p className="text-[11px] text-muted-foreground">
                     The Cloud Shell link opens Google Cloud Shell and auto-clones this repo into your browser.
                   </p>
                 </motion.div>
@@ -1034,7 +1035,7 @@ export function NewProjectModal({
                   <Lock className="w-4 h-4" />
                   Private Repository? Add Access Token
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   For private repos, provide a GitHub/GitLab Personal Access Token or deploy key. Stored securely and only used to clone.
                 </p>
                 <div className="relative">
@@ -1043,12 +1044,12 @@ export function NewProjectModal({
                     onChange={(e) => setManualToken(e.target.value)}
                     type={showManualToken ? 'text' : 'password'}
                     placeholder="ghp_xxxx... or glpat-xxxx..."
-                    className="w-full px-4 py-2.5 pr-10 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 font-mono focus:outline-none focus:border-amber-500/50"
+                    className="w-full px-4 py-2.5 pr-10 bg-accent border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground font-mono focus:outline-none focus:border-amber-500/50"
                   />
                   <button
                     type="button"
                     onClick={() => setShowManualToken((s) => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     {showManualToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -1058,7 +1059,7 @@ export function NewProjectModal({
               <button
                 onClick={confirmManual}
                 disabled={!form.repo.trim()}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-white to-white/90 rounded-lg text-sm text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50"
               >
                 Continue to Configure →
               </button>
@@ -1069,35 +1070,35 @@ export function NewProjectModal({
           {step === 'configure' && (
             <div className="p-6 space-y-4">
               {selectedRepo && (
-                <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl mb-2">
-                  <Github className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                <div className="flex items-center gap-3 p-3 bg-accent border border-border rounded-xl mb-2">
+                  <Github className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{selectedRepo.full_name}</p>
-                    {selectedRepo.description && <p className="text-xs text-gray-500 truncate">{selectedRepo.description}</p>}
+                    <p className="text-sm font-medium text-foreground truncate">{selectedRepo.full_name}</p>
+                    {selectedRepo.description && <p className="text-xs text-muted-foreground truncate">{selectedRepo.description}</p>}
                   </div>
                   {selectedRepo.private && (
-                    <span className="ml-auto text-xs text-gray-500 bg-white/5 border border-white/10 px-2 py-0.5 rounded flex-shrink-0">Private</span>
+                    <span className="ml-auto text-xs text-muted-foreground bg-accent border border-border px-2 py-0.5 rounded flex-shrink-0">Private</span>
                   )}
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1.5">Project Name *</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Project Name *</label>
                   <input
                     value={form.name}
                     onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     placeholder="my-app"
-                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40"
+                    className="w-full px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus-visible:ring-ring/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1.5">Branch *</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Branch *</label>
                   {branches.length > 0 ? (
                     <select
                       value={form.branch}
                       onChange={(e) => setForm((f) => ({ ...f, branch: e.target.value }))}
-                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-white/40"
+                      className="w-full px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-muted-foreground focus:outline-none focus:border-ring focus-visible:ring-ring/20"
                     >
                       {branches.map((b) => <option key={b} value={b}>{b}</option>)}
                     </select>
@@ -1107,50 +1108,50 @@ export function NewProjectModal({
                         value={form.branch}
                         onChange={(e) => setForm((f) => ({ ...f, branch: e.target.value }))}
                         placeholder="main"
-                        className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40"
+                        className="w-full px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus-visible:ring-ring/20"
                       />
-                      {branchesLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-500" />}
+                      {branchesLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />}
                     </div>
                   )}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1.5">Description</label>
+                <label className="block text-sm text-muted-foreground mb-1.5">Description</label>
                 <input
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   placeholder="What does this project do?"
-                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40"
+                  className="w-full px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus-visible:ring-ring/20"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1.5">Framework</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Framework</label>
                   <select
                     value={form.framework}
                     onChange={(e) => setForm((f) => ({ ...f, framework: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-white/40"
+                    className="w-full px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-muted-foreground focus:outline-none focus:border-ring focus-visible:ring-ring/20"
                   >
                     <option value="nextjs">Next.js</option>
-                    <option value="react">React (Vite)</option>
-                    <option value="vue">Vue.js</option>
-                    <option value="nuxt">Nuxt</option>
-                    <option value="svelte">SvelteKit</option>
-                    <option value="node">Node.js</option>
+                    <option value="react">React</option>
+                    <option value="vue">Vue</option>
+                    <option value="angular">Angular</option>
+                    <option value="svelte">Svelte</option>
+                    <option value="nodejs">Node.js</option>
                     <option value="python">Python</option>
-                    <option value="django">Django</option>
-                    <option value="fastapi">FastAPI</option>
+                    <option value="go">Go</option>
+                    <option value="rust">Rust</option>
                     <option value="other">Other</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1.5">Environment</label>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Environment</label>
                   <select
                     value={form.environment}
                     onChange={(e) => setForm((f) => ({ ...f, environment: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-white/40"
+                    className="w-full px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-muted-foreground focus:outline-none focus:border-ring focus-visible:ring-ring/20"
                   >
                     <option value="production">Production</option>
                     <option value="staging">Staging</option>
@@ -1159,93 +1160,57 @@ export function NewProjectModal({
                 </div>
               </div>
 
-              {form.repo && (
-                <div className="p-3 bg-white/5 border border-white/10 rounded-xl space-y-2">
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <Terminal className="w-3.5 h-3.5" />
-                    Clone this repo on your server
-                  </div>
-                  <div className="flex items-center gap-2 p-2.5 bg-[#080808] border border-white/10 rounded-lg">
-                    <code className="flex-1 text-emerald-300 font-mono text-xs break-all leading-relaxed">
-                      {`git clone ${form.repo}`}
-                    </code>
-                    <button
-                      onClick={copyCloneCmd}
-                      className="flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-gray-300 hover:text-white transition-all"
-                    >
-                      {cloneCopied ? <><Check className="w-3 h-3 text-emerald-400" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy</>}
-                    </button>
-                  </div>
-                  <button
-                    onClick={runCloneInTerminal}
-                    disabled={runStatus === 'running'}
-                    className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-xs text-emerald-300 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
-                  >
-                    {runStatus === 'running' ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Running...</> :
-                     runStatus === 'done' ? <><CheckCircle2 className="w-3.5 h-3.5" /> Cloned to Agent</> :
-                     runStatus === 'error' ? <><X className="w-3.5 h-3.5" /> Failed — retry</> :
-                     <><Wifi className="w-3.5 h-3.5" /> Run Clone in Agent Terminal</>}
-                  </button>
-                  {cloneOutput.length > 0 && (
-                    <div ref={cloneOutputRef} className="max-h-28 overflow-y-auto bg-black/60 rounded-lg p-2 font-mono text-[11px] text-gray-300 space-y-0.5 border border-white/5">
-                      {cloneOutput.map((line, i) => (
-                        <div key={i} className={line.startsWith('$') ? 'text-emerald-400' : line.toLowerCase().includes('error') ? 'text-red-400' : 'text-gray-300'}>{line}</div>
-                      ))}
-                      {runStatus === 'running' && <div className="flex items-center gap-1.5 text-white mt-1"><Loader2 className="w-3 h-3 animate-spin" /><span>Cloning...</span></div>}
-                      {runStatus === 'done' && <div className="flex items-center gap-1.5 text-emerald-400 mt-1"><CheckCircle2 className="w-3 h-3" /><span>Done.</span></div>}
-                    </div>
-                  )}
-                  {form.github_token && (
-                    <p className="text-xs text-emerald-400 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Token will be used for private repo access
-                    </p>
-                  )}
-                </div>
-              )}
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1.5">Deployment Token (optional)</label>
+                <input
+                  value={form.github_token}
+                  onChange={(e) => setForm((f) => ({ ...f, github_token: e.target.value }))}
+                  type="password"
+                  placeholder="ghp_xxxxx..."
+                  className="w-full px-4 py-2.5 bg-accent border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground font-mono focus:outline-none focus:border-ring focus-visible:ring-ring/20"
+                />
+              </div>
+
+              <button
+                onClick={createProject}
+                disabled={creating}
+                className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:bg-primary/90 transition-all disabled:opacity-50"
+              >
+                {creating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Rocket className="w-4 h-4" />
+                    Create Project
+                  </>
+                )}
+              </button>
 
               {createError && (
-                <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
                   {createError}
                 </div>
               )}
-
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 hover:bg-white/10 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={createProject}
-                  disabled={creating || !form.name.trim() || !form.repo.trim()}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-white to-white/90 rounded-lg text-sm text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                  {creating ? 'Creating...' : 'Create Project'}
-                </button>
-              </div>
             </div>
           )}
-
         </div>
       </motion.div>
     </div>
   );
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
 function detectFramework(language: string | null): string {
-  switch (language?.toLowerCase()) {
-    case 'typescript':
-    case 'javascript': return 'nextjs';
-    case 'python': return 'python';
-    case 'rust': return 'other';
-    case 'go': return 'other';
-    case 'java': return 'other';
-    default: return 'other';
-  }
+  if (!language) return 'other';
+  const lang = language.toLowerCase();
+  if (lang.includes('javascript') || lang.includes('typescript') || lang.includes('jsx') || lang.includes('tsx')) return 'nextjs';
+  if (lang.includes('python')) return 'python';
+  if (lang.includes('go')) return 'go';
+  if (lang.includes('rust')) return 'rust';
+  if (lang.includes('java')) return 'java';
+  if (lang.includes('ruby')) return 'ruby';
+  if (lang.includes('php')) return 'php';
+  return 'other';
 }

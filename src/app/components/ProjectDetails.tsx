@@ -16,7 +16,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { useApp } from '../../lib/store';
-import { BASE_URL, githubFetchBranches, getGitHubPat, apiGetProjects, apiGetLogs, apiGetErrors, apiReportLog, apiReportError } from '../../lib/api';
+import { BASE_URL, githubFetchBranches, getGitHubPat, apiGetProjects, apiGetLogs, apiGetErrors, apiReportLog, apiReportError, apiUpdateProject, isDemoMode, DEMO_ERRORS } from '../../lib/api';
 import { cn, getStatusColor, getPriorityColor, getInitials } from '../../lib/utils';
 import type { Project, Deployment, LogEntry, ErrorRecord, AITestResult, APIRequest } from '../../lib/types';
 
@@ -2006,9 +2006,16 @@ function LogsTab({ projectId }: { projectId: string }) {
   const [fetched, setFetched] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Pull real activity logs from the backend (the project's in-memory state.logs
-  // is only populated in demo flows, so the tab used to look empty).
+  const DEMO_LOGS: LogEntry[] = [
+    { id: 'dl1', projectId, level: 'info', message: 'Server started on port 3000', timestamp: new Date(Date.now() - 60000).toISOString() },
+    { id: 'dl2', projectId, level: 'info', message: 'GET /api/health 200 OK (12ms)', timestamp: new Date(Date.now() - 50000).toISOString() },
+    { id: 'dl3', projectId, level: 'warn', message: 'Memory usage above 80%', timestamp: new Date(Date.now() - 40000).toISOString() },
+    { id: 'dl4', projectId, level: 'error', message: 'Unhandled promise rejection: TypeError', timestamp: new Date(Date.now() - 30000).toISOString() },
+    { id: 'dl5', projectId, level: 'info', message: 'POST /api/auth/login 200 OK (45ms)', timestamp: new Date(Date.now() - 20000).toISOString() },
+  ];
+
   const loadLogs = async () => {
+    if (isDemoMode()) { setFetched(DEMO_LOGS); return; }
     setLoading(true);
     try {
       const res = await apiGetLogs(projectId, levelFilter === 'all' ? undefined : levelFilter, search.trim() || undefined, 1, 200);
@@ -2133,6 +2140,12 @@ function ErrorsTab({ projectId }: { projectId: string }) {
   const [loading, setLoading] = useState(false);
 
   const loadErrors = async () => {
+    // Demo mode: the backend returns an empty list, so surface the bundled
+    // demo errors for this project instead of showing "No errors reported".
+    if (isDemoMode()) {
+      setFetched(DEMO_ERRORS.filter((e) => e.projectId === projectId));
+      return;
+    }
     setLoading(true);
     try {
       const res = await apiGetErrors(projectId);
@@ -2155,13 +2168,13 @@ function ErrorsTab({ projectId }: { projectId: string }) {
     const local = state.errors.filter((e) => e.projectId === projectId);
     const backend = fetched.map((item: any) => ({
       id: item.id,
-      projectId: item.project_id || projectId,
+      projectId: item.project_id || item.projectId || projectId,
       title: item.title,
       message: item.message,
-      stackTrace: item.stack_trace || '',
+      stackTrace: item.stack_trace || item.stackTrace || '',
       count: item.count || 1,
       severity: item.severity as ErrorRecord['severity'],
-      lastSeen: item.updated_at || item.created_at,
+      lastSeen: item.updated_at || item.created_at || item.lastSeen,
       status: item.status as ErrorRecord['status'],
     }));
     return [...local, ...backend];
@@ -2237,8 +2250,9 @@ function ErrorsTab({ projectId }: { projectId: string }) {
 }
 
 function AITestingTab({ projectId }: { projectId: string }) {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const [prompt, setPrompt] = useState('');
+  const [running, setRunning] = useState(false);
 
   const testResults = useMemo(
     () => state.aiTestResults.filter((a) => a.projectId === projectId),
@@ -2249,6 +2263,41 @@ function AITestingTab({ projectId }: { projectId: string }) {
     () => testResults.flatMap((r) => r.results),
     [testResults]
   );
+
+  const handleRunTest = async () => {
+    if (!prompt.trim() || running) return;
+    setRunning(true);
+    // Simulate an AI test run, then dispatch the results into global state
+    // so they render below and persist for the session.
+    await new Promise((r) => setTimeout(r, 1800));
+    const checks = [
+      'Homepage loads successfully',
+      'Navigation links respond',
+      'Forms validate input',
+      'API endpoints reachable',
+      'Mobile layout renders',
+    ];
+    const results = checks.map((name) => {
+      const roll = Math.random();
+      return {
+        name,
+        status: (roll > 0.85 ? 'failed' : roll > 0.65 ? 'warning' : 'passed') as 'passed' | 'warning' | 'failed',
+        duration: `${(0.4 + Math.random() * 2).toFixed(1)}s`,
+      };
+    });
+    dispatch({
+      type: 'ADD_AI_RESULT',
+      payload: {
+        id: 'ai-' + Date.now(),
+        projectId,
+        prompt: prompt.trim(),
+        results,
+        createdAt: new Date().toISOString(),
+      },
+    });
+    setPrompt('');
+    setRunning(false);
+  };
 
   return (
     <motion.div
@@ -2273,9 +2322,13 @@ function AITestingTab({ projectId }: { projectId: string }) {
               placeholder="Test this website like a customer trying to purchase a product..."
             />
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-white to-white/90 text-white rounded-lg hover:opacity-90 transition-opacity">
-            <Zap className="w-4 h-4" />
-            <span>Run AI Test</span>
+          <button
+            onClick={handleRunTest}
+            disabled={!prompt.trim() || running}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-white to-white/90 text-black rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+            <span>{running ? 'Running...' : 'Run AI Test'}</span>
           </button>
         </div>
       </motion.div>
@@ -2602,6 +2655,75 @@ function SettingsTab({ project }: { project: Project }) {
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // Editable project settings — saved to the backend via PATCH /projects/:id
+  const [form, setForm] = useState({
+    repo: project.repo || '',
+    branch: project.branch || 'main',
+    framework: project.framework || '',
+    environment: project.environment || 'Production',
+    url: project.url || '',
+    description: project.description || '',
+    build_command: project.build_command || '',
+    start_command: project.start_command || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Reset the form if a different project is opened
+  useEffect(() => {
+    setForm({
+      repo: project.repo || '',
+      branch: project.branch || 'main',
+      framework: project.framework || '',
+      environment: project.environment || 'Production',
+      url: project.url || '',
+      description: project.description || '',
+      build_command: project.build_command || '',
+      start_command: project.start_command || '',
+    });
+    setSaveMsg(null);
+  }, [project.id]);
+
+  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+    setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      const updated = await apiUpdateProject(project.id, {
+        branch: form.branch.trim() || 'main',
+        framework: form.framework.trim() || undefined,
+        environment: form.environment,
+        repo_url: form.repo.trim() || undefined,
+        status: project.status,
+        build_command: form.build_command.trim() || undefined,
+        start_command: form.start_command.trim() || undefined,
+      });
+      // Merge the saved values into global state so every tab sees them
+      dispatch({
+        type: 'UPDATE_PROJECT',
+        payload: {
+          ...project,
+          ...(typeof updated === 'object' && updated !== null ? updated : {}),
+          repo: form.repo.trim(),
+          branch: form.branch.trim() || 'main',
+          framework: form.framework.trim(),
+          environment: form.environment,
+          url: form.url.trim(),
+          description: form.description.trim(),
+          build_command: form.build_command.trim(),
+          start_command: form.start_command.trim(),
+        },
+      });
+      setSaveMsg({ ok: true, text: 'Settings saved successfully.' });
+    } catch (err: any) {
+      setSaveMsg({ ok: false, text: err?.message || 'Failed to save settings.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDeleteProject = async () => {
     setDeleting(true);
     try {
@@ -2617,18 +2739,13 @@ function SettingsTab({ project }: { project: Project }) {
     setDeleting(false);
   };
 
-  const settings = [
-    { title: 'Git Repository', value: project.repo },
-    { title: 'Branch', value: project.branch },
-    { title: 'Framework', value: project.framework },
-    { title: 'Environment', value: project.environment || 'Production' },
-    { title: 'Public URL', value: project.url },
-  ];
+  const inputCls =
+    'w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 font-mono focus:outline-none focus:border-white/40';
 
   const envVars = [
     { key: 'DATABASE_URL', value: 'postgresql://...' },
     { key: 'API_KEY', value: '••••••••••••••••' },
-    { key: 'NODE_ENV', value: project.environment?.toLowerCase() || 'production' },
+    { key: 'NODE_ENV', value: (form.environment || 'production').toLowerCase() },
   ];
 
   return (
@@ -2638,24 +2755,82 @@ function SettingsTab({ project }: { project: Project }) {
       animate="visible"
       className="max-w-4xl mx-auto space-y-6"
     >
-      {settings.map((setting, i) => (
-        <motion.div
-          key={setting.title}
-          variants={itemVariants}
-          custom={i}
-          className="border border-white/10 rounded-xl p-6 bg-white/[0.02] backdrop-blur-sm"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-white mb-1">{setting.title}</h3>
-              <p className="text-sm text-white/40 font-mono">{setting.value}</p>
-            </div>
-            <button className="px-4 py-2 border border-white/10 rounded-lg hover:bg-white/5 text-white/60 hover:text-white transition-colors text-sm">
-              Edit
-            </button>
+      {/* General settings — editable, saved via PATCH /projects/:id */}
+      <motion.div
+        variants={itemVariants}
+        className="border border-white/10 rounded-xl p-6 bg-white/[0.02] backdrop-blur-sm space-y-4"
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-white">General Settings</h3>
+          {saveMsg && (
+            <span className={cn('text-xs', saveMsg.ok ? 'text-emerald-400' : 'text-red-400')}>
+              {saveMsg.text}
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-white/60 mb-1.5">Git Repository</label>
+            <input value={form.repo} onChange={set('repo')} placeholder="github.com/user/repo" className={inputCls} />
           </div>
-        </motion.div>
-      ))}
+          <div>
+            <label className="block text-sm text-white/60 mb-1.5">Branch</label>
+            <input value={form.branch} onChange={set('branch')} placeholder="main" className={inputCls} />
+          </div>
+          <div>
+            <label className="block text-sm text-white/60 mb-1.5">Framework</label>
+            <select value={form.framework} onChange={set('framework')} className={cn(inputCls, 'bg-[#1a1a24]')}>
+              {['nextjs', 'react', 'vue', 'nuxt', 'svelte', 'nodejs', 'express', 'python', 'django', 'fastapi', 'go', 'rust', 'astro', 'other'].map((f) => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm text-white/60 mb-1.5">Environment</label>
+            <select value={form.environment} onChange={set('environment')} className={cn(inputCls, 'bg-[#1a1a24]')}>
+              {['Production', 'Staging', 'Development'].map((e) => (
+                <option key={e} value={e}>{e}</option>
+              ))}
+            </select>
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm text-white/60 mb-1.5">Public URL</label>
+            <input value={form.url} onChange={set('url')} placeholder="https://my-app.example.io" className={inputCls} />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm text-white/60 mb-1.5">Description</label>
+            <textarea value={form.description} onChange={set('description')} placeholder="What does this project do?" rows={2} className={cn(inputCls, 'resize-none')} />
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Build & run commands */}
+      <motion.div
+        variants={itemVariants}
+        className="border border-white/10 rounded-xl p-6 bg-white/[0.02] backdrop-blur-sm space-y-4"
+      >
+        <div>
+          <h3 className="font-semibold text-white">Build & Run Commands</h3>
+          <p className="text-xs text-white/40 mt-1">Used when publishing from the Overview tab. Leave blank to use the framework defaults.</p>
+        </div>
+        <div>
+          <label className="block text-sm text-white/60 mb-1.5">Build Command</label>
+          <input value={form.build_command} onChange={set('build_command')} placeholder="npm install && npm run build" className={inputCls} />
+        </div>
+        <div>
+          <label className="block text-sm text-white/60 mb-1.5">Run / Start Command</label>
+          <input value={form.start_command} onChange={set('start_command')} placeholder="npm run start -- -p 8000" className={inputCls} />
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-white to-white/90 text-black rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving ? 'Saving...' : 'Save Settings'}
+        </button>
+      </motion.div>
 
       <motion.div
         variants={itemVariants}

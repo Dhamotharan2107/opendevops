@@ -25,9 +25,9 @@ const containerVariants = {
 /* ---------- Section helpers ---------- */
 function SectionBadge({ icon: Icon, label }: { icon: any; label: string }) {
   return (
-    <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/15 rounded-full mb-6 backdrop-blur-sm">
-      <Icon className="w-4 h-4 text-white" />
-      <span className="text-sm text-white/80 font-medium tracking-wide">{label}</span>
+    <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-4 py-2 bg-accent/5 border border-border rounded-full mb-6 backdrop-blur-sm">
+      <Icon className="w-4 h-4 text-foreground" />
+      <span className="text-sm text-foreground/80 font-medium tracking-wide">{label}</span>
     </motion.div>
   );
 }
@@ -36,10 +36,10 @@ function SectionHeader({ badge, title, description }: { badge: React.ReactNode; 
   return (
     <motion.div variants={itemVariants} className="text-center mb-16 md:mb-20">
       {badge}
-      <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 px-4 text-white">
+      <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 px-4 text-foreground">
         {title}
       </h2>
-      <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-[620px] mx-auto px-4 leading-relaxed">
+      <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-[620px] mx-auto px-4 leading-relaxed">
         {description}
       </p>
     </motion.div>
@@ -118,28 +118,28 @@ function AnimatedTerminal() {
   }, [inView]);
 
   const colorMap: Record<string, string> = {
-    cmd: 'text-white',
-    info: 'text-gray-500',
-    ok: 'text-gray-400',
-    url: 'text-white',
+    cmd: 'text-foreground',
+    info: 'text-muted-foreground',
+    ok: 'text-muted-foreground',
+    url: 'text-foreground',
   };
 
   return (
-    <div ref={ref} className="relative border border-white/10 rounded-xl sm:rounded-2xl bg-[#0A0A0A] p-1 shadow-2xl shadow-black/50 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-      <div className="rounded-lg sm:rounded-xl bg-gradient-to-b from-[#161616] to-[#0A0A0A] overflow-hidden relative">
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/5">
+    <div ref={ref} className="relative border border-border rounded-xl sm:rounded-2xl bg-background p-1 shadow-2xl shadow-black/5 overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent pointer-events-none" />
+      <div className="rounded-lg sm:rounded-xl bg-gradient-to-b from-background to-background p-1 overflow-hidden relative">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border/5">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="flex gap-1.5 sm:gap-2">
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-white/30" />
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-white/30" />
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-white/30" />
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-accent/30" />
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-accent/30" />
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-accent/30" />
             </div>
-            <span className="text-[11px] sm:text-sm text-gray-500 font-mono">opendevops-deploy</span>
+            <span className="text-[11px] sm:text-sm text-muted-foreground font-mono">opendevops-deploy</span>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-0.5 sm:py-1 bg-white/5 border border-white/15 rounded-full">
-            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse" />
-            <span className="text-[10px] sm:text-xs text-white font-medium">Deployed</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-0.5 sm:py-1 bg-accent border border-border rounded-full">
+            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full animate-pulse" />
+            <span className="text-[10px] sm:text-xs text-foreground font-medium">Deployed</span>
           </div>
         </div>
         <div className="p-4 sm:p-6 font-mono text-[11px] sm:text-sm space-y-1.5 sm:space-y-2 min-h-[230px]">
@@ -154,10 +154,10 @@ function AnimatedTerminal() {
                 animate={{ opacity: 1, x: 0 }}
                 className="flex items-center gap-2 sm:gap-3"
               >
-                {line.type === 'cmd' && <span className="text-gray-600">$</span>}
-                {line.type === 'ok' && <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white shrink-0" />}
-                {line.type === 'info' && <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-white/60 shrink-0" />}
-                {line.type === 'url' && <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-white" />}
+                {line.type === 'cmd' && <span className="text-muted-foreground/50">$</span>}
+                {line.type === 'ok' && <Check className="w-3 h-3 sm:w-4 sm:h-4 text-foreground shrink-0" />}
+                {line.type === 'info' && <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-foreground/60 shrink-0" />}
+                {line.type === 'url' && <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-foreground" />}
                 <span className={`${colorMap[line.type]} ${line.type !== 'cmd' && line.type !== 'url' ? 'pl-0' : ''}`}>
                   {isCurrent ? typed : line.text}
                   {isCurrent && <span className="animate-blink">▋</span>}
@@ -166,19 +166,19 @@ function AnimatedTerminal() {
             );
           })}
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/5 border-t border-white/5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border/5 border-t border-border/5">
           {[
-            { label: 'Deploy Time', value: '12.4s', icon: Zap, color: 'text-white' },
-            { label: 'Response Time', value: '42ms', icon: Gauge, color: 'text-white' },
-            { label: 'Success Rate', value: '99.9%', icon: TrendingUp, color: 'text-white' },
-            { label: 'Tests', value: '15/15', icon: Check, color: 'text-white' }
+            { label: 'Deploy Time', value: '12.4s', icon: Zap, color: 'text-foreground' },
+            { label: 'Response Time', value: '42ms', icon: Gauge, color: 'text-foreground' },
+            { label: 'Success Rate', value: '99.9%', icon: TrendingUp, color: 'text-foreground' },
+            { label: 'Tests', value: '15/15', icon: Check, color: 'text-foreground' }
           ].map((metric, i) => (
-            <div key={i} className="bg-[#0A0A0A] px-3 sm:px-4 py-2 sm:py-3">
+            <div key={i} className="bg-background px-3 sm:px-4 py-2 sm:py-3">
               <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
                 <metric.icon className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${metric.color}`} />
-                <span className="text-[10px] sm:text-xs text-gray-500">{metric.label}</span>
+                <span className="text-[10px] sm:text-xs text-muted-foreground">{metric.label}</span>
               </div>
-              <div className="text-sm sm:text-base font-semibold text-white">{metric.value}</div>
+              <div className="text-sm sm:text-base font-semibold text-foreground">{metric.value}</div>
             </div>
           ))}
         </div>
@@ -201,48 +201,48 @@ export function NewLandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-x-hidden">
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       {/* Scroll progress bar */}
       <motion.div
         style={{ scaleX }}
-        className="fixed top-0 left-0 right-0 h-0.5 bg-white z-[60] origin-left"
+        className="fixed top-0 left-0 right-0 h-0.5 bg-primary z-[60] origin-left"
       />
 
-      {/* Animated Background — pure monochrome */}
+      {/* Animated Background — theme-aware */}
       <div className="fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(255,255,255,0.06)_0%,transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_80%,rgba(255,255,255,0.04)_0%,transparent_50%)]" />
-        <div className="absolute top-[10%] left-[15%] w-[500px] h-[500px] bg-white/[0.04] rounded-full blur-[120px] animate-aurora" />
-        <div className="absolute bottom-[10%] right-[10%] w-[450px] h-[450px] bg-white/[0.03] rounded-full blur-[120px] animate-aurora-reverse" />
-        <div className="absolute top-[45%] left-[55%] w-[380px] h-[380px] bg-white/[0.02] rounded-full blur-[100px] animate-float-slow" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,var(--primary)/0.06_0%,transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_80%,var(--primary)/0.04_0%,transparent_50%)]" />
+        <div className="absolute top-[10%] left-[15%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] animate-aurora" />
+        <div className="absolute bottom-[10%] right-[10%] w-[450px] h-[450px] bg-primary/3 rounded-full blur-[120px] animate-aurora-reverse" />
+        <div className="absolute top-[45%] left-[55%] w-[380px] h-[380px] bg-primary/2 rounded-full blur-[100px] animate-float-slow" />
         <div
-          className="absolute inset-0 grid-fade bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem]"
+          className="absolute inset-0 grid-fade bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[size:4rem_4rem]"
         />
       </div>
 
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-xl">
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/70 backdrop-blur-xl">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 h-[64px] sm:h-[72px] flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
             <motion.div
               whileHover={{ scale: 1.1, rotate: 8 }}
               transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-white/10 hover:shadow-white/20 transition-shadow"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-shadow"
             >
-              <img src={Logo} alt="Opendevops Logo" className="w-6 h-6 sm:w-7 sm:h-7 invert" />
+              <img src={Logo} alt="Opendevops Logo" className="w-6 h-6 sm:w-7 sm:h-7" />
             </motion.div>
             <div className="flex flex-col">
-              <span className="font-semibold text-sm sm:text-base text-white leading-none group-hover:text-white/70 transition-colors">Opendevops</span>
-              <span className="text-[9px] sm:text-[10px] text-gray-500 leading-none mt-0.5">DevOps Platform</span>
+              <span className="font-semibold text-sm sm:text-base text-foreground leading-none group-hover:text-foreground/70 transition-colors">Opendevops</span>
+              <span className="text-[9px] sm:text-[10px] text-muted-foreground leading-none mt-0.5">DevOps Platform</span>
             </div>
           </Link>
 
-          <div className="hidden lg:flex items-center gap-1 bg-white/5 rounded-full p-1 border border-white/10">
+          <div className="hidden lg:flex items-center gap-1 bg-accent rounded-full p-1 border border-border">
             {navLinks.map((item) => (
               <a
                 key={item.label}
                 href={item.href}
-                className="px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 font-medium"
+                className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-full transition-all duration-200 font-medium"
               >
                 {item.label}
               </a>
@@ -250,17 +250,17 @@ export function NewLandingPage() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Link to="/login" className="hidden sm:inline-flex px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors font-medium">
+            <Link to="/login" className="hidden sm:inline-flex px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors font-medium">
               Sign in
             </Link>
-            <Link to="/register" className="px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-black rounded-lg text-sm font-semibold hover:bg-white/90 transition-all flex items-center gap-2 shadow-lg shadow-white/10 hover:shadow-white/20 group">
-              <span className="hidden sm:inline">Get Started</span>
-              <span className="sm:hidden">Start</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            <Link to="/register" className="px-4 sm:px-5 py-2 sm:py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-all flex items-center gap-2 shadow-lg shadow-primary/10 hover:shadow-primary/20 group relative overflow-hidden">
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+              <span className="relative">Start building free</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform relative" />
             </Link>
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="lg:hidden p-2 text-gray-400 hover:text-white transition-colors"
+              className="lg:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -272,7 +272,7 @@ export function NewLandingPage() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden border-t border-white/10 bg-black overflow-hidden"
+            className="lg:hidden border-t border-border bg-background overflow-hidden"
           >
             <div className="px-4 py-4 space-y-1">
               {navLinks.map((item) => (
@@ -280,16 +280,16 @@ export function NewLandingPage() {
                   key={item.label}
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
-                  className="block px-4 py-3 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                  className="block px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-xl transition-all"
                 >
                   {item.label}
                 </a>
               ))}
-              <hr className="border-white/10 my-2" />
+              <hr className="border-border my-2" />
               <Link
                 to="/login"
                 onClick={() => setMobileOpen(false)}
-                className="block px-4 py-3 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                className="block px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-xl transition-all"
               >
                 Sign in
               </Link>
@@ -306,17 +306,17 @@ export function NewLandingPage() {
         variants={containerVariants}
         className="relative pt-28 sm:pt-36 pb-16 sm:pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden"
       >
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-white/[0.08] rounded-full blur-[120px] opacity-30" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/8 rounded-full blur-[120px] opacity-30" />
 
         <div className="max-w-[1400px] mx-auto relative z-10">
           <motion.div variants={itemVariants} className="flex justify-center mb-6 sm:mb-8">
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-full backdrop-blur-sm group">
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-accent/5 border border-border rounded-full backdrop-blur-sm group">
               <span className="relative flex h-2 w-2">
-                <span className="animate-pulse-ring absolute inline-flex h-full w-full rounded-full bg-white" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+                <span className="animate-pulse-ring absolute inline-flex h-full w-full rounded-full bg-primary" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
               </span>
-              <Sparkles className="w-3.5 h-3.5 text-white" />
-              <span className="text-xs sm:text-sm text-white/80">All-in-one DevOps platform</span>
+              <Sparkles className="w-3.5 h-3.5 text-foreground" />
+              <span className="text-xs sm:text-sm text-foreground/80">All-in-one DevOps platform</span>
             </div>
           </motion.div>
 
@@ -330,27 +330,27 @@ export function NewLandingPage() {
               >
                 Deploy. Monitor. Ship.
               </motion.span>
-              <span className="block text-white bg-clip-text text-transparent text-glow mt-1">
+              <span className="block text-foreground bg-clip-text text-transparent text-glow mt-1">
                 All from one dashboard.
               </span>
             </h1>
-            <p className="text-base sm:text-lg md:text-xl text-gray-400 mb-8 sm:mb-10 max-w-[650px] mx-auto leading-relaxed px-4">
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-8 sm:mb-10 max-w-[650px] mx-auto leading-relaxed px-4">
               Opendevops brings your projects, deployments, terminal, logs, monitoring, and team collaboration together — so you can manage your entire infrastructure from a single place.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4">
-              <Link to="/register" className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white text-black rounded-xl font-semibold hover:bg-white/90 transition-all flex items-center justify-center gap-2 text-sm sm:text-base shadow-lg shadow-white/10 hover:shadow-white/20 group relative overflow-hidden">
-                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+              <Link to="/register" className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition-all flex items-center justify-center gap-2 text-sm sm:text-base shadow-lg shadow-primary/10 hover:shadow-primary/20 group relative overflow-hidden">
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                 <span className="relative">Start building free</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform relative" />
               </Link>
-              <Link to="/login" className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white/5 border border-white/10 rounded-xl font-semibold hover:bg-white/10 transition-all flex items-center justify-center gap-2 text-sm sm:text-base backdrop-blur-sm group">
+              <Link to="/login" className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-accent border border-border rounded-xl font-semibold hover:bg-accent/80 transition-all flex items-center justify-center gap-2 text-sm sm:text-base backdrop-blur-sm group">
                 <TerminalSquare className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span>View demo</span>
               </Link>
             </div>
           </motion.div>
 
-          <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 md:gap-10 mb-12 sm:mb-16 text-xs sm:text-sm text-gray-500 px-4">
+          <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 md:gap-10 mb-12 sm:mb-16 text-xs sm:text-sm text-muted-foreground px-4">
             {[
               { icon: GitBranch, text: 'Git-based deploys' },
               { icon: Terminal, text: 'Real-time terminal' },
@@ -362,14 +362,14 @@ export function NewLandingPage() {
                 whileHover={{ scale: 1.08, y: -2 }}
                 className="flex items-center gap-1.5 sm:gap-2 cursor-default"
               >
-                <item.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                <item.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-foreground" />
                 <span>{item.text}</span>
               </motion.div>
             ))}
           </motion.div>
 
           <motion.div variants={itemVariants} className="relative group max-w-[1000px] mx-auto">
-            <div className="absolute -inset-1 bg-white rounded-2xl blur-2xl opacity-5 group-hover:opacity-10 transition-opacity duration-500" />
+            <div className="absolute -inset-1 bg-primary rounded-2xl blur-2xl opacity-5 group-hover:opacity-10 transition-opacity duration-500" />
             <AnimatedTerminal />
           </motion.div>
         </div>
@@ -400,13 +400,13 @@ export function NewLandingPage() {
                 key={i}
                 variants={itemVariants}
                 whileHover={{ y: -6 }}
-                className="p-6 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.08] transition-all"
+                className="p-6 bg-card border border-border rounded-2xl hover:bg-accent hover:border-border transition-all"
               >
-                <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-4">
-                  <item.icon className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center mb-4">
+                  <item.icon className="w-6 h-6 text-foreground" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                <p className="text-sm text-gray-400 leading-relaxed">{item.desc}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
               </motion.div>
             ))}
           </motion.div>
@@ -430,7 +430,7 @@ export function NewLandingPage() {
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 relative">
-            <div className="hidden sm:block absolute top-20 left-[16%] right-[16%] h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+            <div className="hidden sm:block absolute top-20 left-[16%] right-[16%] h-px bg-gradient-to-r from-transparent via-border/30 to-transparent" />
             {[
               {
                 step: '01',
@@ -454,14 +454,14 @@ export function NewLandingPage() {
               <TiltCard key={i}>
                 <motion.div
                   variants={itemVariants}
-                  className="group relative p-6 sm:p-8 bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl hover:border-white/30 hover:bg-white/[0.06] transition-all duration-300 h-full"
+                  className="group relative p-6 sm:p-8 bg-gradient-to-br from-accent/5 to-accent/[0.02] border border-border rounded-2xl hover:border-border hover:bg-accent/6 transition-all duration-300 h-full"
                 >
-                  <span className="text-5xl sm:text-6xl font-bold text-white/5 absolute top-4 right-6 select-none group-hover:text-white/10 transition-colors">{item.step}</span>
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white flex items-center justify-center mb-5 sm:mb-6 shadow-lg group-hover:scale-110 transition-transform">
-                    <item.icon className="w-7 h-7 sm:w-8 sm:h-8 text-black" />
+                  <span className="text-5xl sm:text-6xl font-bold text-foreground/5 absolute top-4 right-6 select-none group-hover:text-foreground/10 transition-colors">{item.step}</span>
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center mb-5 sm:mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                    <item.icon className="w-7 h-7 sm:w-8 sm:h-8" />
                   </div>
                   <h3 className="text-lg sm:text-xl font-semibold mb-3 relative z-10">{item.title}</h3>
-                  <p className="text-sm sm:text-base text-gray-400 leading-relaxed relative z-10">{item.description}</p>
+                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed relative z-10">{item.description}</p>
                 </motion.div>
               </TiltCard>
             ))}
@@ -497,29 +497,29 @@ export function NewLandingPage() {
                 whileHover={{ y: -8 }}
                 className={`relative p-6 sm:p-8 rounded-2xl ${
                   plan.popular
-                    ? 'bg-white/10 border border-white/40 shadow-xl shadow-white/10'
-                    : 'bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10'
+                    ? 'bg-accent border border-border shadow-xl shadow-primary/10'
+                    : 'bg-gradient-to-br from-accent/5 to-accent/[0.02] border border-border'
                 }`}
               >
                 {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 sm:px-4 py-1 bg-white text-black rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap shadow-lg">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 sm:px-4 py-1 bg-primary text-primary-foreground rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap shadow-lg">
                     Most Popular
                   </div>
                 )}
                 <h3 className="text-xl sm:text-2xl font-bold mb-1">{plan.name}</h3>
                 <div className="text-3xl sm:text-4xl font-bold mb-6 sm:mb-8">
-                  {plan.price}<span className="text-base sm:text-lg text-gray-400 font-normal">{plan.period}</span>
+                  {plan.price}<span className="text-base sm:text-lg text-muted-foreground font-normal">{plan.period}</span>
                 </div>
                 <ul className="space-y-2.5 sm:space-y-3 mb-8 sm:mb-10">
                   {plan.features.map((f, j) => (
-                    <li key={j} className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base text-gray-300">
-                      <Check className="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0" />
+                    <li key={j} className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base text-muted-foreground">
+                      <Check className="w-4 h-4 sm:w-5 sm:h-5 text-foreground shrink-0" />
                       <span>{f}</span>
                     </li>
                   ))}
                 </ul>
                 {plan.to === '#' ? (
-                  <button className="w-full py-2.5 sm:py-3 bg-white/5 border border-white/10 text-white rounded-xl font-semibold hover:bg-white/10 transition-all text-sm sm:text-base">
+                  <button className="w-full py-2.5 sm:py-3 bg-accent border border-border text-foreground rounded-xl font-semibold hover:bg-accent/80 transition-all text-sm sm:text-base">
                     {plan.cta}
                   </button>
                 ) : (
@@ -527,8 +527,8 @@ export function NewLandingPage() {
                     to={plan.to}
                     className={`w-full py-2.5 sm:py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 text-sm sm:text-base group ${
                       plan.popular
-                        ? 'bg-white text-black hover:bg-white/90 shadow-lg'
-                        : 'bg-white text-black hover:bg-white/90'
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg'
+                        : 'bg-primary text-primary-foreground hover:bg-primary/90'
                     }`}
                   >
                     {plan.cta}
@@ -542,27 +542,27 @@ export function NewLandingPage() {
       </motion.section>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 py-10 sm:py-12 px-4 sm:px-6 lg:px-8 relative z-10">
+      <footer className="border-t border-border py-10 sm:py-12 px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-[1400px] mx-auto">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8 sm:gap-12 mb-10 sm:mb-12">
             <div className="col-span-2 sm:col-span-3 lg:col-span-2">
               <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-white/10">
-                  <img src={Logo} alt="Opendevops Logo" className="w-6 h-6 sm:w-7 sm:h-7 invert" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/10">
+                  <img src={Logo} alt="Opendevops Logo" className="w-6 h-6 sm:w-7 sm:h-7" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-semibold text-sm sm:text-base text-white">Opendevops</span>
-                  <span className="text-[10px] sm:text-xs text-gray-500">DevOps Platform</span>
+                  <span className="font-semibold text-sm sm:text-base text-foreground">Opendevops</span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground">DevOps Platform</span>
                 </div>
               </div>
-              <p className="text-sm text-gray-500 mb-4 sm:mb-6 max-w-[300px]">
+              <p className="text-sm text-muted-foreground mb-4 sm:mb-6 max-w-[300px]">
                 Manage your projects, deployments, terminal, logs, and team — all in one place.
               </p>
               <div className="flex items-center gap-3 sm:gap-4">
-                <a href="#" className="text-gray-500 hover:text-white transition-colors">
+                <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
                   <Github className="w-5 h-5 sm:w-6 sm:h-6" />
                 </a>
-                <a href="#" className="text-gray-500 hover:text-white transition-colors">
+                <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
                   <Twitter className="w-5 h-5 sm:w-6 sm:h-6" />
                 </a>
               </div>
@@ -574,18 +574,18 @@ export function NewLandingPage() {
               { title: 'Legal', links: ['Privacy', 'Terms', 'Security'] }
             ].map((section, i) => (
               <div key={i}>
-                <h4 className="font-semibold mb-3 sm:mb-4 text-xs sm:text-sm text-white">{section.title}</h4>
+                <h4 className="font-semibold mb-3 sm:mb-4 text-xs sm:text-sm text-foreground">{section.title}</h4>
                 <ul className="space-y-2 sm:space-y-3">
                   {section.links.map((link) => {
                     const href = link === 'Docs' ? '/docs' : '#';
                     return (
                       <li key={link}>
                         {link === 'Docs' ? (
-                          <Link to={href} className="text-xs sm:text-sm text-gray-500 hover:text-white transition-colors">
+                          <Link to={href} className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors">
                             {link}
                           </Link>
                         ) : (
-                          <a href={href} className="text-xs sm:text-sm text-gray-500 hover:text-white transition-colors">
+                          <a href={href} className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors">
                             {link}
                           </a>
                         )}
@@ -597,7 +597,7 @@ export function NewLandingPage() {
             ))}
           </div>
 
-          <div className="pt-6 sm:pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs sm:text-sm text-gray-500">
+          <div className="pt-6 sm:pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2 text-xs sm:text-sm text-muted-foreground">
             <p>© 2025 Opendevops, Inc. All rights reserved.</p>
             <p>Built with care for developers</p>
           </div>

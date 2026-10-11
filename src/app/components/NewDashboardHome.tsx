@@ -40,19 +40,19 @@ function StatCard({ icon: Icon, label, value, sub, gradient, href }: {
     <motion.div
       variants={fadeUp}
       whileHover={{ y: -3 }}
-      className="group relative p-5 bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden cursor-default"
+      className="group relative p-5 bg-card border border-border rounded-xl overflow-hidden cursor-default"
     >
       <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${gradient}`} />
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-3">
-          <div className="w-10 h-10 rounded-lg bg-white/[0.07] border border-white/[0.08] flex items-center justify-center group-hover:scale-110 transition-transform">
-            <Icon className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-lg bg-card border border-border flex items-center justify-center group-hover:scale-110 transition-transform">
+            <Icon className="w-5 h-5 text-foreground" />
           </div>
-          <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/60 transition-colors" />
+          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
         </div>
-        <div className="text-2xl font-bold text-white font-mono tabular-nums mb-0.5">{value}</div>
-        <div className="text-sm text-white/50 group-hover:text-white/70 transition-colors">{label}</div>
-        {sub && <div className="text-xs text-white/30 mt-1 font-mono">{sub}</div>}
+        <div className="text-2xl font-bold text-foreground font-mono tabular-nums mb-0.5">{value}</div>
+        <div className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">{label}</div>
+        {sub && <div className="text-xs text-muted-foreground/70 mt-1 font-mono">{sub}</div>}
       </div>
     </motion.div>
   );
@@ -66,21 +66,21 @@ function ResourceCard({ icon: Icon, label, desc, href, badge }: {
     <motion.div variants={fadeUp}>
       <Link
         to={href}
-        className="group flex items-center gap-4 p-4 bg-white/[0.03] border border-white/[0.08] rounded-xl hover:bg-white/[0.06] hover:border-white/20 transition-all"
+        className="group flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:bg-accent hover:border-border transition-all"
       >
-        <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-          <Icon className="w-5 h-5 text-white" />
+        <div className="w-11 h-11 rounded-xl bg-accent border border-border flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+          <Icon className="w-5 h-5 text-foreground" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium text-white group-hover:text-white transition-colors">{label}</div>
-          <div className="text-xs text-white/40 mt-0.5 truncate">{desc}</div>
+          <div className="text-sm font-medium text-foreground group-hover:text-foreground transition-colors">{label}</div>
+          <div className="text-xs text-muted-foreground mt-0.5 truncate">{desc}</div>
         </div>
         {badge && (
-          <div className="text-xs text-white/40 font-mono bg-white/5 px-2 py-1 rounded-md border border-white/10">
+          <div className="text-xs text-muted-foreground font-mono bg-accent px-2 py-1 rounded-md border border-border">
             {badge}
           </div>
         )}
-        <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/60 transition-all group-hover:translate-x-0.5 flex-shrink-0" />
+        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-all group-hover:translate-x-0.5 flex-shrink-0" />
       </Link>
     </motion.div>
   );
@@ -88,23 +88,23 @@ function ResourceCard({ icon: Icon, label, desc, href, badge }: {
 
 function DeploymentRow({ d }: { d: any }) {
   const statusColor = d.status === 'success' || d.status === 'deployed'
-    ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+    ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 dark:bg-emerald-500/20 dark:border-emerald-500/30 dark:text-emerald-300'
     : d.status === 'failed'
-    ? 'text-red-400 bg-red-500/10 border-red-500/20'
-    : 'text-blue-400 bg-blue-500/10 border-blue-500/20';
+      ? 'text-red-400 bg-red-500/10 border-red-500/20 dark:bg-red-500/20 dark:border-red-500/30 dark:text-red-300'
+      : 'text-blue-400 bg-blue-500/10 border-blue-500/20 dark:bg-blue-500/20 dark:border-blue-500/30 dark:text-blue-300';
   const pulseDot = d.status === 'success' || d.status === 'deployed';
   return (
-    <div className="flex items-center gap-4 py-3 px-4 hover:bg-white/[0.03] rounded-lg transition-colors group">
+    <div className="flex items-center gap-4 py-3 px-4 hover:bg-accent rounded-lg transition-colors group">
       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${pulseDot ? 'bg-emerald-400 animate-pulse' : d.status === 'failed' ? 'bg-red-400' : 'bg-blue-400'}`} />
       <div className="flex-1 min-w-0">
-        <div className="text-sm text-white font-medium truncate">{d.project_name || 'Unknown Project'}</div>
-        <div className="text-xs text-white/40 font-mono truncate">{d.commit ? d.commit.slice(0, 12) : '—'}</div>
+        <div className="text-sm text-foreground font-medium truncate">{d.project_name || 'Unknown Project'}</div>
+        <div className="text-xs text-muted-foreground font-mono truncate">{d.commit ? d.commit.slice(0, 12) : '—'}</div>
       </div>
       <div className={`text-xs font-medium px-2.5 py-1 rounded-full border flex-shrink-0 ${statusColor}`}>
         {pulseDot && <span className="w-1.5 h-1.5 inline-block rounded-full bg-current mr-1.5" />}
         {(d.status || 'unknown').charAt(0).toUpperCase() + (d.status || 'unknown').slice(1)}
       </div>
-      <div className="text-xs text-white/30 flex-shrink-0 hidden sm:block">{d.time || '—'}</div>
+      <div className="text-xs text-muted-foreground flex-shrink-0 hidden sm:block">{d.time || '—'}</div>
     </div>
   );
 }
@@ -137,7 +137,7 @@ export function NewDashboardHome() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-8 h-8 animate-spin text-white" />
+        <Loader2 className="w-8 h-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -146,9 +146,9 @@ export function NewDashboardHome() {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="text-center space-y-4">
-          <AlertTriangle className="w-12 h-12 text-red-400 mx-auto" />
-          <p className="text-white font-medium">{error}</p>
-          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm">
+          <AlertTriangle className="w-12 h-12 text-destructive mx-auto" />
+          <p className="text-foreground font-medium">{error}</p>
+          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-accent border border-border rounded-lg text-foreground text-sm">
             Retry
           </button>
         </div>
@@ -168,23 +168,23 @@ export function NewDashboardHome() {
         {/* === Top Bar — AWS Console Style === */}
         <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs text-white/30 font-mono">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
               <MapPin className="w-3 h-3" />
               <span>us-east-1</span>
-              <span className="text-white/10">|</span>
+              <span className="text-muted-foreground/30">|</span>
               <span>{user?.name || 'Console'}</span>
-              <span className="text-white/10">|</span>
+              <span className="text-muted-foreground/30">|</span>
               <span className="text-emerald-400/70">{user?.plan || 'Free'}</span>
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">
               {greeting}, {user?.name?.split(' ')[0] || 'there'}
             </h1>
-            <p className="text-sm text-white/40">{dateStr}</p>
+            <p className="text-sm text-muted-foreground">{dateStr}</p>
           </div>
           <div className="flex items-center gap-2">
             <Link
               to="/dashboard/projects"
-              className="group relative flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-white/90 transition-all"
+              className="group relative flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-all"
             >
               <Plus className="w-4 h-4" />
               Create project
@@ -195,28 +195,28 @@ export function NewDashboardHome() {
         {/* === Resource Summary — Like AWS Console === */}
         <motion.div variants={fadeUp}>
           <div className="flex items-center gap-2 mb-4">
-            <Layers className="w-4 h-4 text-white/40" />
-            <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider">Resources</h2>
+            <Layers className="w-4 h-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Resources</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <StatCard
               icon={FolderKanban} label="Projects" value={stats.totalProjects}
-              gradient="bg-gradient-to-br from-white/10 via-transparent to-white/5"
+              gradient="bg-gradient-to-br from-primary/10 via-transparent to-primary/5"
               href="/dashboard/projects"
             />
             <StatCard
               icon={Cloud} label="Deployments" value={stats.totalDeployments}
-              gradient="bg-gradient-to-br from-white/10 via-transparent to-white/5"
+              gradient="bg-gradient-to-br from-primary/10 via-transparent to-primary/5"
               href="/dashboard/deployments"
             />
             <StatCard
               icon={Bug} label="Open Bugs" value={stats.openBugs}
-              gradient="bg-gradient-to-br from-white/10 via-transparent to-white/5"
+              gradient="bg-gradient-to-br from-primary/10 via-transparent to-primary/5"
               href="/dashboard/bugs"
             />
             <StatCard
               icon={AlertTriangle} label="Errors" value={stats.totalErrors}
-              gradient="bg-gradient-to-br from-white/10 via-transparent to-white/5"
+              gradient="bg-gradient-to-br from-primary/10 via-transparent to-primary/5"
               href="/dashboard/errors"
             />
           </div>
@@ -225,8 +225,8 @@ export function NewDashboardHome() {
         {/* === Services — Like AWS Management Console === */}
         <motion.div variants={fadeUp}>
           <div className="flex items-center gap-2 mb-4">
-            <Server className="w-4 h-4 text-white/40" />
-            <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider">Services</h2>
+            <Server className="w-4 h-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Services</h2>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
             <ResourceCard icon={Terminal} label="Terminal" desc="Cloud shell workspace" href="/dashboard/terminal" />
@@ -246,21 +246,21 @@ export function NewDashboardHome() {
         <motion.div variants={fadeUp} className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
           {/* Recent Deployments */}
-          <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.08]">
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <div className="flex items-center gap-2">
                 <Cloud className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-sm font-semibold text-white">Recent Deployments</h3>
+                <h3 className="text-sm font-semibold text-foreground">Recent Deployments</h3>
               </div>
-              <Link to="/dashboard/deployments" className="flex items-center gap-1 text-xs text-white/40 hover:text-white/70 transition-colors">
+              <Link to="/dashboard/deployments" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
                 View all <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
-            <div className="divide-y divide-white/[0.06]">
+            <div className="divide-y divide-border">
               {recentDeployments.length === 0 ? (
                 <div className="py-10 text-center">
-                  <Cloud className="w-8 h-8 text-white/20 mx-auto mb-2" />
-                  <p className="text-sm text-white/30">No deployments yet</p>
+                  <Cloud className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No deployments yet</p>
                 </div>
               ) : recentDeployments.map((d: any, i: number) => (
                 <DeploymentRow key={d.id || i} d={d} />
@@ -269,27 +269,27 @@ export function NewDashboardHome() {
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.08]">
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-white" />
-                <h3 className="text-sm font-semibold text-white">Recent Activity</h3>
+                <Activity className="w-4 h-4 text-foreground" />
+                <h3 className="text-sm font-semibold text-foreground">Recent Activity</h3>
               </div>
             </div>
-            <div className="divide-y divide-white/[0.06]">
+            <div className="divide-y divide-border">
               {notifications.length === 0 ? (
                 <div className="py-10 text-center">
-                  <Activity className="w-8 h-8 text-white/20 mx-auto mb-2" />
-                  <p className="text-sm text-white/30">No recent activity</p>
+                  <Activity className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No recent activity</p>
                 </div>
               ) : notifications.slice(0, 6).map((n: any, i: number) => (
-                <div key={n.id || i} className="flex items-start gap-3 py-3 px-5 hover:bg-white/[0.03] transition-colors">
-                  <div className="w-2 h-2 rounded-full bg-white/50 mt-1.5 flex-shrink-0" />
+                <div key={n.id || i} className="flex items-start gap-3 py-3 px-5 hover:bg-accent transition-colors">
+                  <div className="w-2 h-2 rounded-full bg-muted-foreground/50 mt-1.5 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm text-white/80 truncate">{n.title || 'Activity'}</div>
-                    <div className="text-xs text-white/40 mt-0.5">{n.message || n.details || ''}</div>
+                    <div className="text-sm text-foreground/80 truncate">{n.title || 'Activity'}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{n.message || n.details || ''}</div>
                   </div>
-                  <div className="text-xs text-white/30 flex-shrink-0">{n.created_at ? new Date(n.created_at).toLocaleDateString() : ''}</div>
+                  <div className="text-xs text-muted-foreground flex-shrink-0">{n.created_at ? new Date(n.created_at).toLocaleDateString() : ''}</div>
                 </div>
               ))}
             </div>
@@ -300,5 +300,3 @@ export function NewDashboardHome() {
     </motion.div>
   );
 }
-
-
